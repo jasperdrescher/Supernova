@@ -34,7 +34,7 @@ public:
 
 	VulkanBuffer vertexBuffer;
 	VulkanBuffer indexBuffer;
-	uint32_t indexCount{0};
+	std::uint32_t indexCount{0};
 
 	struct UniformBuffer : VulkanBuffer
 	{
@@ -61,7 +61,7 @@ public:
 	VkCommandPool commandPool{VK_NULL_HANDLE};
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> commandBuffers{};
 
-	uint32_t currentFrame{0};
+	std::uint32_t currentFrame{0};
 
 	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 
@@ -81,7 +81,7 @@ public:
 	void render();
 	void setupDepthStencil();
 
-	uint32_t getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties);
+	std::uint32_t getMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties);
 	void createSynchronizationPrimitives();
 	void createCommandBuffers();
 	void createVertexBuffer();
@@ -93,8 +93,8 @@ public:
 public:
 	bool prepared = false;
 	bool resized = false;
-	uint32_t width = 1280;
-	uint32_t height = 720;
+	std::uint32_t width = 1280;
+	std::uint32_t height = 720;
 
 	/** @brief Last frame time measured using a high performance timer (if available) */
 	float frameTimer = 1.0f;
@@ -147,7 +147,7 @@ public:
 
 	std::string title = "Vulkan Example";
 	std::string name = "vulkanExample";
-	uint32_t apiVersion = VK_API_VERSION_1_0;
+	std::uint32_t apiVersion = VK_API_VERSION_1_0;
 
 	/** @brief Default depth stencil attachment used by the default render pass */
 	struct
@@ -181,8 +181,8 @@ protected:
 	std::string getShadersPath() const;
 
 	// Frame counter to display fps
-	uint32_t frameCounter = 0;
-	uint32_t lastFPS = 0;
+	std::uint32_t frameCounter = 0;
+	std::uint32_t lastFPS = 0;
 	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp, tPrevEnd;
 	// Vulkan instance, stores all per-application states
 	VkInstance mVkInstance{VK_NULL_HANDLE};
@@ -224,8 +224,8 @@ protected:
 
 	// Synchronization related objects and variables
 	// These are used to have multiple frame buffers "in flight" to get some CPU/GPU parallelism
-	uint32_t currentImageIndex{0};
-	uint32_t currentBuffer{0};
+	std::uint32_t currentImageIndex{0};
+	std::uint32_t currentBuffer{0};
 
 	bool requiresStencil{false};
 
@@ -237,8 +237,8 @@ private:
 	bool mShouldClose;
 
 	std::string getWindowTitle() const;
-	uint32_t destWidth;
-	uint32_t destHeight;
+	std::uint32_t destWidth;
+	std::uint32_t destHeight;
 	void handleMouseMove(int32_t x, int32_t y);
 	void nextFrame();
 	void createPipelineCache();

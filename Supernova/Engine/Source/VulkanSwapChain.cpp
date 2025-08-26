@@ -39,9 +39,9 @@ void VulkanSwapChain::InitializeSurface()
 
 	// Search for a graphics and a present queue in the array of queue
 	// families, try to find one that supports both
-	uint32_t graphicsQueueNodeIndex = UINT32_MAX;
-	uint32_t presentQueueNodeIndex = UINT32_MAX;
-	for (uint32_t i = 0; i < queueCount; i++)
+	std::uint32_t graphicsQueueNodeIndex = UINT32_MAX;
+	std::uint32_t presentQueueNodeIndex = UINT32_MAX;
+	for (std::uint32_t i = 0; i < queueCount; i++)
 	{
 		if ((queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 		{
@@ -62,7 +62,7 @@ void VulkanSwapChain::InitializeSurface()
 	{
 		// If there's no queue that supports both present and graphics
 		// try to find a separate present queue
-		for (uint32_t i = 0; i < queueCount; ++i)
+		for (std::uint32_t i = 0; i < queueCount; ++i)
 		{
 			if (supportsPresent[i] == VK_TRUE)
 			{
@@ -86,7 +86,7 @@ void VulkanSwapChain::InitializeSurface()
 	mQueueNodeIndex = graphicsQueueNodeIndex;
 
 	// Get list of supported surface formats
-	uint32_t formatCount;
+	std::uint32_t formatCount;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mVkPhysicalDevice, mVkSurfaceKHR, &formatCount, NULL));
 	assert(formatCount > 0);
 
@@ -122,7 +122,7 @@ void VulkanSwapChain::setContext(VkInstance instance, VkPhysicalDevice physicalD
 	this->mActiveVulkanDevice = device;
 }
 
-void VulkanSwapChain::CreateSwapchain(uint32_t& width, uint32_t& height, bool vsync, bool fullscreen)
+void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync, bool fullscreen)
 {
 	assert(mVkPhysicalDevice);
 	assert(mActiveVulkanDevice);
@@ -137,7 +137,7 @@ void VulkanSwapChain::CreateSwapchain(uint32_t& width, uint32_t& height, bool vs
 
 	VkExtent2D swapchainExtent = {};
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
-	if (surfCaps.currentExtent.width == (uint32_t)-1)
+	if (surfCaps.currentExtent.width == (std::uint32_t)-1)
 	{
 		// If the surface size is undefined, the size is set to the size of the images requested
 		swapchainExtent.width = width;
@@ -153,7 +153,7 @@ void VulkanSwapChain::CreateSwapchain(uint32_t& width, uint32_t& height, bool vs
 
 
 	// Select a present mode for the swapchain
-	uint32_t presentModeCount;
+	std::uint32_t presentModeCount;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, NULL));
 	assert(presentModeCount > 0);
 
@@ -183,7 +183,7 @@ void VulkanSwapChain::CreateSwapchain(uint32_t& width, uint32_t& height, bool vs
 	}
 
 	// Determine the number of images
-	uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
+	std::uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
 	if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
 	{
 		desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
@@ -293,7 +293,7 @@ void VulkanSwapChain::CreateSwapchain(uint32_t& width, uint32_t& height, bool vs
 	}
 }
 
-VkResult VulkanSwapChain::acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t& imageIndex) const
+VkResult VulkanSwapChain::acquireNextImage(VkSemaphore presentCompleteSemaphore, std::uint32_t& imageIndex) const
 {
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY

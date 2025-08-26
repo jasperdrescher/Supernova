@@ -126,7 +126,7 @@ VulkanExample::~VulkanExample()
 		{
 			vkDestroySemaphore(mVkLogicalDevice, renderCompleteSemaphores[i], nullptr);
 		}
-		for (uint32_t i = 0; i < gMaxConcurrentFrames; i++)
+		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 		{
 			vkDestroyFence(mVkLogicalDevice, waitFences[i], nullptr);
 			vkDestroyBuffer(mVkLogicalDevice, uniformBuffers[i].handle, nullptr);
@@ -162,10 +162,10 @@ void VulkanExample::getEnabledFeatures()
 	}
 }
 
-uint32_t VulkanExample::getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties)
+std::uint32_t VulkanExample::getMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties)
 {
 	// Iterate over all memory types available for the device used in this example
-	for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++)
+	for (std::uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++)
 	{
 		if ((typeBits & 1) == 1)
 		{
@@ -182,7 +182,7 @@ uint32_t VulkanExample::getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFl
 void VulkanExample::createSynchronizationPrimitives()
 {
 	// Fences are per frame in flight
-	for (uint32_t i = 0; i < gMaxConcurrentFrames; i++)
+	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 	{
 		// Fence used to ensure that command buffer has completed exection before using it again
 		VkFenceCreateInfo fenceCI{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
@@ -233,13 +233,13 @@ void VulkanExample::createVertexBuffer()
 		{{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
 		{{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}
 	};
-	uint32_t vertexBufferSize = static_cast<uint32_t>(vertices.size()) * sizeof(Vertex);
+	std::uint32_t vertexBufferSize = static_cast<std::uint32_t>(vertices.size()) * sizeof(Vertex);
 
 	// Setup indices
 	// We do this for demonstration purposes, a triangle doesn't require indices to be rendered (because of the 1:1 mapping), but more complex shapes usually make use of indices
-	std::vector<uint32_t> indices{0, 1, 2};
-	indexCount = static_cast<uint32_t>(indices.size());
-	uint32_t indexBufferSize = indexCount * sizeof(uint32_t);
+	std::vector<std::uint32_t> indices{0, 1, 2};
+	indexCount = static_cast<std::uint32_t>(indices.size());
+	std::uint32_t indexBufferSize = indexCount * sizeof(std::uint32_t);
 
 	VkMemoryAllocateInfo memAlloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
 	VkMemoryRequirements memReqs;
@@ -381,7 +381,7 @@ void VulkanExample::createDescriptors()
 
 	// Where the descriptor set layout is the interface, the descriptor set points to actual data
 	// Descriptors that are changed per frame need to be multiplied, so we can update descriptor n+1 while n is still used by the GPU, so we create one per max frame in flight
-	for (uint32_t i = 0; i < gMaxConcurrentFrames; i++)
+	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 	{
 		VkDescriptorSetAllocateInfo allocInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
 		allocInfo.descriptorPool = descriptorPool;
@@ -477,7 +477,7 @@ VkShaderModule VulkanExample::loadSPIRVShader(const std::string& filename)
 		// Create a new shader module that will be used for pipeline creation
 		VkShaderModuleCreateInfo shaderModuleCI{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 		shaderModuleCI.codeSize = shaderSize;
-		shaderModuleCI.pCode = (uint32_t*)shaderCode;
+		shaderModuleCI.pCode = (std::uint32_t*)shaderCode;
 
 		VkShaderModule shaderModule;
 		VK_CHECK_RESULT(vkCreateShaderModule(mVkLogicalDevice, &shaderModuleCI, nullptr, &shaderModule));
@@ -547,7 +547,7 @@ void VulkanExample::createPipeline()
 	std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 	VkPipelineDynamicStateCreateInfo dynamicStateCI{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
 	dynamicStateCI.pDynamicStates = dynamicStateEnables.data();
-	dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+	dynamicStateCI.dynamicStateCount = static_cast<std::uint32_t>(dynamicStateEnables.size());
 
 	// Depth and stencil state containing depth and stencil compare and test operations
 	// We only use depth tests and want depth tests and writes to be enabled and compare with less or equal
@@ -619,7 +619,7 @@ void VulkanExample::createPipeline()
 	assert(shaderStages[1].module != VK_NULL_HANDLE);
 
 	// Set pipeline shader stage info
-	pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+	pipelineCI.stageCount = static_cast<std::uint32_t>(shaderStages.size());
 	pipelineCI.pStages = shaderStages.data();
 
 	// Attachment information for dynamic rendering
@@ -658,7 +658,7 @@ void VulkanExample::createUniformBuffers()
 	bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
 	// Create the buffers
-	for (uint32_t i = 0; i < gMaxConcurrentFrames; i++)
+	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 	{
 		VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &bufferInfo, nullptr, &uniformBuffers[i].handle));
 		// Get memory requirements including size, alignment and memory type based on the buffer type we request (uniform buffer)
@@ -706,7 +706,7 @@ void VulkanExample::render()
 
 	// Get the next swap chain image from the implementation
 	// Note that the implementation is free to return the images in any order, so we must use the acquire function and can't just cycle through the images/imageIndex on our own
-	uint32_t imageIndex{0};
+	std::uint32_t imageIndex{0};
 	VkResult result = vkAcquireNextImageKHR(mVkLogicalDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, presentCompleteSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -876,7 +876,7 @@ VkResult VulkanExample::createInstance()
 {
 	std::vector<const char*> instanceExtensions = {VK_KHR_SURFACE_EXTENSION_NAME};
 
-	uint32_t extCount = 0;
+	std::uint32_t extCount = 0;
 	VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr));
 	if (extCount > 0)
 	{
@@ -944,7 +944,7 @@ VkResult VulkanExample::createInstance()
 
 	if (!instanceExtensions.empty())
 	{
-		instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
+		instanceCreateInfo.enabledExtensionCount = (std::uint32_t)instanceExtensions.size();
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 
 #ifndef NDEBUG
@@ -958,7 +958,7 @@ VkResult VulkanExample::createInstance()
 	const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 	if (settings.validation)
 	{
-		uint32_t instanceLayerCount;
+		std::uint32_t instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
 		std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
@@ -988,7 +988,7 @@ VkResult VulkanExample::createInstance()
 	VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo{VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT};
 	if (enabledLayerSettings.size() > 0)
 	{
-		layerSettingsCreateInfo.settingCount = static_cast<uint32_t>(enabledLayerSettings.size());
+		layerSettingsCreateInfo.settingCount = static_cast<std::uint32_t>(enabledLayerSettings.size());
 		layerSettingsCreateInfo.pSettings = enabledLayerSettings.data();
 		layerSettingsCreateInfo.pNext = instanceCreateInfo.pNext;
 		instanceCreateInfo.pNext = &layerSettingsCreateInfo;
@@ -1014,7 +1014,7 @@ std::string VulkanExample::getWindowTitle() const
 
 void VulkanExample::destroyCommandBuffers()
 {
-	vkFreeCommandBuffers(mVkLogicalDevice, mVkCommandPool, static_cast<uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
+	vkFreeCommandBuffers(mVkLogicalDevice, mVkCommandPool, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
 }
 
 std::string VulkanExample::getShadersPath() const
@@ -1067,7 +1067,7 @@ void VulkanExample::nextFrame()
 	float fpsTimer = (float)(std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count());
 	if (fpsTimer > 1000.0f)
 	{
-		lastFPS = static_cast<uint32_t>((float)frameCounter * (1000.0f / fpsTimer));
+		lastFPS = static_cast<std::uint32_t>((float)frameCounter * (1000.0f / fpsTimer));
 		frameCounter = 0;
 		lastTimestamp = tEnd;
 	}
@@ -1200,7 +1200,7 @@ bool VulkanExample::initVulkan()
 	}
 
 	// Physical device
-	uint32_t gpuCount = 0;
+	std::uint32_t gpuCount = 0;
 	// Get number of available physical devices
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, nullptr));
 	if (gpuCount == 0)
@@ -1221,7 +1221,7 @@ bool VulkanExample::initVulkan()
 
 	// Select physical device to be used for the Vulkan example
 	// Defaults to the first device unless specified by command line
-	uint32_t selectedDevice = 0;
+	std::uint32_t selectedDevice = 0;
 
 	physicalDevice = physicalDevices[selectedDevice];
 

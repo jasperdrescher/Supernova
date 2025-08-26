@@ -11,7 +11,7 @@ namespace vks
 		inline VkCommandBufferAllocateInfo commandBufferAllocateInfo(
 			VkCommandPool commandPool,
 			VkCommandBufferLevel level,
-			uint32_t bufferCount)
+			std::uint32_t bufferCount)
 		{
 			VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
 			commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;

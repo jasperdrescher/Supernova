@@ -166,7 +166,7 @@ namespace vks
 				VkShaderModuleCreateInfo moduleCreateInfo{};
 				moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 				moduleCreateInfo.codeSize = size;
-				moduleCreateInfo.pCode = (uint32_t*)shaderCode;
+				moduleCreateInfo.pCode = (std::uint32_t*)shaderCode;
 
 				VK_CHECK_RESULT(vkCreateShaderModule(device, &moduleCreateInfo, nullptr, &shaderModule));
 

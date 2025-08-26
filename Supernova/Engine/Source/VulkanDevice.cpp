@@ -26,14 +26,14 @@ namespace vks
 		// Memory properties are used regularly for creating all kinds of buffers
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 		// Queue family properties, used for setting up requested queues upon device creation
-		uint32_t queueFamilyCount;
+		std::uint32_t queueFamilyCount;
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
 		assert(queueFamilyCount > 0);
 		queueFamilyProperties.resize(queueFamilyCount);
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
 
 		// Get list of supported extensions
-		uint32_t extCount = 0;
+		std::uint32_t extCount = 0;
 		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr);
 		if (extCount > 0)
 		{
@@ -71,9 +71,9 @@ namespace vks
 	*
 	* @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested properties
 	*/
-	uint32_t VulkanDevice::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound) const
+	std::uint32_t VulkanDevice::getMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound) const
 	{
-		for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+		for (std::uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
 		{
 			if ((typeBits & 1) == 1)
 			{
@@ -110,13 +110,13 @@ namespace vks
 	*
 	* @throw Throws an exception if no queue family index could be found that supports the requested flags
 	*/
-	uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const
+	std::uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const
 	{
 		// Dedicated queue for compute
 		// Try to find a queue family index that supports compute but not graphics
 		if ((queueFlags & VK_QUEUE_COMPUTE_BIT) == queueFlags)
 		{
-			for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+			for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(queueFamilyProperties.size()); i++)
 			{
 				if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
 				{
@@ -129,7 +129,7 @@ namespace vks
 		// Try to find a queue family index that supports transfer but not graphics and compute
 		if ((queueFlags & VK_QUEUE_TRANSFER_BIT) == queueFlags)
 		{
-			for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+			for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(queueFamilyProperties.size()); i++)
 			{
 				if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
 				{
@@ -139,7 +139,7 @@ namespace vks
 		}
 
 		// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
-		for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
+		for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(queueFamilyProperties.size()); i++)
 		{
 			if ((queueFamilyProperties[i].queueFlags & queueFlags) == queueFlags)
 			{
@@ -241,7 +241,7 @@ namespace vks
 
 		VkDeviceCreateInfo deviceCreateInfo = {};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
+		deviceCreateInfo.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size());;
 		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 		deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
 
@@ -266,7 +266,7 @@ namespace vks
 				}
 			}
 
-			deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
+			deviceCreateInfo.enabledExtensionCount = (std::uint32_t)deviceExtensions.size();
 			deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		}
 
@@ -294,7 +294,7 @@ namespace vks
 	*
 	* @return A handle to the created command buffer
 	*/
-	VkCommandPool VulkanDevice::createCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
+	VkCommandPool VulkanDevice::createCommandPool(std::uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags)
 	{
 		VkCommandPoolCreateInfo cmdPoolInfo = {};
 		cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
