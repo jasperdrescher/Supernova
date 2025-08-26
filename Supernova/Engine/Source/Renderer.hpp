@@ -246,5 +246,5 @@ private:
 	void createCommandPool();
 	void SetupSwapchain();
 	void destroyCommandBuffers();
-	std::string shaderDir = "glsl";
+	std::string shaderDir = "GLSL";
 };

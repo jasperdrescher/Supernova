@@ -51,6 +51,7 @@ public:
 	VkFormat mColorVkFormat;
 	VkColorSpaceKHR mVkColorSpaceKHR;
 	VkSwapchainKHR mVkSwapchainKHR;
+	VkSurfaceKHR mVkSurfaceKHR;
 	std::vector<VkImage> mVkImages;
 	std::vector<VkImageView> mVkImageViews;
 	uint32_t mQueueNodeIndex;
@@ -60,5 +61,4 @@ private:
 	VkInstance mActiveVkInstance;
 	VkDevice mActiveVulkanDevice;
 	VkPhysicalDevice mVkPhysicalDevice;
-	VkSurfaceKHR mVkSurfaceKHR;
 };

@@ -995,6 +995,7 @@ VkResult VulkanExample::createInstance()
 	}
 
 	VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &mVkInstance);
+	VK_CHECK_RESULT(glfwCreateWindowSurface(mVkInstance, mGlfwWindow, nullptr, &mVulkanSwapChain.mVkSurfaceKHR));
 
 	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
 	if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedInstanceExtensions.end())
@@ -1182,7 +1183,7 @@ void VulkanExample::submitFrame(bool skipQueueSubmit)
 bool VulkanExample::initVulkan()
 {
 	// Instead of checking for the command line switch, validation can be forced via a define
-	settings.validation = false;
+	settings.validation = true;
 
 	// Create the instance
 	VkResult result = createInstance();

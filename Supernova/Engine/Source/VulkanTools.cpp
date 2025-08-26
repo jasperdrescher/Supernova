@@ -8,23 +8,14 @@
 #include <iostream>
 #include <vector>
 
-const std::string getAssetPath()
-{
-	if (vks::tools::resourcePath != "")
-	{
-		return vks::tools::resourcePath + "/assets/";
-	}
-	return "./../assets/";
-}
-
 const std::string getShaderBasePath()
 {
 	if (vks::tools::resourcePath != "")
 	{
-		return vks::tools::resourcePath + "/shaders/";
+		return vks::tools::resourcePath + "/Shaders/";
 	}
 
-	return "./../shaders/";
+	return "./../Shaders/";
 }
 
 namespace vks
@@ -32,7 +23,7 @@ namespace vks
 	namespace tools
 	{
 		bool errorModeSilent = false;
-		std::string resourcePath = "";
+		std::string resourcePath = "Resources";
 
 		std::string errorString(VkResult errorCode)
 		{
