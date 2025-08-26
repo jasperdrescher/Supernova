@@ -145,9 +145,9 @@ public:
 
 	Camera camera;
 
-	std::string title = "Vulkan Example";
-	std::string name = "vulkanExample";
-	std::uint32_t apiVersion = VK_API_VERSION_1_0;
+	std::string title;
+	std::string name;
+	std::uint32_t apiVersion;
 
 	/** @brief Default depth stencil attachment used by the default render pass */
 	struct
@@ -231,12 +231,11 @@ protected:
 
 private:
 	void CreateGlfwWindow();
-	void CreateVkInstance();
 
 	GLFWwindow* mGlfwWindow;
 	bool mShouldClose;
 
-	std::string getWindowTitle() const;
+	std::string GetWindowTitle() const;
 	std::uint32_t destWidth;
 	std::uint32_t destHeight;
 	void handleMouseMove(int32_t x, int32_t y);
