@@ -1,12 +1,9 @@
 #include "VulkanDebug.hpp"
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/vec4.hpp>
-
+#include <cassert>
 #include <iostream>
 #include <sstream>
-#include <cassert>
+#include <string>
 
 namespace vks
 {
@@ -16,37 +13,37 @@ namespace vks
 		PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
 		VkDebugUtilsMessengerEXT debugUtilsMessenger;
 
-		VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessageCallback(
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			VkDebugUtilsMessageTypeFlagsEXT messageType,
-			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-			void* pUserData)
+		VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessageCallback(
+			VkDebugUtilsMessageSeverityFlagBitsEXT aMessageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT aMessageType,
+			const VkDebugUtilsMessengerCallbackDataEXT* aCallbackData,
+			void* aUserData)
 		{
 			// Select prefix depending on flags passed to the callback
 			std::string prefix;
 
-			if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+			if (aMessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
 			{
 				prefix = "VERBOSE: ";
 #if defined(_WIN32)
 				prefix = "\033[32m" + prefix + "\033[0m";
 #endif
 			}
-			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+			else if (aMessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 			{
 				prefix = "INFO: ";
 #if defined(_WIN32)
 				prefix = "\033[36m" + prefix + "\033[0m";
 #endif
 			}
-			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+			else if (aMessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 			{
 				prefix = "WARNING: ";
 #if defined(_WIN32)
 				prefix = "\033[33m" + prefix + "\033[0m";
 #endif
 			}
-			else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+			else if (aMessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 			{
 				prefix = "ERROR: ";
 #if defined(_WIN32)
@@ -54,18 +51,17 @@ namespace vks
 #endif
 			}
 
-			// Display message to default output (console/logcat)
 			std::stringstream debugMessage;
-			if (pCallbackData->pMessageIdName)
+			if (aCallbackData->pMessageIdName)
 			{
-				debugMessage << prefix << "[" << pCallbackData->messageIdNumber << "][" << pCallbackData->pMessageIdName << "] : " << pCallbackData->pMessage;
+				debugMessage << prefix << "[" << aCallbackData->messageIdNumber << "][" << aCallbackData->pMessageIdName << "] : " << aCallbackData->pMessage;
 			}
 			else
 			{
-				debugMessage << prefix << "[" << pCallbackData->messageIdNumber << "] : " << pCallbackData->pMessage;
+				debugMessage << prefix << "[" << aCallbackData->messageIdNumber << "] : " << aCallbackData->pMessage;
 			}
 
-			if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+			if (aMessageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 			{
 				std::cerr << debugMessage.str() << std::endl;
 			}
@@ -73,7 +69,6 @@ namespace vks
 			{
 				std::cout << debugMessage.str() << std::endl;
 			}
-			fflush(stdout);
 
 			// The return value of this callback controls whether the Vulkan call that caused the validation message will be aborted or not
 			// We return VK_FALSE as we DON'T want Vulkan calls that cause a validation message to abort
@@ -86,7 +81,7 @@ namespace vks
 			debugUtilsMessengerCI.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 			debugUtilsMessengerCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 			debugUtilsMessengerCI.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-			debugUtilsMessengerCI.pfnUserCallback = debugUtilsMessageCallback;
+			debugUtilsMessengerCI.pfnUserCallback = DebugUtilsMessageCallback;
 		}
 
 		void setupDebugging(VkInstance instance)
@@ -120,28 +115,6 @@ namespace vks
 			vkCmdBeginDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdBeginDebugUtilsLabelEXT"));
 			vkCmdEndDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdEndDebugUtilsLabelEXT"));
 			vkCmdInsertDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdInsertDebugUtilsLabelEXT"));
-		}
-
-		void cmdBeginLabel(VkCommandBuffer cmdbuffer, std::string caption, glm::vec4 color)
-		{
-			if (!vkCmdBeginDebugUtilsLabelEXT)
-			{
-				return;
-			}
-			VkDebugUtilsLabelEXT labelInfo{};
-			labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-			labelInfo.pLabelName = caption.c_str();
-			memcpy(labelInfo.color, &color[0], sizeof(float) * 4);
-			vkCmdBeginDebugUtilsLabelEXT(cmdbuffer, &labelInfo);
-		}
-
-		void cmdEndLabel(VkCommandBuffer cmdbuffer)
-		{
-			if (!vkCmdEndDebugUtilsLabelEXT)
-			{
-				return;
-			}
-			vkCmdEndDebugUtilsLabelEXT(cmdbuffer);
 		}
 	};
 }

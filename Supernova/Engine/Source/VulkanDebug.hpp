@@ -2,19 +2,11 @@
 
 #include "vulkan/vulkan_core.h"
 
-#include <glm/fwd.hpp>
-
-#include <string>
-
 namespace vks
 {
 	namespace debug
 	{
-		extern bool logToFile;
-		extern std::string logFileName;
-
-		// Default debug callback
-		VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessageCallback(
+		VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessageCallback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT messageType,
 			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -33,7 +25,5 @@ namespace vks
 	namespace debugutils
 	{
 		void setup(VkInstance instance);
-		void cmdBeginLabel(VkCommandBuffer cmdbuffer, std::string caption, glm::vec4 color);
-		void cmdEndLabel(VkCommandBuffer cmdbuffer);
 	}
 }
