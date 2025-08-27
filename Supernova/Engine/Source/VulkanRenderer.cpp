@@ -1092,10 +1092,6 @@ void VulkanRenderer::NextFrame()
 
 bool VulkanRenderer::initVulkan()
 {
-	// Instead of checking for the command line switch, validation can be forced via a define
-	settings.validation = true;
-
-	// Create the instance
 	VkResult result = createInstance();
 	if (result != VK_SUCCESS)
 	{
