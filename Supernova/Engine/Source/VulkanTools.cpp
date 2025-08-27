@@ -119,7 +119,7 @@ namespace vks
 			VkPipelineStageFlags dstStageMask,
 			VkImageSubresourceRange subresourceRange)
 		{
-			VkImageMemoryBarrier imageMemoryBarrier = vks::initializers::imageMemoryBarrier();
+			VkImageMemoryBarrier imageMemoryBarrier = vks::initializers::ImageMemoryBarrier();
 			imageMemoryBarrier.srcAccessMask = srcAccessMask;
 			imageMemoryBarrier.dstAccessMask = dstAccessMask;
 			imageMemoryBarrier.oldLayout = oldImageLayout;

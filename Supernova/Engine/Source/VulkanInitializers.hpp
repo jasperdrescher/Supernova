@@ -8,7 +8,7 @@ namespace vks
 {
 	namespace initializers
 	{
-		inline VkCommandBufferAllocateInfo commandBufferAllocateInfo(
+		inline VkCommandBufferAllocateInfo CommandBufferAllocateInfo(
 			VkCommandPool commandPool,
 			VkCommandBufferLevel level,
 			std::uint32_t bufferCount)
@@ -21,7 +21,7 @@ namespace vks
 			return commandBufferAllocateInfo;
 		}
 
-		inline VkCommandBufferBeginInfo commandBufferBeginInfo()
+		inline VkCommandBufferBeginInfo CommandBufferBeginInfo()
 		{
 			VkCommandBufferBeginInfo cmdBufferBeginInfo{};
 			cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -29,32 +29,13 @@ namespace vks
 		}
 
 		/** @brief Initialize an image memory barrier with no image transfer ownership */
-		inline VkImageMemoryBarrier imageMemoryBarrier()
+		inline VkImageMemoryBarrier ImageMemoryBarrier()
 		{
 			VkImageMemoryBarrier imageMemoryBarrier{};
 			imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			return imageMemoryBarrier;
-		}
-
-		inline VkSubmitInfo submitInfo()
-		{
-			return {.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO};
-		}
-
-		inline VkViewport viewport(
-			float width,
-			float height,
-			float minDepth,
-			float maxDepth)
-		{
-			VkViewport viewport{};
-			viewport.width = width;
-			viewport.height = height;
-			viewport.minDepth = minDepth;
-			viewport.maxDepth = maxDepth;
-			return viewport;
 		}
 	}
 }
