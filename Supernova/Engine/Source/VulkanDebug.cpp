@@ -9,9 +9,9 @@ namespace vks
 {
 	namespace debug
 	{
-		PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
-		PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
-		VkDebugUtilsMessengerEXT debugUtilsMessenger;
+		PFN_vkCreateDebugUtilsMessengerEXT gVkCreateDebugUtilsMessengerFunction;
+		PFN_vkDestroyDebugUtilsMessengerEXT gVkDestroyDebugUtilsMessengerFunction;
+		VkDebugUtilsMessengerEXT gVkDebugUtilsMessenger;
 
 		VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessageCallback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT aMessageSeverity,
@@ -76,45 +76,45 @@ namespace vks
 			return VK_FALSE;
 		}
 
-		void setupDebugingMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& debugUtilsMessengerCI)
+		void SetupDebugingMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& aVkDebugUtilsMessengerCreateInfo)
 		{
-			debugUtilsMessengerCI.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-			debugUtilsMessengerCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-			debugUtilsMessengerCI.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-			debugUtilsMessengerCI.pfnUserCallback = DebugUtilsMessageCallback;
+			aVkDebugUtilsMessengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+			aVkDebugUtilsMessengerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+			aVkDebugUtilsMessengerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+			aVkDebugUtilsMessengerCreateInfo.pfnUserCallback = DebugUtilsMessageCallback;
 		}
 
-		void setupDebugging(VkInstance instance)
+		void SetupDebugUtilsMessenger(VkInstance aVkInstance)
 		{
-			vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-			vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+			gVkCreateDebugUtilsMessengerFunction = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(aVkInstance, "vkCreateDebugUtilsMessengerEXT"));
+			gVkDestroyDebugUtilsMessengerFunction = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(aVkInstance, "vkDestroyDebugUtilsMessengerEXT"));
 
 			VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
-			setupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
-			VkResult result = vkCreateDebugUtilsMessengerEXT(instance, &debugUtilsMessengerCI, nullptr, &debugUtilsMessenger);
+			SetupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
+			VkResult result = gVkCreateDebugUtilsMessengerFunction(aVkInstance, &debugUtilsMessengerCI, nullptr, &gVkDebugUtilsMessenger);
 			assert(result == VK_SUCCESS);
 		}
 
-		void freeDebugCallback(VkInstance instance)
+		void DestroyDebugUtilsMessenger(VkInstance aVkInstance)
 		{
-			if (debugUtilsMessenger != VK_NULL_HANDLE)
+			if (gVkDebugUtilsMessenger != VK_NULL_HANDLE)
 			{
-				vkDestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
+				gVkDestroyDebugUtilsMessengerFunction(aVkInstance, gVkDebugUtilsMessenger, nullptr);
 			}
 		}
 	}
 
 	namespace debugutils
 	{
-		PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT{nullptr};
-		PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT{nullptr};
-		PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXT{nullptr};
+		PFN_vkCmdBeginDebugUtilsLabelEXT gVkCmdBeginDebugUtilsLabelFunction{nullptr};
+		PFN_vkCmdEndDebugUtilsLabelEXT gVkCmdEndDebugUtilsLabelFunction{nullptr};
+		PFN_vkCmdInsertDebugUtilsLabelEXT gVkCmdInsertDebugUtilsLabelFunction{nullptr};
 
-		void setup(VkInstance instance)
+		void SetupDebugUtils(VkInstance aVkInstance)
 		{
-			vkCmdBeginDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdBeginDebugUtilsLabelEXT"));
-			vkCmdEndDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdEndDebugUtilsLabelEXT"));
-			vkCmdInsertDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(vkGetInstanceProcAddr(instance, "vkCmdInsertDebugUtilsLabelEXT"));
+			gVkCmdBeginDebugUtilsLabelFunction = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(aVkInstance, "vkCmdBeginDebugUtilsLabelEXT"));
+			gVkCmdEndDebugUtilsLabelFunction = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(aVkInstance, "vkCmdEndDebugUtilsLabelEXT"));
+			gVkCmdInsertDebugUtilsLabelFunction = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(vkGetInstanceProcAddr(aVkInstance, "vkCmdInsertDebugUtilsLabelEXT"));
 		}
 	};
 }

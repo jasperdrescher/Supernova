@@ -104,7 +104,7 @@ VulkanRenderer::~VulkanRenderer()
 	delete vulkanDevice;
 
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
-		vks::debug::freeDebugCallback(mVkInstance);
+		vks::debug::DestroyDebugUtilsMessenger(mVkInstance);
 
 	vkDestroyInstance(mVkInstance, nullptr);
 
@@ -979,7 +979,7 @@ VkResult VulkanRenderer::createInstance()
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
-		vks::debug::setupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
+		vks::debug::SetupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
 		debugUtilsMessengerCI.pNext = instanceCreateInfo.pNext;
 		instanceCreateInfo.pNext = &debugUtilsMessengerCI;
 	}
@@ -1054,7 +1054,7 @@ VkResult VulkanRenderer::createInstance()
 	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
 	if (std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
 	{
-		vks::debugutils::setup(mVkInstance);
+		vks::debugutils::SetupDebugUtils(mVkInstance);
 	}
 
 	return result;
@@ -1142,7 +1142,7 @@ bool VulkanRenderer::initVulkan()
 	// If requested, we enable the default validation layers for debugging
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
-		vks::debug::setupDebugging(mVkInstance);
+		vks::debug::SetupDebugUtilsMessenger(mVkInstance);
 	}
 
 	// Physical device
