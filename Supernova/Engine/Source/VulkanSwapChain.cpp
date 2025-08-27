@@ -122,7 +122,7 @@ void VulkanSwapChain::setContext(VkInstance instance, VkPhysicalDevice physicalD
 	this->mActiveVulkanDevice = device;
 }
 
-void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync, bool fullscreen)
+void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync)
 {
 	assert(mVkPhysicalDevice);
 	assert(mActiveVulkanDevice);

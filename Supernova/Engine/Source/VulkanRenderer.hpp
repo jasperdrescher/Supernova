@@ -54,7 +54,6 @@ public:
 
 	void GetEnabledFeatures() const;
 	void mouseMoved(double x, double y, bool& handled) {}
-	void windowResized() {}
 	void PrepareVulkanResources();
 	void PrepareFrame();
 	void setupDepthStencil();
@@ -70,26 +69,15 @@ public:
 
 public:
 	bool mIsPrepared = false;
-	bool resized = false;
-	std::uint32_t width = 1280;
-	std::uint32_t height = 720;
+	bool mIsResized = false;
+	std::uint32_t mFramebufferWidth;
+	std::uint32_t mFramebufferHeight;
 
 	/** @brief Last frame time measured using a high performance timer (if available) */
 	float mFrameTime = 1.0f;
 
 	/** @brief Encapsulated physical and logical vulkan device */
 	vks::VulkanDevice* vulkanDevice;
-
-	/** @brief Example settings that can be changed e.g. by command line arguments */
-	struct Settings
-	{
-		/** @brief Activates validation layers (and message output) when set to true */
-		bool validation = false;
-		/** @brief Set to true if fullscreen mode has been requested via command line */
-		bool fullscreen = false;
-		/** @brief Set to true if v-sync will be forced for the swapchain */
-		bool vsync = false;
-	} settings;
 
 	/** @brief State of mouse/touch input */
 	struct
@@ -114,11 +102,6 @@ public:
 
 	Camera camera;
 
-	std::string mWindowTitle;
-	std::string mApplicationName;
-	std::string mEngineName;
-	std::uint32_t apiVersion;
-
 	VulkanDepthStencil depthStencil;
 
 	/** @brief Setup the vulkan instance, enable required extensions and connect to the physical device (GPU) */
@@ -130,7 +113,7 @@ public:
 	/** @brief Loads a SPIR-V shader file for the given shader stage */
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 
-	void windowResize();
+	void OnResizeWindow();
 
 protected:
 	// Returns the path to the root of the glsl, hlsl or slang shader directory.
@@ -188,13 +171,18 @@ protected:
 
 private:
 	void CreateGlfwWindow();
+	void SetWindowSize(int aWidth, int aHeight);
+
+	static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
+	static void WindowResizeCallback(GLFWwindow* window, int width, int height);
+	static void WindowMinimizedCallback(GLFWwindow* window, int aValue);
 
 	GLFWwindow* mGlfwWindow;
 	bool mShouldClose;
+	bool mIsFramebufferResized;
+	VulkanApplicationProperties mVulkanApplicationProperties;
 
 	std::string GetWindowTitle(float aDeltaTime) const;
-	std::uint32_t destWidth;
-	std::uint32_t destHeight;
 	void handleMouseMove(int32_t x, int32_t y);
 	void NextFrame();
 	void createPipelineCache();

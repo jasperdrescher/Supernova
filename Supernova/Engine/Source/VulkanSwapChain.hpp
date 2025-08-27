@@ -23,7 +23,7 @@ public:
 	* @param height Pointer to the height of the swapchain (may be adjusted to fit the requirements of the swapchain)
 	* @param vsync (Optional, default = false) Can be used to force vsync-ed rendering (by using VK_PRESENT_MODE_FIFO_KHR as presentation mode)
 	*/
-	void CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync = false, bool fullscreen = false);
+	void CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync = false);
 	/**
 	* Acquires the next image in the swap chain
 	*

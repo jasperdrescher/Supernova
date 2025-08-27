@@ -42,23 +42,25 @@ namespace VulkanExampleLocal
 VulkanRenderer::VulkanRenderer()
 	: mGlfwWindow(nullptr)
 	, mShouldClose(false)
+	, mIsFramebufferResized(false)
 	, mVkCommandBuffers{VK_NULL_HANDLE}
-	, mWindowTitle{"Supernova"}
-	, mApplicationName{"Supernova"}
-	, mEngineName{"Supernova"}
-	, apiVersion{VK_API_VERSION_1_3}
 {
+	mVulkanApplicationProperties.mAPIVersion = VK_API_VERSION_1_3;
+	mVulkanApplicationProperties.mIsValidationEnabled = true;
+	mVulkanApplicationProperties.mApplicationName = "Supernova";
+	mVulkanApplicationProperties.mEngineName = "Supernova";
+
+	mFramebufferWidth = mVulkanApplicationProperties.mWindowWidth;
+	mFramebufferHeight = mVulkanApplicationProperties.mWindowHeight;
+
+	mVkPhysicalDevice13Features.dynamicRendering = VK_TRUE;
+	mVkPhysicalDevice13Features.synchronization2 = VK_TRUE;
+
 	// Setup a default look-at camera
 	camera.type = Camera::CameraType::lookat;
 	camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
 	camera.setRotation(glm::vec3(0.0f));
-	camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
-
-	// We want to use Vulkan 1.3 with the dynamic rendering and sync 2 features
-	mVkPhysicalDevice13Features.dynamicRendering = VK_TRUE;
-	mVkPhysicalDevice13Features.synchronization2 = VK_TRUE;
-
-	settings.validation = true;
+	camera.setPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 1.0f, 256.0f);
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -102,7 +104,7 @@ VulkanRenderer::~VulkanRenderer()
 
 	delete vulkanDevice;
 
-	if (settings.validation)
+	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
 		vks::debug::freeDebugCallback(mVkInstance);
 	}
@@ -145,9 +147,8 @@ void VulkanRenderer::InitializeRenderer()
 
 void VulkanRenderer::PrepareUpdate()
 {
-	destWidth = width;
-	destHeight = height;
 	mLastTimestamp = std::chrono::high_resolution_clock::now();
+	mPreviousEndTime = mLastTimestamp;
 }
 
 void VulkanRenderer::UpdateRenderer(float aDeltaTime)
@@ -167,6 +168,7 @@ void VulkanRenderer::UpdateRenderer(float aDeltaTime)
 	glfwSetWindowTitle(mGlfwWindow, GetWindowTitle(aDeltaTime).c_str());
 	glfwPollEvents();
 
+	mVulkanApplicationProperties.mIsFocused = glfwGetWindowAttrib(mGlfwWindow, GLFW_FOCUSED);
 	mShouldClose = glfwWindowShouldClose(mGlfwWindow);
 }
 
@@ -433,7 +435,7 @@ void VulkanRenderer::setupDepthStencil()
 	VkImageCreateInfo imageCI{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
 	imageCI.imageType = VK_IMAGE_TYPE_2D;
 	imageCI.format = depthFormat;
-	imageCI.extent = {width, height, 1};
+	imageCI.extent = {mFramebufferWidth, mFramebufferHeight, 1};
 	imageCI.mipLevels = 1;
 	imageCI.arrayLayers = 1;
 	imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -729,7 +731,7 @@ void VulkanRenderer::PrepareFrame()
 	VkResult result = vkAcquireNextImageKHR(mVkLogicalDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, presentCompleteSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		windowResize();
+		OnResizeWindow();
 		return;
 	}
 	else if ((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR))
@@ -772,7 +774,7 @@ void VulkanRenderer::PrepareFrame()
 	depthStencilAttachment.clearValue.depthStencil = {1.0f, 0};
 
 	VkRenderingInfo renderingInfo{VK_STRUCTURE_TYPE_RENDERING_INFO_KHR};
-	renderingInfo.renderArea = {0, 0, width, height};
+	renderingInfo.renderArea = {0, 0, mFramebufferWidth, mFramebufferHeight};
 	renderingInfo.layerCount = 1;
 	renderingInfo.colorAttachmentCount = 1;
 	renderingInfo.pColorAttachments = &colorAttachment;
@@ -782,10 +784,10 @@ void VulkanRenderer::PrepareFrame()
 	// Start a dynamic rendering section
 	vkCmdBeginRendering(commandBuffer, &renderingInfo);
 	// Update dynamic viewport state
-	VkViewport viewport{0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f};
+	VkViewport viewport{0.0f, 0.0f, static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f};
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 	// Update dynamic scissor state
-	VkRect2D scissor{0, 0, width, height};
+	VkRect2D scissor{0, 0, mFramebufferWidth, mFramebufferHeight};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	// Bind descriptor set for the current frame's uniform buffer, so the shader uses the data from that buffer for this draw
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &uniformBuffers[currentFrame].mVkDescriptorSet, 0, nullptr);
@@ -835,9 +837,12 @@ void VulkanRenderer::PrepareFrame()
 	presentInfo.pSwapchains = &mVulkanSwapChain.mVkSwapchainKHR;
 	presentInfo.pImageIndices = &imageIndex;
 	result = vkQueuePresentKHR(queue, &presentInfo);
-	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR) || mIsFramebufferResized)
 	{
-		windowResize();
+		mIsFramebufferResized = false;
+
+		if (!mVulkanApplicationProperties.mIsMinimized)
+			OnResizeWindow();
 	}
 	else if (result != VK_SUCCESS)
 	{
@@ -864,7 +869,7 @@ void VulkanRenderer::CreateGlfwWindow()
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_SAMPLES, 4);
-	mGlfwWindow = glfwCreateWindow(1280, 720, "Supernova", nullptr, nullptr);
+	mGlfwWindow = glfwCreateWindow(mVulkanApplicationProperties.mWindowWidth, mVulkanApplicationProperties.mWindowHeight, "Supernova", nullptr, nullptr);
 	if (!mGlfwWindow)
 	{
 		glfwTerminate();
@@ -872,9 +877,9 @@ void VulkanRenderer::CreateGlfwWindow()
 	}
 
 	glfwSetWindowUserPointer(mGlfwWindow, this);
-	//glfwSetFramebufferSizeCallback(mGlfwWindow, FramebufferResizeCallback);
-	//glfwSetWindowSizeCallback(mGlfwWindow, WindowResizeCallback);
-	//glfwSetWindowIconifyCallback(mGlfwWindow, WindowMinimizedCallback);
+	glfwSetFramebufferSizeCallback(mGlfwWindow, FramebufferResizeCallback);
+	glfwSetWindowSizeCallback(mGlfwWindow, WindowResizeCallback);
+	glfwSetWindowIconifyCallback(mGlfwWindow, WindowMinimizedCallback);
 	glfwSetInputMode(mGlfwWindow, GLFW_STICKY_KEYS, GL_TRUE);
 	glfwSetInputMode(mGlfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	if (glfwRawMouseMotionSupported())
@@ -884,6 +889,34 @@ void VulkanRenderer::CreateGlfwWindow()
 	glfwGetVersion(&major, &minor, &revision);
 
 	std::cout << std::format("GLFW v{}.{}.{}", major, minor, revision) << std::endl;
+}
+
+void VulkanRenderer::SetWindowSize(int aWidth, int aHeight)
+{
+	mVulkanApplicationProperties.mWindowWidth = aWidth;
+	mVulkanApplicationProperties.mWindowHeight = aHeight;
+}
+
+void VulkanRenderer::FramebufferResizeCallback(GLFWwindow* window, int /*width*/, int /*height*/)
+{
+	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+	if (vulkanRenderer->mVulkanApplicationProperties.mIsMinimized)
+		return;
+
+	vulkanRenderer->mIsFramebufferResized = true;
+}
+
+void VulkanRenderer::WindowResizeCallback(GLFWwindow* window, int width, int height)
+{
+	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+	vulkanRenderer->SetWindowSize(width, height);
+}
+
+void VulkanRenderer::WindowMinimizedCallback(GLFWwindow* window, int aValue)
+{
+	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+	vulkanRenderer->mVulkanApplicationProperties.mIsMinimized = aValue;
+	vulkanRenderer->mIsPaused = aValue;
 }
 
 VkResult VulkanRenderer::createInstance()
@@ -918,9 +951,9 @@ VkResult VulkanRenderer::createInstance()
 	// Shaders generated by Slang require a certain SPIR-V environment that can't be satisfied by Vulkan 1.0, so we need to expliclity up that to at least 1.1 and enable some required extensions
 	if (shaderDir == "Slang")
 	{
-		if (apiVersion < VK_API_VERSION_1_1)
+		if (mVulkanApplicationProperties.mAPIVersion < VK_API_VERSION_1_1)
 		{
-			apiVersion = VK_API_VERSION_1_1;
+			mVulkanApplicationProperties.mAPIVersion = VK_API_VERSION_1_1;
 		}
 		enabledDeviceExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
@@ -928,23 +961,23 @@ VkResult VulkanRenderer::createInstance()
 
 	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = mApplicationName.c_str();
-	appInfo.pEngineName = mEngineName.c_str();
-	appInfo.apiVersion = apiVersion;
+	appInfo.pApplicationName = mVulkanApplicationProperties.mApplicationName.c_str();
+	appInfo.pEngineName = mVulkanApplicationProperties.mEngineName.c_str();
+	appInfo.apiVersion = mVulkanApplicationProperties.mAPIVersion;
 
 	VkInstanceCreateInfo instanceCreateInfo{};
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instanceCreateInfo.pApplicationInfo = &appInfo;
 
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
-	if (settings.validation)
+	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
 		vks::debug::setupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
 		debugUtilsMessengerCI.pNext = instanceCreateInfo.pNext;
 		instanceCreateInfo.pNext = &debugUtilsMessengerCI;
 	}
 
-	if (settings.validation || std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedInstanceExtensions.end())
+	if (mVulkanApplicationProperties.mIsValidationEnabled || std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedInstanceExtensions.end())
 		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
 	const std::vector<const char*> glfwRequiredExtensions = VulkanExampleLocal::GetGlfwRequiredExtensions();
@@ -970,7 +1003,7 @@ VkResult VulkanRenderer::createInstance()
 	}
 
 	const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
-	if (settings.validation)
+	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
 		std::uint32_t instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
@@ -1023,15 +1056,15 @@ VkResult VulkanRenderer::createInstance()
 std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const
 {
 	return std::format("{} - {} - {:.3f} ms {} fps - {:.3f} ms - {}/{} window - {}/{} framebuffer",
-		mWindowTitle,
+		mVulkanApplicationProperties.mApplicationName,
 		vulkanDevice->properties.deviceName,
 		(mFrameTime * 1000.f),
 		mLastFPS,
 		(aDeltaTime * 1000.f),
-		width,
-		height,
-		destWidth,
-		destHeight);
+		mVulkanApplicationProperties.mWindowWidth,
+		mVulkanApplicationProperties.mWindowHeight,
+		mFramebufferWidth,
+		mFramebufferHeight);
 }
 
 void VulkanRenderer::destroyCommandBuffers()
@@ -1100,7 +1133,7 @@ bool VulkanRenderer::initVulkan()
 	}
 
 	// If requested, we enable the default validation layers for debugging
-	if (settings.validation)
+	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
 		vks::debug::setupDebugging(mVkInstance);
 	}
@@ -1182,21 +1215,18 @@ void VulkanRenderer::createCommandPool()
 	VK_CHECK_RESULT(vkCreateCommandPool(mVkLogicalDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
 }
 
-void VulkanRenderer::windowResize()
+void VulkanRenderer::OnResizeWindow()
 {
 	if (!mIsPrepared)
-	{
 		return;
-	}
+	
 	mIsPrepared = false;
-	resized = true;
+	mIsResized = true;
 
 	// Ensure all operations on the device have been finished before destroying resources
 	vkDeviceWaitIdle(mVkLogicalDevice);
 
 	// Recreate swap chain
-	width = destWidth;
-	height = destHeight;
 	SetupSwapchain();
 
 	// Recreate the frame buffers
@@ -1221,13 +1251,10 @@ void VulkanRenderer::windowResize()
 
 	vkDeviceWaitIdle(mVkLogicalDevice);
 
-	if ((width > 0.0f) && (height > 0.0f))
+	if ((mFramebufferWidth > 0.0f) && (mFramebufferHeight > 0.0f))
 	{
-		camera.updateAspectRatio((float)width / (float)height);
+		camera.updateAspectRatio(static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight));
 	}
-
-	// Notify derived class
-	windowResized();
 
 	mIsPrepared = true;
 }
@@ -1264,5 +1291,5 @@ void VulkanRenderer::handleMouseMove(int32_t x, int32_t y)
 
 void VulkanRenderer::SetupSwapchain()
 {
-	mVulkanSwapChain.CreateSwapchain(width, height, settings.vsync, settings.fullscreen);
+	mVulkanSwapChain.CreateSwapchain(mFramebufferWidth, mFramebufferHeight, mVulkanApplicationProperties.mIsVSyncEnabled);
 }
