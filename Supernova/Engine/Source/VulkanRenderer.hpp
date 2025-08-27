@@ -166,11 +166,12 @@ private:
 	void CreateGlfwWindow();
 	void SetWindowSize(int aWidth, int aHeight);
 
-	static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
-	static void WindowResizeCallback(GLFWwindow* window, int width, int height);
-	static void WindowMinimizedCallback(GLFWwindow* window, int aValue);
+	static void KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aAction, int aMode);
+	static void FramebufferResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
+	static void WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
+	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);
 
-	GLFWwindow* mGlfwWindow;
+	GLFWwindow* mGLFWWindow;
 	bool mShouldClose;
 	bool mIsFramebufferResized;
 	VulkanApplicationProperties mVulkanApplicationProperties;

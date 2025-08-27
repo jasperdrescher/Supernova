@@ -49,7 +49,7 @@ namespace VulkanExampleLocal
 }
 
 VulkanRenderer::VulkanRenderer()
-	: mGlfwWindow(nullptr)
+	: mGLFWWindow(nullptr)
 	, mShouldClose(false)
 	, mIsFramebufferResized(false)
 	, mVkCommandBuffers{VK_NULL_HANDLE}
@@ -174,16 +174,16 @@ void VulkanRenderer::UpdateRenderer(float aDeltaTime)
 		vkDeviceWaitIdle(mVkLogicalDevice);
 	}
 
-	glfwSetWindowTitle(mGlfwWindow, GetWindowTitle(aDeltaTime).c_str());
+	glfwSetWindowTitle(mGLFWWindow, GetWindowTitle(aDeltaTime).c_str());
 	glfwPollEvents();
 
-	mVulkanApplicationProperties.mIsFocused = glfwGetWindowAttrib(mGlfwWindow, GLFW_FOCUSED);
-	mShouldClose = glfwWindowShouldClose(mGlfwWindow);
+	mVulkanApplicationProperties.mIsFocused = glfwGetWindowAttrib(mGLFWWindow, GLFW_FOCUSED);
+	mShouldClose = glfwWindowShouldClose(mGLFWWindow);
 }
 
 void VulkanRenderer::DestroyRenderer()
 {
-	glfwDestroyWindow(mGlfwWindow);
+	glfwDestroyWindow(mGLFWWindow);
 	glfwTerminate();
 }
 
@@ -210,7 +210,7 @@ std::uint32_t VulkanRenderer::GetMemoryTypeIndex(std::uint32_t typeBits, VkMemor
 		}
 		typeBits >>= 1;
 	}
-	throw "Could not find a suitable memory type!";
+	throw std::runtime_error("Could not find a suitable memory type!");
 }
 
 void VulkanRenderer::createSynchronizationPrimitives()
@@ -745,7 +745,7 @@ void VulkanRenderer::PrepareFrame()
 	}
 	else if ((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR))
 	{
-		throw "Could not acquire the next swap chain image!";
+		throw std::runtime_error("Could not acquire the next swap chain image!");
 	}
 
 	// Update the uniform buffer for the next frame
@@ -855,7 +855,7 @@ void VulkanRenderer::PrepareFrame()
 	}
 	else if (result != VK_SUCCESS)
 	{
-		throw "Could not present the image to the swap chain!";
+		throw std::runtime_error("Could not present the image to the swap chain!");
 	}
 
 	// Select the next frame to render to, based on the max. no. of concurrent frames
@@ -878,21 +878,22 @@ void VulkanRenderer::CreateGlfwWindow()
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_SAMPLES, 4);
-	mGlfwWindow = glfwCreateWindow(mVulkanApplicationProperties.mWindowWidth, mVulkanApplicationProperties.mWindowHeight, "Supernova", nullptr, nullptr);
-	if (!mGlfwWindow)
+	mGLFWWindow = glfwCreateWindow(mVulkanApplicationProperties.mWindowWidth, mVulkanApplicationProperties.mWindowHeight, "Supernova", nullptr, nullptr);
+	if (!mGLFWWindow)
 	{
 		glfwTerminate();
 		throw std::runtime_error("Failed to create a window");
 	}
 
-	glfwSetWindowUserPointer(mGlfwWindow, this);
-	glfwSetFramebufferSizeCallback(mGlfwWindow, FramebufferResizeCallback);
-	glfwSetWindowSizeCallback(mGlfwWindow, WindowResizeCallback);
-	glfwSetWindowIconifyCallback(mGlfwWindow, WindowMinimizedCallback);
-	glfwSetInputMode(mGlfwWindow, GLFW_STICKY_KEYS, GL_TRUE);
-	glfwSetInputMode(mGlfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetWindowUserPointer(mGLFWWindow, this);
+	glfwSetKeyCallback(mGLFWWindow, KeyCallback);
+	glfwSetFramebufferSizeCallback(mGLFWWindow, FramebufferResizeCallback);
+	glfwSetWindowSizeCallback(mGLFWWindow, WindowResizeCallback);
+	glfwSetWindowIconifyCallback(mGLFWWindow, WindowMinimizedCallback);
+	glfwSetInputMode(mGLFWWindow, GLFW_STICKY_KEYS, GLFW_TRUE);
+	glfwSetInputMode(mGLFWWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	if (glfwRawMouseMotionSupported())
-		glfwSetInputMode(mGlfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+		glfwSetInputMode(mGLFWWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 	int major, minor, revision;
 	glfwGetVersion(&major, &minor, &revision);
@@ -906,24 +907,33 @@ void VulkanRenderer::SetWindowSize(int aWidth, int aHeight)
 	mVulkanApplicationProperties.mWindowHeight = aHeight;
 }
 
-void VulkanRenderer::FramebufferResizeCallback(GLFWwindow* window, int /*width*/, int /*height*/)
+void VulkanRenderer::KeyCallback(GLFWwindow* aWindow, int aKey, int /*aScancode*/, int aAction, int /*aMode*/)
 {
-	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(aWindow));
+	if (aKey == GLFW_KEY_ESCAPE && aAction != GLFW_RELEASE)
+	{
+		glfwSetWindowShouldClose(vulkanRenderer->mGLFWWindow, GLFW_TRUE);
+	}
+}
+
+void VulkanRenderer::FramebufferResizeCallback(GLFWwindow* aWindow, int /*aWidth*/, int /*aHeight*/)
+{
+	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(aWindow));
 	if (vulkanRenderer->mVulkanApplicationProperties.mIsMinimized)
 		return;
 
 	vulkanRenderer->mIsFramebufferResized = true;
 }
 
-void VulkanRenderer::WindowResizeCallback(GLFWwindow* window, int width, int height)
+void VulkanRenderer::WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight)
 {
-	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
-	vulkanRenderer->SetWindowSize(width, height);
+	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(aWindow));
+	vulkanRenderer->SetWindowSize(aWidth, aHeight);
 }
 
-void VulkanRenderer::WindowMinimizedCallback(GLFWwindow* window, int aValue)
+void VulkanRenderer::WindowMinimizedCallback(GLFWwindow* aWindow, int aValue)
 {
-	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(aWindow));
 	vulkanRenderer->mVulkanApplicationProperties.mIsMinimized = aValue;
 	vulkanRenderer->mIsPaused = aValue;
 }
@@ -1051,7 +1061,7 @@ VkResult VulkanRenderer::createInstance()
 	}
 
 	VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &mVkInstance);
-	VK_CHECK_RESULT(glfwCreateWindowSurface(mVkInstance, mGlfwWindow, nullptr, &mVulkanSwapChain.mVkSurfaceKHR));
+	VK_CHECK_RESULT(glfwCreateWindowSurface(mVkInstance, mGLFWWindow, nullptr, &mVulkanSwapChain.mVkSurfaceKHR));
 
 	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
 	if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedInstanceExtensions.end())
