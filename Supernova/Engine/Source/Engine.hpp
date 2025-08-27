@@ -14,4 +14,7 @@ public:
 
 private:
 	VulkanExample* mVulkanExample;
+	float mDeltaTime;
+	float mFixedDeltaTime;
+	float mTimeScale;
 };

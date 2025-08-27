@@ -16,8 +16,8 @@
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
-
-std::vector<const char*> VulkanExample::args;
+#include <ratio>
+#include <chrono>
 
 namespace VulkanExampleLocal
 {
@@ -52,6 +52,7 @@ VulkanExample::VulkanExample()
 	camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
 	camera.setRotation(glm::vec3(0.0f));
 	camera.setPerspective(60.0f, (float)width / (float)height, 1.0f, 256.0f);
+
 	// We want to use Vulkan 1.3 with the dynamic rendering and sync 2 features
 	mVkPhysicalDevice13Features.dynamicRendering = VK_TRUE;
 	mVkPhysicalDevice13Features.synchronization2 = VK_TRUE;
@@ -61,7 +62,6 @@ VulkanExample::VulkanExample()
 
 VulkanExample::~VulkanExample()
 {
-	// Clean up Vulkan resources
 	mVulkanSwapChain.cleanup();
 	if (descriptorPool != VK_NULL_HANDLE)
 	{
@@ -77,9 +77,9 @@ VulkanExample::~VulkanExample()
 	{
 		vkDestroyShaderModule(mVkLogicalDevice, shaderModule, nullptr);
 	}
-	vkDestroyImageView(mVkLogicalDevice, depthStencil.view, nullptr);
-	vkDestroyImage(mVkLogicalDevice, depthStencil.image, nullptr);
-	vkFreeMemory(mVkLogicalDevice, depthStencil.memory, nullptr);
+	vkDestroyImageView(mVkLogicalDevice, depthStencil.mVkImageView, nullptr);
+	vkDestroyImage(mVkLogicalDevice, depthStencil.mVkImage, nullptr);
+	vkFreeMemory(mVkLogicalDevice, depthStencil.mVkDeviceMemory, nullptr);
 
 	vkDestroyPipelineCache(mVkLogicalDevice, pipelineCache, nullptr);
 
@@ -113,10 +113,10 @@ VulkanExample::~VulkanExample()
 		vkDestroyPipeline(mVkLogicalDevice, pipeline, nullptr);
 		vkDestroyPipelineLayout(mVkLogicalDevice, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(mVkLogicalDevice, descriptorSetLayout, nullptr);
-		vkDestroyBuffer(mVkLogicalDevice, vertexBuffer.handle, nullptr);
-		vkFreeMemory(mVkLogicalDevice, vertexBuffer.memory, nullptr);
-		vkDestroyBuffer(mVkLogicalDevice, indexBuffer.handle, nullptr);
-		vkFreeMemory(mVkLogicalDevice, indexBuffer.memory, nullptr);
+		vkDestroyBuffer(mVkLogicalDevice, vertexBuffer.mVkBuffer, nullptr);
+		vkFreeMemory(mVkLogicalDevice, vertexBuffer.mVkDeviceMemory, nullptr);
+		vkDestroyBuffer(mVkLogicalDevice, indexBuffer.mVkBuffer, nullptr);
+		vkFreeMemory(mVkLogicalDevice, indexBuffer.mVkDeviceMemory, nullptr);
 		vkDestroyCommandPool(mVkLogicalDevice, commandPool, nullptr);
 		for (size_t i = 0; i < presentCompleteSemaphores.size(); i++)
 		{
@@ -129,8 +129,8 @@ VulkanExample::~VulkanExample()
 		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 		{
 			vkDestroyFence(mVkLogicalDevice, waitFences[i], nullptr);
-			vkDestroyBuffer(mVkLogicalDevice, uniformBuffers[i].handle, nullptr);
-			vkFreeMemory(mVkLogicalDevice, uniformBuffers[i].memory, nullptr);
+			vkDestroyBuffer(mVkLogicalDevice, uniformBuffers[i].mVkBuffer, nullptr);
+			vkFreeMemory(mVkLogicalDevice, uniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
 	}
 }
@@ -142,11 +142,28 @@ void VulkanExample::InitializeRenderer()
 	prepare();
 }
 
-void VulkanExample::UpdateRenderer()
+void VulkanExample::PrepareUpdate()
 {
-	renderLoop();
+	destWidth = width;
+	destHeight = height;
+	mLastTimestamp = std::chrono::high_resolution_clock::now();
+}
 
-	glfwSetWindowTitle(mGlfwWindow, GetWindowTitle().c_str());
+void VulkanExample::UpdateRenderer(float aDeltaTime)
+{
+	if (prepared)
+	{
+		NextFrame();
+	}
+
+	camera.update(mFrameTime);
+
+	if (mVkLogicalDevice != VK_NULL_HANDLE)
+	{
+		vkDeviceWaitIdle(mVkLogicalDevice);
+	}
+
+	glfwSetWindowTitle(mGlfwWindow, GetWindowTitle(aDeltaTime).c_str());
 	glfwPollEvents();
 
 	mShouldClose = glfwWindowShouldClose(mGlfwWindow);
@@ -228,17 +245,12 @@ void VulkanExample::createCommandBuffers()
 
 void VulkanExample::createVertexBuffer()
 {
-	// A note on memory management in Vulkan in general:
-	//	This is a complex topic and while it's fine for an example application to small individual memory allocations that is not
-	//	what should be done a real-world application, where you should allocate large chunks of memory at once instead.
-
-	// Setup vertices
-	const std::vector<Vertex> vertices{
+	const std::vector<VulkanVertex> vertices{
 		{{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
 		{{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
 		{{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}
 	};
-	std::uint32_t vertexBufferSize = static_cast<std::uint32_t>(vertices.size()) * sizeof(Vertex);
+	std::uint32_t vertexBufferSize = static_cast<std::uint32_t>(vertices.size()) * sizeof(VulkanVertex);
 
 	// Setup indices
 	// We do this for demonstration purposes, a triangle doesn't require indices to be rendered (because of the 1:1 mapping), but more complex shapes usually make use of indices
@@ -269,17 +281,17 @@ void VulkanExample::createVertexBuffer()
 	// Buffer is used as the copy source
 	stagingBufferCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	// Create a host-visible buffer to copy the vertex data to (staging buffer)
-	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &stagingBufferCI, nullptr, &stagingBuffer.handle));
-	vkGetBufferMemoryRequirements(mVkLogicalDevice, stagingBuffer.handle, &memReqs);
+	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &stagingBufferCI, nullptr, &stagingBuffer.mVkBuffer));
+	vkGetBufferMemoryRequirements(mVkLogicalDevice, stagingBuffer.mVkBuffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
 	// Request a host visible memory type that can be used to copy our data to
 	// Also request it to be coherent, so that writes are visible to the GPU right after unmapping the buffer
 	memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &stagingBuffer.memory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, stagingBuffer.handle, stagingBuffer.memory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &stagingBuffer.mVkDeviceMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, stagingBuffer.mVkBuffer, stagingBuffer.mVkDeviceMemory, 0));
 	// Map the buffer and copy vertices and indices into it, this way we can use a single buffer as the source for both vertex and index GPU buffers
 	uint8_t* data{nullptr};
-	VK_CHECK_RESULT(vkMapMemory(mVkLogicalDevice, stagingBuffer.memory, 0, memAlloc.allocationSize, 0, (void**)&data));
+	VK_CHECK_RESULT(vkMapMemory(mVkLogicalDevice, stagingBuffer.mVkDeviceMemory, 0, memAlloc.allocationSize, 0, (void**)&data));
 	memcpy(data, vertices.data(), vertexBufferSize);
 	memcpy(((char*)data) + vertexBufferSize, indices.data(), indexBufferSize);
 
@@ -287,23 +299,23 @@ void VulkanExample::createVertexBuffer()
 	VkBufferCreateInfo vertexbufferCI{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
 	vertexbufferCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	vertexbufferCI.size = vertexBufferSize;
-	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &vertexbufferCI, nullptr, &vertexBuffer.handle));
-	vkGetBufferMemoryRequirements(mVkLogicalDevice, vertexBuffer.handle, &memReqs);
+	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &vertexbufferCI, nullptr, &vertexBuffer.mVkBuffer));
+	vkGetBufferMemoryRequirements(mVkLogicalDevice, vertexBuffer.mVkBuffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
 	memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &vertexBuffer.memory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, vertexBuffer.handle, vertexBuffer.memory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &vertexBuffer.mVkDeviceMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, vertexBuffer.mVkBuffer, vertexBuffer.mVkDeviceMemory, 0));
 
 	// Create a device local buffer to which the (host local) index data will be copied and which will be used for rendering
 	VkBufferCreateInfo indexbufferCI{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
 	indexbufferCI.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	indexbufferCI.size = indexBufferSize;
-	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &indexbufferCI, nullptr, &indexBuffer.handle));
-	vkGetBufferMemoryRequirements(mVkLogicalDevice, indexBuffer.handle, &memReqs);
+	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &indexbufferCI, nullptr, &indexBuffer.mVkBuffer));
+	vkGetBufferMemoryRequirements(mVkLogicalDevice, indexBuffer.mVkBuffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
 	memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &indexBuffer.memory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, indexBuffer.handle, indexBuffer.memory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &indexBuffer.mVkDeviceMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, indexBuffer.mVkBuffer, indexBuffer.mVkDeviceMemory, 0));
 
 	// Buffer copies have to be submitted to a queue, so we need a command buffer for them
 	VkCommandBuffer copyCmd;
@@ -319,11 +331,11 @@ void VulkanExample::createVertexBuffer()
 	// Copy vertex and index buffers to the device
 	VkBufferCopy copyRegion{};
 	copyRegion.size = vertexBufferSize;
-	vkCmdCopyBuffer(copyCmd, stagingBuffer.handle, vertexBuffer.handle, 1, &copyRegion);
+	vkCmdCopyBuffer(copyCmd, stagingBuffer.mVkBuffer, vertexBuffer.mVkBuffer, 1, &copyRegion);
 	copyRegion.size = indexBufferSize;
 	// Indices are stored after the vertices in the source buffer, so we need to add an offset
 	copyRegion.srcOffset = vertexBufferSize;
-	vkCmdCopyBuffer(copyCmd, stagingBuffer.handle, indexBuffer.handle, 1, &copyRegion);
+	vkCmdCopyBuffer(copyCmd, stagingBuffer.mVkBuffer, indexBuffer.mVkBuffer, 1, &copyRegion);
 	VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
 
 	// Submit the command buffer to the queue to finish the copy
@@ -343,8 +355,8 @@ void VulkanExample::createVertexBuffer()
 	vkFreeCommandBuffers(mVkLogicalDevice, commandPool, 1, &copyCmd);
 
 	// The fence made sure copies are finished, so we can safely delete the staging buffer
-	vkDestroyBuffer(mVkLogicalDevice, stagingBuffer.handle, nullptr);
-	vkFreeMemory(mVkLogicalDevice, stagingBuffer.memory, nullptr);
+	vkDestroyBuffer(mVkLogicalDevice, stagingBuffer.mVkBuffer, nullptr);
+	vkFreeMemory(mVkLogicalDevice, stagingBuffer.mVkDeviceMemory, nullptr);
 }
 
 void VulkanExample::createDescriptors()
@@ -392,7 +404,7 @@ void VulkanExample::createDescriptors()
 		allocInfo.descriptorPool = descriptorPool;
 		allocInfo.descriptorSetCount = 1;
 		allocInfo.pSetLayouts = &descriptorSetLayout;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVkLogicalDevice, &allocInfo, &uniformBuffers[i].descriptorSet));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVkLogicalDevice, &allocInfo, &uniformBuffers[i].mVkDescriptorSet));
 
 		// Update the descriptor set determining the shader binding points
 		// For every binding point used in a shader there needs to be one
@@ -401,11 +413,11 @@ void VulkanExample::createDescriptors()
 
 		// The buffer's information is passed using a descriptor info structure
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uniformBuffers[i].handle;
-		bufferInfo.range = sizeof(ShaderData);
+		bufferInfo.buffer = uniformBuffers[i].mVkBuffer;
+		bufferInfo.range = sizeof(VulkanShaderData);
 
 		// Binding 0 : Uniform buffer
-		writeDescriptorSet.dstSet = uniformBuffers[i].descriptorSet;
+		writeDescriptorSet.dstSet = uniformBuffers[i].mVkDescriptorSet;
 		writeDescriptorSet.descriptorCount = 1;
 		writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		writeDescriptorSet.pBufferInfo = &bufferInfo;
@@ -427,16 +439,16 @@ void VulkanExample::setupDepthStencil()
 	imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	VK_CHECK_RESULT(vkCreateImage(mVkLogicalDevice, &imageCI, nullptr, &depthStencil.image));
+	VK_CHECK_RESULT(vkCreateImage(mVkLogicalDevice, &imageCI, nullptr, &depthStencil.mVkImage));
 
 	// Allocate memory for the image (device local) and bind it to our image
 	VkMemoryAllocateInfo memAlloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
 	VkMemoryRequirements memReqs;
-	vkGetImageMemoryRequirements(mVkLogicalDevice, depthStencil.image, &memReqs);
+	vkGetImageMemoryRequirements(mVkLogicalDevice, depthStencil.mVkImage, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
 	memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &depthStencil.memory));
-	VK_CHECK_RESULT(vkBindImageMemory(mVkLogicalDevice, depthStencil.image, depthStencil.memory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &depthStencil.mVkDeviceMemory));
+	VK_CHECK_RESULT(vkBindImageMemory(mVkLogicalDevice, depthStencil.mVkImage, depthStencil.mVkDeviceMemory, 0));
 
 	// Create a view for the depth stencil image
 	// Images aren't directly accessed in Vulkan, but rather through views described by a subresource range
@@ -455,8 +467,8 @@ void VulkanExample::setupDepthStencil()
 	depthStencilViewCI.subresourceRange.levelCount = 1;
 	depthStencilViewCI.subresourceRange.baseArrayLayer = 0;
 	depthStencilViewCI.subresourceRange.layerCount = 1;
-	depthStencilViewCI.image = depthStencil.image;
-	VK_CHECK_RESULT(vkCreateImageView(mVkLogicalDevice, &depthStencilViewCI, nullptr, &depthStencil.view));
+	depthStencilViewCI.image = depthStencil.mVkImage;
+	VK_CHECK_RESULT(vkCreateImageView(mVkLogicalDevice, &depthStencilViewCI, nullptr, &depthStencil.mVkImageView));
 }
 
 VkShaderModule VulkanExample::loadSPIRVShader(const std::string& filename)
@@ -578,7 +590,7 @@ void VulkanExample::createPipeline()
 	// This example uses a single vertex input binding at binding point 0 (see vkCmdBindVertexBuffers)
 	VkVertexInputBindingDescription vertexInputBinding{};
 	vertexInputBinding.binding = 0;
-	vertexInputBinding.stride = sizeof(Vertex);
+	vertexInputBinding.stride = sizeof(VulkanVertex);
 	vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	// Input attribute bindings describe shader attribute locations and memory layouts
@@ -591,13 +603,13 @@ void VulkanExample::createPipeline()
 	vertexInputAttributs[0].location = 0;
 	// Position attribute is three 32 bit signed (SFLOAT) floats (R32 G32 B32)
 	vertexInputAttributs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	vertexInputAttributs[0].offset = offsetof(Vertex, position);
+	vertexInputAttributs[0].offset = offsetof(VulkanVertex, mVertexPosition);
 	// Attribute location 1: Color
 	vertexInputAttributs[1].binding = 0;
 	vertexInputAttributs[1].location = 1;
 	// Color attribute is three 32 bit signed (SFLOAT) floats (R32 G32 B32)
 	vertexInputAttributs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	vertexInputAttributs[1].offset = offsetof(Vertex, color);
+	vertexInputAttributs[1].offset = offsetof(VulkanVertex, mVertexColor);
 
 	// Vertex input state used for pipeline creation
 	VkPipelineVertexInputStateCreateInfo vertexInputStateCI{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
@@ -658,17 +670,17 @@ void VulkanExample::createUniformBuffers()
 	// Prepare and initialize the per-frame uniform buffer blocks containing shader uniforms
 	// Single uniforms like in OpenGL are no longer present in Vulkan. All shader uniforms are passed via uniform buffer blocks
 	VkBufferCreateInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	bufferInfo.size = sizeof(ShaderData);
+	bufferInfo.size = sizeof(VulkanShaderData);
 	// This buffer will be used as a uniform buffer
 	bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
 	// Create the buffers
 	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 	{
-		VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &bufferInfo, nullptr, &uniformBuffers[i].handle));
+		VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &bufferInfo, nullptr, &uniformBuffers[i].mVkBuffer));
 		// Get memory requirements including size, alignment and memory type based on the buffer type we request (uniform buffer)
 		VkMemoryRequirements memReqs;
-		vkGetBufferMemoryRequirements(mVkLogicalDevice, uniformBuffers[i].handle, &memReqs);
+		vkGetBufferMemoryRequirements(mVkLogicalDevice, uniformBuffers[i].mVkBuffer, &memReqs);
 		VkMemoryAllocateInfo allocInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
 		// Note that we use the size we got from the memory requirements and not the actual buffer size, as the former may be larger due to alignment requirements of the device
 		allocInfo.allocationSize = memReqs.size;
@@ -677,11 +689,11 @@ void VulkanExample::createUniformBuffers()
 		// We also want the buffer to be host coherent so we don't have to flush (or sync after every update).
 		allocInfo.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		// Allocate memory for the uniform buffer
-		VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &allocInfo, nullptr, &(uniformBuffers[i].memory)));
+		VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &allocInfo, nullptr, &(uniformBuffers[i].mVkDeviceMemory)));
 		// Bind memory to buffer
-		VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, uniformBuffers[i].handle, uniformBuffers[i].memory, 0));
+		VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, uniformBuffers[i].mVkBuffer, uniformBuffers[i].mVkDeviceMemory, 0));
 		// We map the buffer once, so we can update it without having to map it again
-		VK_CHECK_RESULT(vkMapMemory(mVkLogicalDevice, uniformBuffers[i].memory, 0, sizeof(ShaderData), 0, (void**)&uniformBuffers[i].mapped));
+		VK_CHECK_RESULT(vkMapMemory(mVkLogicalDevice, uniformBuffers[i].mVkDeviceMemory, 0, sizeof(VulkanShaderData), 0, (void**)&uniformBuffers[i].mMappedData));
 	}
 
 }
@@ -703,7 +715,7 @@ void VulkanExample::prepare()
 	prepared = true;
 }
 
-void VulkanExample::render()
+void VulkanExample::PrepareFrame()
 {
 	// Use a fence to wait until the command buffer has finished execution before using it again
 	vkWaitForFences(mVkLogicalDevice, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -724,12 +736,12 @@ void VulkanExample::render()
 	}
 
 	// Update the uniform buffer for the next frame
-	ShaderData shaderData{};
+	VulkanShaderData shaderData{};
 	shaderData.projectionMatrix = camera.matrices.perspective;
 	shaderData.viewMatrix = camera.matrices.view;
 	shaderData.modelMatrix = glm::mat4(1.0f);
 	// Copy the current matrices to the current frame's uniform buffer. As we requested a host coherent memory type for the uniform buffer, the write is instantly visible to the GPU.
-	memcpy(uniformBuffers[currentFrame].mapped, &shaderData, sizeof(ShaderData));
+	memcpy(uniformBuffers[currentFrame].mMappedData, &shaderData, sizeof(VulkanShaderData));
 
 	// Build the command buffer for the next frame to render
 	vkResetCommandBuffer(commandBuffers[currentFrame], 0);
@@ -739,7 +751,7 @@ void VulkanExample::render()
 
 	// With dynamic rendering we need to explicitly add layout transitions by using barriers, this set of barriers prepares the color and depth images for output
 	vks::tools::insertImageMemoryBarrier(commandBuffer, mVulkanSwapChain.mVkImages[imageIndex], 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
-	vks::tools::insertImageMemoryBarrier(commandBuffer, depthStencil.image, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1});
+	vks::tools::insertImageMemoryBarrier(commandBuffer, depthStencil.mVkImage, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1});
 
 	// New structures are used to define the attachments used in dynamic rendering
 	// Color attachment
@@ -751,7 +763,7 @@ void VulkanExample::render()
 	colorAttachment.clearValue.color = {0.0f, 0.0f, 0.2f, 0.0f};
 	// Depth/stencil attachment
 	VkRenderingAttachmentInfo depthStencilAttachment{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-	depthStencilAttachment.imageView = depthStencil.view;
+	depthStencilAttachment.imageView = depthStencil.mVkImageView;
 	depthStencilAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -774,14 +786,14 @@ void VulkanExample::render()
 	VkRect2D scissor{0, 0, width, height};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	// Bind descriptor set for the current frame's uniform buffer, so the shader uses the data from that buffer for this draw
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &uniformBuffers[currentFrame].descriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &uniformBuffers[currentFrame].mVkDescriptorSet, 0, nullptr);
 	// The pipeline (state object) contains all states of the rendering pipeline, binding it will set all the states specified at pipeline creation time
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	// Bind triangle vertex buffer (contains position and colors)
 	VkDeviceSize offsets[1]{0};
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.handle, offsets);
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.mVkBuffer, offsets);
 	// Bind triangle index buffer
-	vkCmdBindIndexBuffer(commandBuffer, indexBuffer.handle, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(commandBuffer, indexBuffer.mVkBuffer, 0, VK_INDEX_TYPE_UINT32);
 	// Draw indexed triangle
 	vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
 	// Finish the current dynamic rendering section
@@ -1006,10 +1018,18 @@ VkResult VulkanExample::createInstance()
 	return result;
 }
 
-std::string VulkanExample::GetWindowTitle() const
+std::string VulkanExample::GetWindowTitle(float aDeltaTime) const
 {
-	std::string windowTitle{title + " - " + deviceProperties.deviceName};
-	return windowTitle;
+	return std::format("{} - {} - {:.3f} ms {} fps - {:.3f} ms - {}/{} window - {}/{} framebuffer",
+		title,
+		vulkanDevice->properties.deviceName,
+		(mFrameTime * 1000.f),
+		mLastFPS,
+		(aDeltaTime * 1000.f),
+		width,
+		height,
+		destWidth,
+		destHeight);
 }
 
 void VulkanExample::destroyCommandBuffers()
@@ -1046,138 +1066,26 @@ VkPipelineShaderStageCreateInfo VulkanExample::loadShader(std::string fileName, 
 	return shaderStage;
 }
 
-void VulkanExample::nextFrame()
+void VulkanExample::NextFrame()
 {
-	auto tStart = std::chrono::high_resolution_clock::now();
-	render();
-	frameCounter++;
-	auto tEnd = std::chrono::high_resolution_clock::now();
-	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-	frameTimer = (float)tDiff / 1000.0f;
-	camera.update(frameTimer);
-	// Convert to clamped timer value
-	if (!paused)
-	{
-		timer += timerSpeed * frameTimer;
-		if (timer > 1.0)
-		{
-			timer -= 1.0f;
-		}
-	}
-	float fpsTimer = (float)(std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count());
+	const std::chrono::steady_clock::time_point frameTimeStart = std::chrono::high_resolution_clock::now();
+	
+	PrepareFrame();
+
+	mFrameCounter++;
+	const std::chrono::steady_clock::time_point frameTimeEnd = std::chrono::high_resolution_clock::now();
+	const float frameTimeDelta = std::chrono::duration<float, std::milli>(frameTimeEnd - frameTimeStart).count();
+	mFrameTime = frameTimeDelta / 1000.0f;
+
+	const float fpsTimer = std::chrono::duration<float, std::milli>(frameTimeEnd - mLastTimestamp).count();
 	if (fpsTimer > 1000.0f)
 	{
-		lastFPS = static_cast<std::uint32_t>((float)frameCounter * (1000.0f / fpsTimer));
-		frameCounter = 0;
-		lastTimestamp = tEnd;
-	}
-	tPrevEnd = tEnd;
-}
-
-void VulkanExample::renderLoop()
-{
-	destWidth = width;
-	destHeight = height;
-	if (prepared)
-	{
-		nextFrame();
+		mLastFPS = static_cast<std::uint32_t>(static_cast<float>(mFrameCounter) * (1000.0f / fpsTimer));
+		mFrameCounter = 0;
+		mLastTimestamp = frameTimeEnd;
 	}
 
-	//while (!quit)
-	//{
-	//	auto tStart = std::chrono::high_resolution_clock::now();
-	//	render();
-	//	frameCounter++;
-	//	auto tEnd = std::chrono::high_resolution_clock::now();
-	//	auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-	//	frameTimer = tDiff / 1000.0f;
-	//	camera.update(frameTimer);
-	//	// Convert to clamped timer value
-	//	timer += timerSpeed * frameTimer;
-	//	if (timer > 1.0)
-	//	{
-	//		timer -= 1.0f;
-	//	}
-	//	float fpsTimer = std::chrono::duration<double, std::milli>(tEnd - lastTimestamp).count();
-	//	if (fpsTimer > 1000.0f)
-	//	{
-	//		lastFPS = (float)frameCounter * (1000.0f / fpsTimer);
-	//		frameCounter = 0;
-	//		lastTimestamp = tEnd;
-	//	}
-	//}
-
-	// Flush device to make sure all resources can be freed
-	if (mVkLogicalDevice != VK_NULL_HANDLE)
-	{
-		vkDeviceWaitIdle(mVkLogicalDevice);
-	}
-}
-
-void VulkanExample::prepareFrame(bool waitForFence)
-{
-	// Ensure command buffer execution has finished
-	if (waitForFence)
-	{
-		VK_CHECK_RESULT(vkWaitForFences(mVkLogicalDevice, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(mVkLogicalDevice, 1, &waitFences[currentBuffer]));
-	}
-	// Acquire the next image from the swap chain
-	VkResult result = mVulkanSwapChain.acquireNextImage(presentCompleteSemaphores[currentBuffer], currentImageIndex);
-	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
-	// If no longer optimal (VK_SUBOPTIMAL_KHR), wait until submitFrame() in case number of swapchain images will change on resize
-	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
-	{
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			windowResize();
-		}
-		return;
-	}
-	else
-	{
-		VK_CHECK_RESULT(result);
-	}
-}
-
-void VulkanExample::submitFrame(bool skipQueueSubmit)
-{
-	if (!skipQueueSubmit)
-	{
-		const VkPipelineStageFlags waitPipelineStage{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-		VkSubmitInfo submitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO};
-		submitInfo.pWaitDstStageMask = &waitPipelineStage;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &mVkCommandBuffers[currentBuffer];
-		submitInfo.pWaitSemaphores = &presentCompleteSemaphores[currentBuffer];
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &renderCompleteSemaphores[currentImageIndex];
-		submitInfo.signalSemaphoreCount = 1;
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
-	}
-
-	VkPresentInfoKHR presentInfo{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &renderCompleteSemaphores[currentImageIndex];
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &mVulkanSwapChain.mVkSwapchainKHR;
-	presentInfo.pImageIndices = &currentImageIndex;
-	VkResult result = vkQueuePresentKHR(queue, &presentInfo);
-	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
-	{
-		windowResize();
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			return;
-		}
-	}
-	else
-	{
-		VK_CHECK_RESULT(result);
-	}
-	// Select the next frame to render to, based on the max. no. of concurrent frames
-	currentBuffer = (currentBuffer + 1) % gMaxConcurrentFrames;
+	mPreviousEndTime = frameTimeEnd;
 }
 
 bool VulkanExample::initVulkan()
@@ -1294,9 +1202,9 @@ void VulkanExample::windowResize()
 	SetupSwapchain();
 
 	// Recreate the frame buffers
-	vkDestroyImageView(mVkLogicalDevice, depthStencil.view, nullptr);
-	vkDestroyImage(mVkLogicalDevice, depthStencil.image, nullptr);
-	vkFreeMemory(mVkLogicalDevice, depthStencil.memory, nullptr);
+	vkDestroyImageView(mVkLogicalDevice, depthStencil.mVkImageView, nullptr);
+	vkDestroyImage(mVkLogicalDevice, depthStencil.mVkImage, nullptr);
+	vkFreeMemory(mVkLogicalDevice, depthStencil.mVkDeviceMemory, nullptr);
 	setupDepthStencil();
 
 	for (auto& semaphore : presentCompleteSemaphores)

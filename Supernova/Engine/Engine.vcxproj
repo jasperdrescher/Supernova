@@ -37,6 +37,7 @@
     <ClInclude Include="Source\VulkanInitializers.hpp" />
     <ClInclude Include="Source\VulkanSwapChain.hpp" />
     <ClInclude Include="Source\VulkanTools.hpp" />
+    <ClInclude Include="Source\VulkanTypes.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

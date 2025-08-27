@@ -3,6 +3,7 @@
 #include "Camera.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
+#include "VulkanTypes.hpp"
 
 #include <glm/fwd.hpp>
 #include <vulkan/vulkan_core.h>
@@ -20,36 +21,11 @@ typedef struct GLFWwindow GLFWwindow;
 class VulkanExample
 {
 public:
-	struct Vertex
-	{
-		float position[3];
-		float color[3];
-	};
-
-	struct VulkanBuffer
-	{
-		VkDeviceMemory memory{VK_NULL_HANDLE};
-		VkBuffer handle{VK_NULL_HANDLE};
-	};
-
 	VulkanBuffer vertexBuffer;
 	VulkanBuffer indexBuffer;
 	std::uint32_t indexCount{0};
 
-	struct UniformBuffer : VulkanBuffer
-	{
-		VkDescriptorSet descriptorSet{VK_NULL_HANDLE};
-		uint8_t* mapped{nullptr};
-	};
-	
-	std::array<UniformBuffer, gMaxConcurrentFrames> uniformBuffers;
-
-	struct ShaderData
-	{
-		glm::mat4 projectionMatrix;
-		glm::mat4 modelMatrix;
-		glm::mat4 viewMatrix;
-	};
+	std::array<VulkanUniformBuffer, gMaxConcurrentFrames> uniformBuffers;
 
 	VkPipelineLayout pipelineLayout{VK_NULL_HANDLE};
 	VkPipeline pipeline{VK_NULL_HANDLE};
@@ -69,16 +45,18 @@ public:
 	~VulkanExample();
 
 	void InitializeRenderer();
-	void UpdateRenderer();
+	void PrepareUpdate();
+	void UpdateRenderer(float aDeltaTime);
 	void DestroyRenderer();
 
 	bool ShouldClose() const { return mShouldClose; }
+	bool IsPaused() const { return mIsPaused; }
 
 	void getEnabledFeatures();
 	void mouseMoved(double x, double y, bool& handled) {}
 	void windowResized() {}
 	void prepare();
-	void render();
+	void PrepareFrame();
 	void setupDepthStencil();
 
 	std::uint32_t getMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties);
@@ -97,7 +75,7 @@ public:
 	std::uint32_t height = 720;
 
 	/** @brief Last frame time measured using a high performance timer (if available) */
-	float frameTimer = 1.0f;
+	float mFrameTime = 1.0f;
 
 	/** @brief Encapsulated physical and logical vulkan device */
 	vks::VulkanDevice* vulkanDevice;
@@ -106,19 +84,12 @@ public:
 	struct Settings
 	{
 		/** @brief Activates validation layers (and message output) when set to true */
-		bool validation = true;
+		bool validation = false;
 		/** @brief Set to true if fullscreen mode has been requested via command line */
 		bool fullscreen = false;
 		/** @brief Set to true if v-sync will be forced for the swapchain */
 		bool vsync = false;
 	} settings;
-
-	/** @brief State of gamepad input (only used on Android) */
-	struct
-	{
-		glm::vec2 axisLeft = glm::vec2(0.0f);
-		glm::vec2 axisRight = glm::vec2(0.0f);
-	} gamePadState;
 
 	/** @brief State of mouse/touch input */
 	struct
@@ -132,16 +103,14 @@ public:
 		glm::vec2 position;
 	} mouseState;
 
-	VkClearColorValue defaultClearColor = {{0.025f, 0.025f, 0.025f, 1.0f}};
-
-	static std::vector<const char*> args;
+	VkClearColorValue mDefaultClearColor = {{0.025f, 0.025f, 0.025f, 1.0f}};
 
 	// Defines a frame rate independent timer value clamped from -1.0...1.0
 	// For use in animations, rotations, etc.
-	float timer = 0.0f;
+	float mTimer = 0.0f;
 	// Multiplier for speeding up (or slowing down) the global timer
-	float timerSpeed = 0.25f;
-	bool paused = false;
+	float TimerSpeed = 0.25f;
+	bool mIsPaused = false;
 
 	Camera camera;
 
@@ -149,13 +118,7 @@ public:
 	std::string name;
 	std::uint32_t apiVersion;
 
-	/** @brief Default depth stencil attachment used by the default render pass */
-	struct
-	{
-		VkImage image;
-		VkDeviceMemory memory;
-		VkImageView view;
-	} depthStencil{};
+	VulkanDepthStencil depthStencil;
 
 	/** @brief Setup the vulkan instance, enable required extensions and connect to the physical device (GPU) */
 	bool initVulkan();
@@ -168,22 +131,15 @@ public:
 
 	void windowResize();
 
-	/** @brief Entry point for the main render loop */
-	void renderLoop();
-
-	/** Prepare the next frame for workload submission by acquiring the next swap chain image and waiting for the previous command buffer to finish */
-	void prepareFrame(bool waitForFence = true);
-	/** @brief Presents the current image to the swap chain */
-	void submitFrame(bool skipQueueSubmit = false);
-
 protected:
 	// Returns the path to the root of the glsl, hlsl or slang shader directory.
 	std::string getShadersPath() const;
 
 	// Frame counter to display fps
-	std::uint32_t frameCounter = 0;
-	std::uint32_t lastFPS = 0;
-	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp, tPrevEnd;
+	std::uint32_t mFrameCounter = 0;
+	std::uint32_t mLastFPS = 0;
+	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
+	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
 	// Vulkan instance, stores all per-application states
 	VkInstance mVkInstance{VK_NULL_HANDLE};
 	std::vector<std::string> supportedInstanceExtensions;
@@ -235,11 +191,11 @@ private:
 	GLFWwindow* mGlfwWindow;
 	bool mShouldClose;
 
-	std::string GetWindowTitle() const;
+	std::string GetWindowTitle(float aDeltaTime) const;
 	std::uint32_t destWidth;
 	std::uint32_t destHeight;
 	void handleMouseMove(int32_t x, int32_t y);
-	void nextFrame();
+	void NextFrame();
 	void createPipelineCache();
 	void InitializeSwapchain();
 	void createCommandPool();
