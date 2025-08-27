@@ -18,12 +18,21 @@
 #include <fstream>
 #include <ratio>
 #include <chrono>
+#include <cassert>
+#include <string>
+#include <cstddef>
+#include <array>
+#include <format>
+#include <algorithm>
+#include <cstring>
+#include <cstdint>
+#include <vector>
 
 namespace VulkanExampleLocal
 {
-	static void GLFWErrorCallback(int error, const char* description)
+	static void GLFWErrorCallback(int aError, const char* aDescription)
 	{
-		std::cerr << "GLFW error: " << error << " " << description << std::endl;
+		std::cerr << "GLFW error: " << aError << " " << aDescription << std::endl;
 	}
 
 	static std::vector<const char*> GetGlfwRequiredExtensions()
@@ -187,7 +196,7 @@ void VulkanRenderer::GetEnabledFeatures() const
 	}
 }
 
-std::uint32_t VulkanRenderer::getMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties)
+std::uint32_t VulkanRenderer::GetMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties) const
 {
 	// Iterate over all memory types available for the device used in this example
 	for (std::uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++)
@@ -280,7 +289,7 @@ void VulkanRenderer::createVertexBuffer()
 	// Create the host visible staging buffer that we copy vertices and indices too, and from which we copy to the device
 	VulkanBuffer stagingBuffer;
 	VkBufferCreateInfo stagingBufferCI{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	stagingBufferCI.size = vertexBufferSize + indexBufferSize;
+	stagingBufferCI.size = static_cast<VkDeviceSize>(vertexBufferSize) + indexBufferSize;
 	// Buffer is used as the copy source
 	stagingBufferCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	// Create a host-visible buffer to copy the vertex data to (staging buffer)
@@ -289,7 +298,7 @@ void VulkanRenderer::createVertexBuffer()
 	memAlloc.allocationSize = memReqs.size;
 	// Request a host visible memory type that can be used to copy our data to
 	// Also request it to be coherent, so that writes are visible to the GPU right after unmapping the buffer
-	memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	memAlloc.memoryTypeIndex = GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &stagingBuffer.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, stagingBuffer.mVkBuffer, stagingBuffer.mVkDeviceMemory, 0));
 	// Map the buffer and copy vertices and indices into it, this way we can use a single buffer as the source for both vertex and index GPU buffers
@@ -305,7 +314,7 @@ void VulkanRenderer::createVertexBuffer()
 	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &vertexbufferCI, nullptr, &vertexBuffer.mVkBuffer));
 	vkGetBufferMemoryRequirements(mVkLogicalDevice, vertexBuffer.mVkBuffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
-	memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	memAlloc.memoryTypeIndex = GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &vertexBuffer.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, vertexBuffer.mVkBuffer, vertexBuffer.mVkDeviceMemory, 0));
 
@@ -316,7 +325,7 @@ void VulkanRenderer::createVertexBuffer()
 	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &indexbufferCI, nullptr, &indexBuffer.mVkBuffer));
 	vkGetBufferMemoryRequirements(mVkLogicalDevice, indexBuffer.mVkBuffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
-	memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	memAlloc.memoryTypeIndex = GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &indexBuffer.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, indexBuffer.mVkBuffer, indexBuffer.mVkDeviceMemory, 0));
 
@@ -449,7 +458,7 @@ void VulkanRenderer::setupDepthStencil()
 	VkMemoryRequirements memReqs;
 	vkGetImageMemoryRequirements(mVkLogicalDevice, depthStencil.mVkImage, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
-	memAlloc.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	memAlloc.memoryTypeIndex = GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &memAlloc, nullptr, &depthStencil.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindImageMemory(mVkLogicalDevice, depthStencil.mVkImage, depthStencil.mVkDeviceMemory, 0));
 
@@ -474,7 +483,7 @@ void VulkanRenderer::setupDepthStencil()
 	VK_CHECK_RESULT(vkCreateImageView(mVkLogicalDevice, &depthStencilViewCI, nullptr, &depthStencil.mVkImageView));
 }
 
-VkShaderModule VulkanRenderer::loadSPIRVShader(const std::string& filename)
+VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::string& filename) const
 {
 	size_t shaderSize;
 	char* shaderCode{nullptr};
@@ -627,14 +636,14 @@ void VulkanRenderer::createPipeline()
 	// Vertex shader
 	shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-	shaderStages[0].module = loadSPIRVShader(getShadersPath() + "triangle/triangle.vert.spv");
+	shaderStages[0].module = LoadSPIRVShader(getShadersPath() + "triangle/triangle.vert.spv");
 	shaderStages[0].pName = "main";
 	assert(shaderStages[0].module != VK_NULL_HANDLE);
 
 	// Fragment shader
 	shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	shaderStages[1].module = loadSPIRVShader(getShadersPath() + "triangle/triangle.frag.spv");
+	shaderStages[1].module = LoadSPIRVShader(getShadersPath() + "triangle/triangle.frag.spv");
 	shaderStages[1].pName = "main";
 	assert(shaderStages[1].module != VK_NULL_HANDLE);
 
@@ -690,7 +699,7 @@ void VulkanRenderer::createUniformBuffers()
 		// Get the memory type index that supports host visible memory access
 		// Most implementations offer multiple memory types and selecting the correct one to allocate memory from is crucial
 		// We also want the buffer to be host coherent so we don't have to flush (or sync after every update).
-		allocInfo.memoryTypeIndex = getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		allocInfo.memoryTypeIndex = GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		// Allocate memory for the uniform buffer
 		VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &allocInfo, nullptr, &(uniformBuffers[i].mVkDeviceMemory)));
 		// Bind memory to buffer
@@ -1012,7 +1021,7 @@ VkResult VulkanRenderer::createInstance()
 		bool validationLayerPresent = false;
 		for (VkLayerProperties& layer : instanceLayerProperties)
 		{
-			if (strcmp(layer.layerName, validationLayerName) == 0)
+			if (std::strcmp(layer.layerName, validationLayerName) == 0)
 			{
 				validationLayerPresent = true;
 				break;
@@ -1190,15 +1199,9 @@ bool VulkanRenderer::initVulkan()
 
 	// Find a suitable depth and/or stencil format
 	VkBool32 validFormat{false};
-	// Samples that make use of stencil will require a depth + stencil format, so we select from a different list
-	if (requiresStencil)
-	{
-		validFormat = vks::tools::getSupportedDepthStencilFormat(physicalDevice, &depthFormat);
-	}
-	else
-	{
-		validFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
-	}
+
+	// Applications that make use of stencil will require a depth + stencil format
+	validFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
 	assert(validFormat);
 
 	mVulkanSwapChain.setContext(mVkInstance, physicalDevice, mVkLogicalDevice);
@@ -1259,10 +1262,10 @@ void VulkanRenderer::OnResizeWindow()
 	mIsPrepared = true;
 }
 
-void VulkanRenderer::handleMouseMove(int32_t x, int32_t y)
+void VulkanRenderer::handleMouseMove(std::int32_t x, std::int32_t y)
 {
-	int32_t dx = (int32_t)mouseState.position.x - x;
-	int32_t dy = (int32_t)mouseState.position.y - y;
+	std::int32_t dx = (std::int32_t)mouseState.position.x - x;
+	std::int32_t dy = (std::int32_t)mouseState.position.y - y;
 
 	bool handled = false;
 

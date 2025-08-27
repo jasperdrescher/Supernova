@@ -58,12 +58,12 @@ public:
 	void PrepareFrame();
 	void setupDepthStencil();
 
-	std::uint32_t getMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties);
+	std::uint32_t GetMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties) const;
 	void createSynchronizationPrimitives();
 	void createCommandBuffers();
 	void createVertexBuffer();
 	void createDescriptors();
-	VkShaderModule loadSPIRVShader(const std::string& filename);
+	VkShaderModule LoadSPIRVShader(const std::string& filename) const;
 	void createPipeline();
 	void createUniformBuffers();
 
@@ -162,13 +162,6 @@ protected:
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanSwapChain mVulkanSwapChain;
 
-	// Synchronization related objects and variables
-	// These are used to have multiple frame buffers "in flight" to get some CPU/GPU parallelism
-	std::uint32_t currentImageIndex{0};
-	std::uint32_t currentBuffer{0};
-
-	bool requiresStencil{false};
-
 private:
 	void CreateGlfwWindow();
 	void SetWindowSize(int aWidth, int aHeight);
@@ -183,7 +176,7 @@ private:
 	VulkanApplicationProperties mVulkanApplicationProperties;
 
 	std::string GetWindowTitle(float aDeltaTime) const;
-	void handleMouseMove(int32_t x, int32_t y);
+	void handleMouseMove(std::int32_t x, std::int32_t y);
 	void NextFrame();
 	void createPipelineCache();
 	void InitializeSwapchain();
