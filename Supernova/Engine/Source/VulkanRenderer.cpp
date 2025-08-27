@@ -1,4 +1,4 @@
-#include "Renderer.hpp"
+#include "VulkanRenderer.hpp"
 
 #include "VulkanDebug.hpp"
 #include "VulkanInitializers.hpp"
@@ -39,12 +39,13 @@ namespace VulkanExampleLocal
 	}
 }
 
-VulkanExample::VulkanExample()
+VulkanRenderer::VulkanRenderer()
 	: mGlfwWindow(nullptr)
 	, mShouldClose(false)
 	, mVkCommandBuffers{VK_NULL_HANDLE}
-	, title{"VulkanExample"}
-	, name{"VulkanExample"}
+	, mWindowTitle{"Supernova"}
+	, mApplicationName{"Supernova"}
+	, mEngineName{"Supernova"}
 	, apiVersion{VK_API_VERSION_1_3}
 {
 	// Setup a default look-at camera
@@ -60,7 +61,7 @@ VulkanExample::VulkanExample()
 	settings.validation = true;
 }
 
-VulkanExample::~VulkanExample()
+VulkanRenderer::~VulkanRenderer()
 {
 	mVulkanSwapChain.cleanup();
 	if (descriptorPool != VK_NULL_HANDLE)
@@ -135,23 +136,23 @@ VulkanExample::~VulkanExample()
 	}
 }
 
-void VulkanExample::InitializeRenderer()
+void VulkanRenderer::InitializeRenderer()
 {
 	CreateGlfwWindow();
 	initVulkan();
-	prepare();
+	PrepareVulkanResources();
 }
 
-void VulkanExample::PrepareUpdate()
+void VulkanRenderer::PrepareUpdate()
 {
 	destWidth = width;
 	destHeight = height;
 	mLastTimestamp = std::chrono::high_resolution_clock::now();
 }
 
-void VulkanExample::UpdateRenderer(float aDeltaTime)
+void VulkanRenderer::UpdateRenderer(float aDeltaTime)
 {
-	if (prepared)
+	if (mIsPrepared)
 	{
 		NextFrame();
 	}
@@ -169,13 +170,13 @@ void VulkanExample::UpdateRenderer(float aDeltaTime)
 	mShouldClose = glfwWindowShouldClose(mGlfwWindow);
 }
 
-void VulkanExample::DestroyRenderer()
+void VulkanRenderer::DestroyRenderer()
 {
 	glfwDestroyWindow(mGlfwWindow);
 	glfwTerminate();
 }
 
-void VulkanExample::getEnabledFeatures()
+void VulkanRenderer::GetEnabledFeatures() const
 {
 	// Vulkan 1.3 device support is required for this example
 	if (deviceProperties.apiVersion < VK_API_VERSION_1_3)
@@ -184,7 +185,7 @@ void VulkanExample::getEnabledFeatures()
 	}
 }
 
-std::uint32_t VulkanExample::getMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties)
+std::uint32_t VulkanRenderer::getMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties)
 {
 	// Iterate over all memory types available for the device used in this example
 	for (std::uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++)
@@ -201,7 +202,7 @@ std::uint32_t VulkanExample::getMemoryTypeIndex(std::uint32_t typeBits, VkMemory
 	throw "Could not find a suitable memory type!";
 }
 
-void VulkanExample::createSynchronizationPrimitives()
+void VulkanRenderer::createSynchronizationPrimitives()
 {
 	// Fences are per frame in flight
 	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
@@ -231,7 +232,7 @@ void VulkanExample::createSynchronizationPrimitives()
 }
 
 // Command buffers are used to record commands to and are submitted to a queue for execution ("rendering")
-void VulkanExample::createCommandBuffers()
+void VulkanRenderer::createCommandBuffers()
 {
 	// All command buffers are allocated from the same command pool
 	VkCommandPoolCreateInfo commandPoolCI{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
@@ -243,7 +244,7 @@ void VulkanExample::createCommandBuffers()
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVkLogicalDevice, &cmdBufAllocateInfo, commandBuffers.data()));
 }
 
-void VulkanExample::createVertexBuffer()
+void VulkanRenderer::createVertexBuffer()
 {
 	const std::vector<VulkanVertex> vertices{
 		{{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
@@ -359,7 +360,7 @@ void VulkanExample::createVertexBuffer()
 	vkFreeMemory(mVkLogicalDevice, stagingBuffer.mVkDeviceMemory, nullptr);
 }
 
-void VulkanExample::createDescriptors()
+void VulkanRenderer::createDescriptors()
 {
 	// Descriptors are allocated from a pool, that tells the implementation how many and what types of descriptors we are going to use (at maximum)
 	VkDescriptorPoolSize descriptorTypeCounts[1]{};
@@ -426,7 +427,7 @@ void VulkanExample::createDescriptors()
 	}
 }
 
-void VulkanExample::setupDepthStencil()
+void VulkanRenderer::setupDepthStencil()
 {
 	// Create an optimal tiled image used as the depth stencil attachment
 	VkImageCreateInfo imageCI{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
@@ -471,7 +472,7 @@ void VulkanExample::setupDepthStencil()
 	VK_CHECK_RESULT(vkCreateImageView(mVkLogicalDevice, &depthStencilViewCI, nullptr, &depthStencil.mVkImageView));
 }
 
-VkShaderModule VulkanExample::loadSPIRVShader(const std::string& filename)
+VkShaderModule VulkanRenderer::loadSPIRVShader(const std::string& filename)
 {
 	size_t shaderSize;
 	char* shaderCode{nullptr};
@@ -510,7 +511,7 @@ VkShaderModule VulkanExample::loadSPIRVShader(const std::string& filename)
 	}
 }
 
-void VulkanExample::createPipeline()
+void VulkanRenderer::createPipeline()
 {
 	// The pipeline layout is the interface telling the pipeline what type of descriptors will later be bound
 	VkPipelineLayoutCreateInfo pipelineLayoutCI{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
@@ -665,7 +666,7 @@ void VulkanExample::createPipeline()
 	vkDestroyShaderModule(mVkLogicalDevice, shaderStages[1].module, nullptr);
 }
 
-void VulkanExample::createUniformBuffers()
+void VulkanRenderer::createUniformBuffers()
 {
 	// Prepare and initialize the per-frame uniform buffer blocks containing shader uniforms
 	// Single uniforms like in OpenGL are no longer present in Vulkan. All shader uniforms are passed via uniform buffer blocks
@@ -698,7 +699,7 @@ void VulkanExample::createUniformBuffers()
 
 }
 
-void VulkanExample::prepare()
+void VulkanRenderer::PrepareVulkanResources()
 {
 	InitializeSwapchain();
 	createCommandPool();
@@ -712,10 +713,11 @@ void VulkanExample::prepare()
 	createUniformBuffers();
 	createDescriptors();
 	createPipeline();
-	prepared = true;
+
+	mIsPrepared = true;
 }
 
-void VulkanExample::PrepareFrame()
+void VulkanRenderer::PrepareFrame()
 {
 	// Use a fence to wait until the command buffer has finished execution before using it again
 	vkWaitForFences(mVkLogicalDevice, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -846,7 +848,7 @@ void VulkanExample::PrepareFrame()
 	currentFrame = (currentFrame + 1) % gMaxConcurrentFrames;
 }
 
-void VulkanExample::CreateGlfwWindow()
+void VulkanRenderer::CreateGlfwWindow()
 {
 	if (!glfwInit())
 	{
@@ -884,7 +886,7 @@ void VulkanExample::CreateGlfwWindow()
 	std::cout << std::format("GLFW v{}.{}.{}", major, minor, revision) << std::endl;
 }
 
-VkResult VulkanExample::createInstance()
+VkResult VulkanRenderer::createInstance()
 {
 	std::vector<const char*> instanceExtensions = {VK_KHR_SURFACE_EXTENSION_NAME};
 
@@ -926,8 +928,8 @@ VkResult VulkanExample::createInstance()
 
 	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = name.c_str();
-	appInfo.pEngineName = name.c_str();
+	appInfo.pApplicationName = mApplicationName.c_str();
+	appInfo.pEngineName = mEngineName.c_str();
 	appInfo.apiVersion = apiVersion;
 
 	VkInstanceCreateInfo instanceCreateInfo{};
@@ -1018,10 +1020,10 @@ VkResult VulkanExample::createInstance()
 	return result;
 }
 
-std::string VulkanExample::GetWindowTitle(float aDeltaTime) const
+std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const
 {
 	return std::format("{} - {} - {:.3f} ms {} fps - {:.3f} ms - {}/{} window - {}/{} framebuffer",
-		title,
+		mWindowTitle,
 		vulkanDevice->properties.deviceName,
 		(mFrameTime * 1000.f),
 		mLastFPS,
@@ -1032,29 +1034,29 @@ std::string VulkanExample::GetWindowTitle(float aDeltaTime) const
 		destHeight);
 }
 
-void VulkanExample::destroyCommandBuffers()
+void VulkanRenderer::destroyCommandBuffers()
 {
 	vkFreeCommandBuffers(mVkLogicalDevice, mVkCommandPool, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
 }
 
-std::string VulkanExample::getShadersPath() const
+std::string VulkanRenderer::getShadersPath() const
 {
 	return getShaderBasePath() + shaderDir + "/";
 }
 
-void VulkanExample::createPipelineCache()
+void VulkanRenderer::createPipelineCache()
 {
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 	pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 	VK_CHECK_RESULT(vkCreatePipelineCache(mVkLogicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 }
 
-void VulkanExample::InitializeSwapchain()
+void VulkanRenderer::InitializeSwapchain()
 {
 	mVulkanSwapChain.InitializeSurface();
 }
 
-VkPipelineShaderStageCreateInfo VulkanExample::loadShader(std::string fileName, VkShaderStageFlagBits stage)
+VkPipelineShaderStageCreateInfo VulkanRenderer::loadShader(std::string fileName, VkShaderStageFlagBits stage)
 {
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1066,7 +1068,7 @@ VkPipelineShaderStageCreateInfo VulkanExample::loadShader(std::string fileName, 
 	return shaderStage;
 }
 
-void VulkanExample::NextFrame()
+void VulkanRenderer::NextFrame()
 {
 	const std::chrono::steady_clock::time_point frameTimeStart = std::chrono::high_resolution_clock::now();
 	
@@ -1088,7 +1090,7 @@ void VulkanExample::NextFrame()
 	mPreviousEndTime = frameTimeEnd;
 }
 
-bool VulkanExample::initVulkan()
+bool VulkanRenderer::initVulkan()
 {
 	// Instead of checking for the command line switch, validation can be forced via a define
 	settings.validation = true;
@@ -1139,7 +1141,7 @@ bool VulkanExample::initVulkan()
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 
 	// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
-	getEnabledFeatures();
+	GetEnabledFeatures();
 
 	// Vulkan device creation
 	// This is handled by a separate class that gets a logical device representation
@@ -1175,7 +1177,7 @@ bool VulkanExample::initVulkan()
 	return true;
 }
 
-void VulkanExample::createCommandPool()
+void VulkanRenderer::createCommandPool()
 {
 	VkCommandPoolCreateInfo vkCommandPoolCreateInfo = {};
 	vkCommandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1184,13 +1186,13 @@ void VulkanExample::createCommandPool()
 	VK_CHECK_RESULT(vkCreateCommandPool(mVkLogicalDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
 }
 
-void VulkanExample::windowResize()
+void VulkanRenderer::windowResize()
 {
-	if (!prepared)
+	if (!mIsPrepared)
 	{
 		return;
 	}
-	prepared = false;
+	mIsPrepared = false;
 	resized = true;
 
 	// Ensure all operations on the device have been finished before destroying resources
@@ -1231,10 +1233,10 @@ void VulkanExample::windowResize()
 	// Notify derived class
 	windowResized();
 
-	prepared = true;
+	mIsPrepared = true;
 }
 
-void VulkanExample::handleMouseMove(int32_t x, int32_t y)
+void VulkanRenderer::handleMouseMove(int32_t x, int32_t y)
 {
 	int32_t dx = (int32_t)mouseState.position.x - x;
 	int32_t dy = (int32_t)mouseState.position.y - y;
@@ -1264,7 +1266,7 @@ void VulkanExample::handleMouseMove(int32_t x, int32_t y)
 	mouseState.position = glm::vec2((float)x, (float)y);
 }
 
-void VulkanExample::SetupSwapchain()
+void VulkanRenderer::SetupSwapchain()
 {
 	mVulkanSwapChain.CreateSwapchain(width, height, settings.vsync, settings.fullscreen);
 }

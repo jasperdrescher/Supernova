@@ -18,7 +18,7 @@ constexpr std::uint32_t gMaxConcurrentFrames = 2;
 
 typedef struct GLFWwindow GLFWwindow;
 
-class VulkanExample
+class VulkanRenderer
 {
 public:
 	VulkanBuffer vertexBuffer;
@@ -41,8 +41,8 @@ public:
 
 	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 
-	VulkanExample();
-	~VulkanExample();
+	VulkanRenderer();
+	~VulkanRenderer();
 
 	void InitializeRenderer();
 	void PrepareUpdate();
@@ -52,10 +52,10 @@ public:
 	bool ShouldClose() const { return mShouldClose; }
 	bool IsPaused() const { return mIsPaused; }
 
-	void getEnabledFeatures();
+	void GetEnabledFeatures() const;
 	void mouseMoved(double x, double y, bool& handled) {}
 	void windowResized() {}
-	void prepare();
+	void PrepareVulkanResources();
 	void PrepareFrame();
 	void setupDepthStencil();
 
@@ -69,7 +69,7 @@ public:
 	void createUniformBuffers();
 
 public:
-	bool prepared = false;
+	bool mIsPrepared = false;
 	bool resized = false;
 	std::uint32_t width = 1280;
 	std::uint32_t height = 720;
@@ -114,8 +114,9 @@ public:
 
 	Camera camera;
 
-	std::string title;
-	std::string name;
+	std::string mWindowTitle;
+	std::string mApplicationName;
+	std::string mEngineName;
 	std::uint32_t apiVersion;
 
 	VulkanDepthStencil depthStencil;

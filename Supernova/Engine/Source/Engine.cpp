@@ -1,12 +1,12 @@
 #include "Engine.hpp"
 
-#include "Renderer.hpp"
+#include "VulkanRenderer.hpp"
 
 #include <chrono>
 #include <ratio>
 
 Engine::Engine()
-	: mVulkanExample(nullptr)
+	: mVulkanRenderer(nullptr)
 	, mFixedDeltaTime(0.0f)
 	, mTimeScale(0.25f)
 	, mDeltaTime(0.0f)
@@ -15,30 +15,30 @@ Engine::Engine()
 
 Engine::~Engine()
 {
-	delete mVulkanExample;
+	delete mVulkanRenderer;
 }
 
 void Engine::Start()
 {
-	mVulkanExample = new VulkanExample();
-	mVulkanExample->InitializeRenderer();
+	mVulkanRenderer = new VulkanRenderer();
+	mVulkanRenderer->InitializeRenderer();
 }
 
 void Engine::Run()
 {
-	mVulkanExample->PrepareUpdate();
+	mVulkanRenderer->PrepareUpdate();
 
-	while (!mVulkanExample->ShouldClose())
+	while (!mVulkanRenderer->ShouldClose())
 	{
 		const std::chrono::steady_clock::time_point startTime = std::chrono::high_resolution_clock::now();
 
-		mVulkanExample->UpdateRenderer(mDeltaTime);
+		mVulkanRenderer->UpdateRenderer(mDeltaTime);
 
 		const std::chrono::steady_clock::time_point endTime = std::chrono::high_resolution_clock::now();
 		const float deltaTimeMs = std::chrono::duration<float, std::milli>(endTime - startTime).count();
 		mDeltaTime = deltaTimeMs / 1000.0f;
 
-		if (!mVulkanExample->IsPaused())
+		if (!mVulkanRenderer->IsPaused())
 		{
 			mFixedDeltaTime += mTimeScale * mDeltaTime;
 			if (mFixedDeltaTime > 1.0f)
@@ -51,5 +51,5 @@ void Engine::Run()
 
 void Engine::Shutdown()
 {
-	mVulkanExample->DestroyRenderer();
+	mVulkanRenderer->DestroyRenderer();
 }

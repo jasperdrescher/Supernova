@@ -21,7 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Engine.cpp" />
-    <ClCompile Include="Source\Renderer.cpp" />
+    <ClCompile Include="Source\VulkanRenderer.cpp" />
     <ClCompile Include="Source\Supernova.cpp" />
     <ClCompile Include="Source\VulkanDebug.cpp" />
     <ClCompile Include="Source\VulkanDevice.cpp" />
@@ -31,7 +31,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Engine.hpp" />
-    <ClInclude Include="Source\Renderer.hpp" />
+    <ClInclude Include="Source\VulkanRenderer.hpp" />
     <ClInclude Include="Source\VulkanDebug.hpp" />
     <ClInclude Include="Source\VulkanDevice.hpp" />
     <ClInclude Include="Source\VulkanInitializers.hpp" />

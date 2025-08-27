@@ -1,6 +1,6 @@
 #pragma once
 
-class VulkanExample;
+class VulkanRenderer;
 
 class Engine
 {
@@ -13,7 +13,7 @@ public:
 	void Shutdown();
 
 private:
-	VulkanExample* mVulkanExample;
+	VulkanRenderer* mVulkanRenderer;
 	float mDeltaTime;
 	float mFixedDeltaTime;
 	float mTimeScale;
