@@ -64,10 +64,10 @@ private:
 	void CreateUniformBuffers();
 
 	/** @brief Setup the vulkan instance, enable required extensions and connect to the physical device (GPU) */
-	bool initVulkan();
+	bool InitializeVulkan();
 
-	/** @brief (Virtual) Creates the application wide Vulkan instance */
-	VkResult createInstance();
+	VkResult CreateVkInstance();
+	VkResult CreateVulkanDevice();
 
 	/** @brief Loads a SPIR-V shader file for the given shader stage */
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
@@ -118,7 +118,7 @@ private:
 	float mFrameTime;
 
 	/** @brief Encapsulated physical and logical vulkan device */
-	VulkanDevice* vulkanDevice;
+	VulkanDevice* mVulkanDevice;
 
 	// Frame counter to display fps
 	std::uint32_t mFrameCounter = 0;

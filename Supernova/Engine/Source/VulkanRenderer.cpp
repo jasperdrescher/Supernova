@@ -62,7 +62,7 @@ VulkanRenderer::VulkanRenderer()
 	, mFramebufferWidth{0}
 	, mFramebufferHeight{0}
 	, mFrameTime{1.0f}
-	, vulkanDevice{nullptr}
+	, mVulkanDevice{nullptr}
 	, mFrameCounter {0}
 	, mLastFPS {0}
 	, mVkInstance{VK_NULL_HANDLE}
@@ -128,7 +128,7 @@ VulkanRenderer::~VulkanRenderer()
 	for (VkSemaphore& semaphore : mVkRenderCompleteSemaphores)
 		vkDestroySemaphore(mVkLogicalDevice, semaphore, nullptr);
 
-	delete vulkanDevice;
+	delete mVulkanDevice;
 
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
@@ -164,7 +164,7 @@ VulkanRenderer::~VulkanRenderer()
 void VulkanRenderer::InitializeRenderer()
 {
 	CreateGlfwWindow();
-	initVulkan();
+	InitializeVulkan();
 	PrepareVulkanResources();
 }
 
@@ -953,18 +953,18 @@ void VulkanRenderer::WindowMinimizedCallback(GLFWwindow* aWindow, int aValue)
 	vulkanRenderer->mIsPaused = aValue;
 }
 
-VkResult VulkanRenderer::createInstance()
+VkResult VulkanRenderer::CreateVkInstance()
 {
 	std::vector<const char*> instanceExtensions = {VK_KHR_SURFACE_EXTENSION_NAME};
 
-	std::uint32_t extCount = 0;
-	VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr));
-	if (extCount > 0)
+	std::uint32_t extensionCount = 0;
+	VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr));
+	if (extensionCount > 0)
 	{
-		std::vector<VkExtensionProperties> extensions(extCount);
-		if (vkEnumerateInstanceExtensionProperties(nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
+		std::vector<VkExtensionProperties> extensions(extensionCount);
+		if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, &extensions.front()) == VK_SUCCESS)
 		{
-			for (VkExtensionProperties& extension : extensions)
+			for (const VkExtensionProperties& extension : extensions)
 			{
 				mSupportedInstanceExtensions.push_back(extension.extensionName);
 			}
@@ -976,7 +976,7 @@ VkResult VulkanRenderer::createInstance()
 		for (const char* enabledExtension : mEnabledInstanceExtensions)
 		{
 			if (std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), enabledExtension) == mSupportedInstanceExtensions.end())
-				std::cerr << "Enabled instance extension \"" << enabledExtension << "\" is not present at instance level\n";
+				std::cerr << "Enabled instance extension \"" << enabledExtension << "\" is not present at instance level" << std::endl;
 
 			instanceExtensions.push_back(enabledExtension);
 		}
@@ -993,22 +993,22 @@ VkResult VulkanRenderer::createInstance()
 		mEnabledDeviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 	}
 
-	VkApplicationInfo appInfo{};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = mVulkanApplicationProperties.mApplicationName.c_str();
-	appInfo.pEngineName = mVulkanApplicationProperties.mEngineName.c_str();
-	appInfo.apiVersion = mVulkanApplicationProperties.mAPIVersion;
+	VkApplicationInfo vkApplicationInfo{};
+	vkApplicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	vkApplicationInfo.pApplicationName = mVulkanApplicationProperties.mApplicationName.c_str();
+	vkApplicationInfo.pEngineName = mVulkanApplicationProperties.mEngineName.c_str();
+	vkApplicationInfo.apiVersion = mVulkanApplicationProperties.mAPIVersion;
 
-	VkInstanceCreateInfo instanceCreateInfo{};
-	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	instanceCreateInfo.pApplicationInfo = &appInfo;
+	VkInstanceCreateInfo vkInstanceCreateInfo{};
+	vkInstanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	vkInstanceCreateInfo.pApplicationInfo = &vkApplicationInfo;
 
-	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
+	VkDebugUtilsMessengerCreateInfoEXT vkDebugUtilsMessengerCreateInfo{};
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
-		VulkanDebug::SetupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
-		debugUtilsMessengerCI.pNext = instanceCreateInfo.pNext;
-		instanceCreateInfo.pNext = &debugUtilsMessengerCI;
+		VulkanDebug::SetupDebugingMessengerCreateInfo(vkDebugUtilsMessengerCreateInfo);
+		vkDebugUtilsMessengerCreateInfo.pNext = vkInstanceCreateInfo.pNext;
+		vkInstanceCreateInfo.pNext = &vkDebugUtilsMessengerCreateInfo;
 	}
 
 	if (mVulkanApplicationProperties.mIsValidationEnabled || std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
@@ -1025,8 +1025,8 @@ VkResult VulkanRenderer::createInstance()
 
 	if (!instanceExtensions.empty())
 	{
-		instanceCreateInfo.enabledExtensionCount = (std::uint32_t)instanceExtensions.size();
-		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
+		vkInstanceCreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size());
+		vkInstanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 
 #ifndef NDEBUG
 		for (const char* instanceExtension : instanceExtensions)
@@ -1036,26 +1036,26 @@ VkResult VulkanRenderer::createInstance()
 #endif
 	}
 
-	const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
+		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 		std::uint32_t instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
 		std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
-		bool validationLayerPresent = false;
+		bool isValidationLayerPresent = false;
 		for (VkLayerProperties& layer : instanceLayerProperties)
 		{
 			if (std::strcmp(layer.layerName, validationLayerName) == 0)
 			{
-				validationLayerPresent = true;
+				isValidationLayerPresent = true;
 				break;
 			}
 		}
-		if (validationLayerPresent)
+		if (isValidationLayerPresent)
 		{
-			instanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
-			instanceCreateInfo.enabledLayerCount = 1;
+			vkInstanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
+			vkInstanceCreateInfo.enabledLayerCount = 1;
 		}
 		else
 		{
@@ -1071,11 +1071,11 @@ VkResult VulkanRenderer::createInstance()
 	{
 		layerSettingsCreateInfo.settingCount = static_cast<std::uint32_t>(mEnabledLayerSettings.size());
 		layerSettingsCreateInfo.pSettings = mEnabledLayerSettings.data();
-		layerSettingsCreateInfo.pNext = instanceCreateInfo.pNext;
-		instanceCreateInfo.pNext = &layerSettingsCreateInfo;
+		layerSettingsCreateInfo.pNext = vkInstanceCreateInfo.pNext;
+		vkInstanceCreateInfo.pNext = &layerSettingsCreateInfo;
 	}
 
-	VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &mVkInstance);
+	VkResult result = vkCreateInstance(&vkInstanceCreateInfo, nullptr, &mVkInstance);
 	VK_CHECK_RESULT(glfwCreateWindowSurface(mVkInstance, mGLFWWindow, nullptr, &mVulkanSwapChain.mVkSurfaceKHR));
 
 	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
@@ -1087,11 +1087,64 @@ VkResult VulkanRenderer::createInstance()
 	return result;
 }
 
+VkResult VulkanRenderer::CreateVulkanDevice()
+{
+	// Physical device
+	std::uint32_t gpuCount = 0;
+	// Get number of available physical devices
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, nullptr));
+	if (gpuCount == 0)
+	{
+		VulkanTools::ExitFatal("No device with Vulkan support found", -1);
+		return VkResult::VK_ERROR_DEVICE_LOST;
+	}
+	// Enumerate devices
+	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
+	VkResult result = vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, physicalDevices.data());
+	if (result != VK_SUCCESS)
+	{
+		VulkanTools::ExitFatal("Could not enumerate physical devices : \n" + VulkanTools::GetErrorString(result), result);
+		return VkResult::VK_ERROR_DEVICE_LOST;
+	}
+
+	// GPU selection
+
+	// Select physical device to be used for the Vulkan example
+	// Defaults to the first device unless specified by command line
+	std::uint32_t selectedDevice = 0;
+
+	mVkPhysicalDevice = physicalDevices[selectedDevice];
+
+	// Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
+	vkGetPhysicalDeviceProperties(mVkPhysicalDevice, &mVkPhysicalDeviceProperties);
+	vkGetPhysicalDeviceFeatures(mVkPhysicalDevice, &mEnabledVkPhysicalDeviceFeatures);
+	vkGetPhysicalDeviceMemoryProperties(mVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);
+
+	// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
+	GetEnabledFeatures();
+
+	// Vulkan device creation
+	// This is handled by a separate class that gets a logical device representation
+	// and encapsulates functions related to a device
+	mVulkanDevice = new VulkanDevice(mVkPhysicalDevice);
+
+	result = mVulkanDevice->createLogicalDevice(mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
+	if (result != VK_SUCCESS)
+	{
+		VulkanTools::ExitFatal("Could not create Vulkan device: \n" + VulkanTools::GetErrorString(result), result);
+		return VkResult::VK_ERROR_DEVICE_LOST;
+	}
+
+	mVkLogicalDevice = mVulkanDevice->mLogicalVkDevice;
+
+	return result;
+}
+
 std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const
 {
 	return std::format("{} - {} - {:.3f} ms {} fps - {:.3f} ms - {}/{} window - {}/{} framebuffer",
 		mVulkanApplicationProperties.mApplicationName,
-		vulkanDevice->properties.deviceName,
+		mVulkanDevice->mVkPhysicalDeviceProperties.deviceName,
 		(mFrameTime * 1000.f),
 		mLastFPS,
 		(aDeltaTime * 1000.f),
@@ -1157,9 +1210,9 @@ void VulkanRenderer::NextFrame()
 	mPreviousEndTime = frameTimeEnd;
 }
 
-bool VulkanRenderer::initVulkan()
+bool VulkanRenderer::InitializeVulkan()
 {
-	VkResult result = createInstance();
+	VkResult result = CreateVkInstance();
 	if (result != VK_SUCCESS)
 	{
 		VulkanTools::ExitFatal("Could not create Vulkan instance : \n" + VulkanTools::GetErrorString(result), result);
@@ -1172,55 +1225,15 @@ bool VulkanRenderer::initVulkan()
 		VulkanDebug::SetupDebugUtilsMessenger(mVkInstance);
 	}
 
-	// Physical device
-	std::uint32_t gpuCount = 0;
-	// Get number of available physical devices
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, nullptr));
-	if (gpuCount == 0)
-	{
-		VulkanTools::ExitFatal("No device with Vulkan support found", -1);
-		return false;
-	}
-	// Enumerate devices
-	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
-	result = vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, physicalDevices.data());
+	result = CreateVulkanDevice();
 	if (result != VK_SUCCESS)
 	{
-		VulkanTools::ExitFatal("Could not enumerate physical devices : \n" + VulkanTools::GetErrorString(result), result);
+		VulkanTools::ExitFatal("Could not create Vulkan device : \n" + VulkanTools::GetErrorString(result), result);
 		return false;
 	}
-
-	// GPU selection
-
-	// Select physical device to be used for the Vulkan example
-	// Defaults to the first device unless specified by command line
-	std::uint32_t selectedDevice = 0;
-
-	mVkPhysicalDevice = physicalDevices[selectedDevice];
-
-	// Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
-	vkGetPhysicalDeviceProperties(mVkPhysicalDevice, &mVkPhysicalDeviceProperties);
-	vkGetPhysicalDeviceFeatures(mVkPhysicalDevice, &mEnabledVkPhysicalDeviceFeatures);
-	vkGetPhysicalDeviceMemoryProperties(mVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);
-
-	// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
-	GetEnabledFeatures();
-
-	// Vulkan device creation
-	// This is handled by a separate class that gets a logical device representation
-	// and encapsulates functions related to a device
-	vulkanDevice = new VulkanDevice(mVkPhysicalDevice);
-
-	result = vulkanDevice->createLogicalDevice(mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
-	if (result != VK_SUCCESS)
-	{
-		VulkanTools::ExitFatal("Could not create Vulkan device: \n" + VulkanTools::GetErrorString(result), result);
-		return false;
-	}
-	mVkLogicalDevice = vulkanDevice->logicalDevice;
 
 	// Get a graphics queue from the device
-	vkGetDeviceQueue(mVkLogicalDevice, vulkanDevice->queueFamilyIndices.graphics, 0, &mVkQueue);
+	vkGetDeviceQueue(mVkLogicalDevice, mVulkanDevice->mQueueFamilyIndices.graphics, 0, &mVkQueue);
 
 	// Find a suitable depth and/or stencil format
 	VkBool32 validFormat{false};

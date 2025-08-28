@@ -22,39 +22,47 @@ struct VulkanDevice
 		std::uint32_t transfer;
 	};
 
-	/** @brief Physical device representation */
-	VkPhysicalDevice physicalDevice{VK_NULL_HANDLE};;
-	/** @brief Logical device representation (application's view of the device) */
-	VkDevice logicalDevice{VK_NULL_HANDLE};
-	/** @brief Properties of the physical device including limits that the application can check against */
-	VkPhysicalDeviceProperties properties{};
-	/** @brief Features of the physical device that an application can use to check if a feature is supported */
-	VkPhysicalDeviceFeatures features{};
-	/** @brief Features that have been enabled for use on the physical device */
-	VkPhysicalDeviceFeatures enabledFeatures{};
-	/** @brief Memory types and heaps of the physical device */
-	VkPhysicalDeviceMemoryProperties memoryProperties{};
-	/** @brief Queue family properties of the physical device */
-	std::vector<VkQueueFamilyProperties> queueFamilyProperties{};
-	/** @brief List of extensions supported by the device */
-	std::vector<std::string> supportedExtensions{};
-	/** @brief Default command pool for the graphics queue family index */
-	VkCommandPool commandPool{VK_NULL_HANDLE};;
-	/** @brief Contains queue family indices */
-	QueueFamilyIndices queueFamilyIndices;
-
 	explicit VulkanDevice(VkPhysicalDevice aPhysicalDevice);
 	~VulkanDevice();
 
 	operator VkDevice() const
 	{
-		return logicalDevice;
+		return mLogicalVkDevice;
 	};
 
 	std::uint32_t        getMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound = nullptr) const;
 	std::uint32_t        getQueueFamilyIndex(VkQueueFlags queueFlags) const;
 	VkResult        createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
-	VkCommandPool   createCommandPool(std::uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-	bool            extensionSupported(std::string extension);
-	VkFormat        getSupportedDepthFormat(bool checkSamplingSupport);
+	VkCommandPool   CreateCommandPool(std::uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) const;
+	bool            IsExtensionSupported(std::string extension);
+	VkFormat        GetSupportedDepthFormat(bool checkSamplingSupport) const;
+
+	/** @brief Physical device representation */
+	VkPhysicalDevice mVkPhysicalDevice;
+
+	/** @brief Logical device representation (application's view of the device) */
+	VkDevice mLogicalVkDevice;
+
+	/** @brief Properties of the physical device including limits that the application can check against */
+	VkPhysicalDeviceProperties mVkPhysicalDeviceProperties{};
+
+	/** @brief Features of the physical device that an application can use to check if a feature is supported */
+	VkPhysicalDeviceFeatures mVkPhysicalDeviceFeatures{};
+
+	/** @brief Features that have been enabled for use on the physical device */
+	VkPhysicalDeviceFeatures mEnabledVkPhysicalDeviceFeatures{};
+
+	/** @brief Memory types and heaps of the physical device */
+	VkPhysicalDeviceMemoryProperties VkPhysicalDeviceMemoryProperties{};
+
+	/** @brief Queue family properties of the physical device */
+	std::vector<VkQueueFamilyProperties> mVkQueueFamilyProperties{};
+
+	/** @brief List of extensions supported by the device */
+	std::vector<std::string> mSupportedExtensions{};
+	/** @brief Default command pool for the graphics queue family index */
+	VkCommandPool mVkCommandPool;
+
+	/** @brief Contains queue family indices */
+	QueueFamilyIndices mQueueFamilyIndices;
 };
