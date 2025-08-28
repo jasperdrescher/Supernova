@@ -1089,18 +1089,16 @@ VkResult VulkanRenderer::CreateVkInstance()
 
 VkResult VulkanRenderer::CreateVulkanDevice()
 {
-	// Physical device
-	std::uint32_t gpuCount = 0;
-	// Get number of available physical devices
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, nullptr));
-	if (gpuCount == 0)
+	std::uint32_t physicalDeviceCount = 0;
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, nullptr));
+	if (physicalDeviceCount == 0)
 	{
 		VulkanTools::ExitFatal("No device with Vulkan support found", -1);
 		return VkResult::VK_ERROR_DEVICE_LOST;
 	}
-	// Enumerate devices
-	std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
-	VkResult result = vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, physicalDevices.data());
+
+	std::vector<VkPhysicalDevice> vkPhysicalDevices(physicalDeviceCount);
+	VkResult result = vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, vkPhysicalDevices.data());
 	if (result != VK_SUCCESS)
 	{
 		VulkanTools::ExitFatal("Could not enumerate physical devices : \n" + VulkanTools::GetErrorString(result), result);
@@ -1113,7 +1111,7 @@ VkResult VulkanRenderer::CreateVulkanDevice()
 	// Defaults to the first device unless specified by command line
 	std::uint32_t selectedDevice = 0;
 
-	mVkPhysicalDevice = physicalDevices[selectedDevice];
+	mVkPhysicalDevice = vkPhysicalDevices[selectedDevice];
 
 	// Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
 	vkGetPhysicalDeviceProperties(mVkPhysicalDevice, &mVkPhysicalDeviceProperties);

@@ -50,10 +50,10 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice aPhysicalDevice)
 
 VulkanDevice::~VulkanDevice()
 {
-	if (mVkCommandPool)
+	if (mVkCommandPool != VK_NULL_HANDLE)
 		vkDestroyCommandPool(mLogicalVkDevice, mVkCommandPool, nullptr);
 
-	if (mLogicalVkDevice)
+	if (mLogicalVkDevice != VK_NULL_HANDLE)
 		vkDestroyDevice(mLogicalVkDevice, nullptr);
 }
 
@@ -327,7 +327,7 @@ VkFormat VulkanDevice::GetSupportedDepthFormat(bool checkSamplingSupport) const
 {
 	// All depth formats may be optional, so we need to find a suitable depth format to use
 	std::vector<VkFormat> depthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
-	for (auto& format : depthFormats)
+	for (VkFormat& format : depthFormats)
 	{
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(mVkPhysicalDevice, format, &formatProperties);
