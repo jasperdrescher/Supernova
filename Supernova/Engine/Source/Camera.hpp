@@ -7,12 +7,6 @@
 
 class Camera
 {
-private:
-	float mFoV;
-	float mZNear, mZFar;
-
-	void updateViewMatrix();
-
 public:
 	enum CameraType { lookat, firstperson };
 	CameraType type = CameraType::lookat;
@@ -24,8 +18,8 @@ public:
 	float mRotationSpeed = 1.0f;
 	float mMovementSpeed = 1.0f;
 
-	bool updated = true;
-	bool flipY = false;
+	bool mIsUpdated = true;
+	bool mFlipY = false;
 
 	struct
 	{
@@ -41,7 +35,7 @@ public:
 		bool down = false;
 	} keys;
 
-	bool moving() const;
+	bool IsMoving() const;
 
 	float getNearClip() const;
 
@@ -67,7 +61,10 @@ public:
 
 	void update(float deltaTime);
 
-	// Update camera passing separate axis data (gamepad)
-	// Returns true if view or position has been changed
-	bool updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime);
+private:
+	void UpdateViewMatrix();
+
+	float mFoV;
+	float mZNear;
+	float mZFar;
 };
