@@ -37,9 +37,11 @@ private:
 	{
 		struct Buttons
 		{
-			bool mIsLeftDown = false;
-			bool mIsRightDown = false;
-			bool mIsMiddleDown = false;
+			Buttons() : mIsLeftDown{false}, mIsRightDown{false}, mIsMiddleDown{false} {}
+
+			bool mIsLeftDown;
+			bool mIsRightDown;
+			bool mIsMiddleDown;
 		};
 
 		Buttons mButtons;
@@ -75,28 +77,45 @@ private:
 	// Returns the path to the root of the glsl, hlsl or slang shader directory.
 	std::string getShadersPath() const;
 
+	void CreateGlfwWindow();
+	void SetWindowSize(int aWidth, int aHeight);
+
+	std::string GetWindowTitle(float aDeltaTime) const;
+	void handleMouseMove(std::int32_t x, std::int32_t y);
+	void NextFrame();
+	void CreatePipelineCache();
+	void InitializeSwapchain();
+	void CreateCommandPool();
+	void SetupSwapchain();
+	void destroyCommandBuffers();
+
+	static void KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aAction, int aMode);
+	static void FramebufferResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
+	static void WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
+	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);
+
 	MouseState mMouseState;
 
-	VkClearColorValue mDefaultClearColor = {{0.025f, 0.025f, 0.025f, 1.0f}};
+	VkClearColorValue mDefaultClearColor;
 
 	// Defines a frame rate independent timer value clamped from -1.0...1.0
 	// For use in animations, rotations, etc.
-	float mTimer = 0.0f;
+	float mTimer;
 	// Multiplier for speeding up (or slowing down) the global timer
-	float TimerSpeed = 0.25f;
-	bool mIsPaused = false;
+	float TimerSpeed;
+	bool mIsPaused;
 
 	Camera mCamera;
 
 	VulkanDepthStencil mVulkanDepthStencil;
 
-	bool mIsPrepared = false;
-	bool mIsResized = false;
+	bool mIsPrepared;
+	bool mIsResized;
 	std::uint32_t mFramebufferWidth;
 	std::uint32_t mFramebufferHeight;
 
 	/** @brief Last frame time measured using a high performance timer (if available) */
-	float mFrameTime = 1.0f;
+	float mFrameTime;
 
 	/** @brief Encapsulated physical and logical vulkan device */
 	VulkanDevice* vulkanDevice;
@@ -107,10 +126,10 @@ private:
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
 	// Vulkan instance, stores all per-application states
-	VkInstance mVkInstance{VK_NULL_HANDLE};
+	VkInstance mVkInstance;
 	std::vector<std::string> mSupportedInstanceExtensions;
 	// Physical device (GPU) that Vulkan will use
-	VkPhysicalDevice mVkPhysicalDevice{VK_NULL_HANDLE};
+	VkPhysicalDevice mVkPhysicalDevice;
 	// Stores physical device properties (for e.g. checking device limits)
 	VkPhysicalDeviceProperties mVkPhysicalDeviceProperties{};
 	// Stores the features available on the selected physical device (for e.g. checking if a feature is available)
@@ -124,31 +143,23 @@ private:
 	/** @brief Set of layer settings to be enabled for this example (must be set in the derived constructor) */
 	std::vector<VkLayerSettingEXT> mEnabledLayerSettings;
 	/** @brief Logical device, application's view of the physical device (GPU) */
-	VkDevice mVkLogicalDevice{VK_NULL_HANDLE};
+	VkDevice mVkLogicalDevice;
 	// Handle to the device graphics queue that command buffers are submitted to
-	VkQueue mVkQueue{VK_NULL_HANDLE};
+	VkQueue mVkQueue;
 	// Depth buffer format (selected during Vulkan initialization)
-	VkFormat mVkDepthFormat{VK_FORMAT_UNDEFINED};
+	VkFormat mVkDepthFormat;
 	// Command buffer pool
-	VkCommandPool mVkCommandPool{VK_NULL_HANDLE};
+	VkCommandPool mVkCommandPool;
 	// Command buffers used for rendering
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers;
 	// Descriptor set pool
-	VkDescriptorPool mVkDescriptorPool{VK_NULL_HANDLE};
+	VkDescriptorPool mVkDescriptorPool;
 	// List of shader modules created (stored for cleanup)
 	std::vector<VkShaderModule> mVkShaderModules;
 	// Pipeline cache object
-	VkPipelineCache mVkPipelineCache{VK_NULL_HANDLE};
+	VkPipelineCache mVkPipelineCache;
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanSwapChain mVulkanSwapChain;
-
-	void CreateGlfwWindow();
-	void SetWindowSize(int aWidth, int aHeight);
-
-	static void KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aAction, int aMode);
-	static void FramebufferResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
-	static void WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
-	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);
 
 	GLFWwindow* mGLFWWindow;
 	bool mShouldClose;
@@ -157,28 +168,20 @@ private:
 
 	VulkanBuffer mVulkanVertexBuffer;
 	VulkanBuffer mVulkanIndexBuffer;
-	std::uint32_t mBufferIndexCount{0};
+	std::uint32_t mBufferIndexCount;
 
 	std::array<VulkanUniformBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
 
-	VkPipelineLayout mVkPipelineLayout{VK_NULL_HANDLE};
-	VkPipeline mVkPipeline{VK_NULL_HANDLE};
-	VkDescriptorSetLayout mVkDescriptionSetLayout{VK_NULL_HANDLE};
+	VkPipelineLayout mVkPipelineLayout;
+	VkPipeline mVkPipeline;
+	VkDescriptorSetLayout mVkDescriptionSetLayout;
 	std::vector<VkSemaphore> mVkPresentCompleteSemaphores{};
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
 	std::array<VkFence, gMaxConcurrentFrames> mVkWaitFences{};
 
-	std::uint32_t mCurrentFrameIndex{0};
+	std::uint32_t mCurrentFrameIndex;
 
-	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
 
-	std::string GetWindowTitle(float aDeltaTime) const;
-	void handleMouseMove(std::int32_t x, std::int32_t y);
-	void NextFrame();
-	void CreatePipelineCache();
-	void InitializeSwapchain();
-	void CreateCommandPool();
-	void SetupSwapchain();
-	void destroyCommandBuffers();
-	std::string shaderDir = "GLSL";
+	std::string shaderDir;
 };

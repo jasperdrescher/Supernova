@@ -24,9 +24,9 @@ namespace VulkanTools
 {
 	std::string gResourcePath = "Resources";
 
-	std::string GetErrorString(VkResult errorCode)
+	std::string GetErrorString(VkResult aErrorCode)
 	{
-		switch (errorCode)
+		switch (aErrorCode)
 		{
 #define STR(r) case VK_ ##r: return #r
 			STR(NOT_READY);

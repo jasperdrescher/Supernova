@@ -53,6 +53,33 @@ VulkanRenderer::VulkanRenderer()
 	, mShouldClose(false)
 	, mIsFramebufferResized(false)
 	, mVkCommandBuffers{VK_NULL_HANDLE}
+	, mDefaultClearColor{{0.025f, 0.025f, 0.025f, 1.0f}}
+	, mTimer{0.0f}
+	, TimerSpeed{0.25f}
+	, mIsPaused{false}
+	, mIsPrepared{false}
+	, mIsResized{false}
+	, mFramebufferWidth{0}
+	, mFramebufferHeight{0}
+	, mFrameTime{1.0f}
+	, vulkanDevice{nullptr}
+	, mFrameCounter {0}
+	, mLastFPS {0}
+	, mVkInstance{VK_NULL_HANDLE}
+	, mVkPhysicalDevice{VK_NULL_HANDLE}
+	, mVkLogicalDevice{VK_NULL_HANDLE}
+	, mVkQueue{VK_NULL_HANDLE}
+	, mVkDepthFormat{VK_FORMAT_UNDEFINED}
+	, mVkCommandPool{VK_NULL_HANDLE}
+	, mVkDescriptorPool{VK_NULL_HANDLE}
+	, mVkPipelineCache{VK_NULL_HANDLE}
+	, mBufferIndexCount{0}
+	, mVkPipelineLayout{VK_NULL_HANDLE}
+	, mVkPipeline{VK_NULL_HANDLE}
+	, mVkDescriptionSetLayout{VK_NULL_HANDLE}
+	, mCurrentFrameIndex{0}
+	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
+	, shaderDir {"GLSL"}
 {
 	mVulkanApplicationProperties.mAPIVersion = VK_API_VERSION_1_3;
 	mVulkanApplicationProperties.mIsValidationEnabled = true;
