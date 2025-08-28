@@ -29,7 +29,6 @@ struct VulkanDevice
 	std::uint32_t        getQueueFamilyIndex(VkQueueFlags queueFlags) const;
 	VkResult        CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 	void CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice);
-	VkCommandPool   CreateCommandPool(std::uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) const;
 	bool            IsExtensionSupported(std::string extension);
 	VkFormat        GetSupportedDepthFormat(bool checkSamplingSupport) const;
 
@@ -56,8 +55,6 @@ struct VulkanDevice
 
 	/** @brief List of extensions supported by the device */
 	std::vector<std::string> mSupportedExtensions{};
-	/** @brief Default command pool for the graphics queue family index */
-	VkCommandPool mVkCommandPool;
 
 	/** @brief Contains queue family indices */
 	QueueFamilyIndices mQueueFamilyIndices;

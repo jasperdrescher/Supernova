@@ -13,15 +13,11 @@
 VulkanDevice::VulkanDevice()
 	: mVkPhysicalDevice{VK_NULL_HANDLE}
 	, mLogicalVkDevice{VK_NULL_HANDLE}
-	, mVkCommandPool{VK_NULL_HANDLE}
 {
 }
 
 VulkanDevice::~VulkanDevice()
 {
-	if (mVkCommandPool != VK_NULL_HANDLE)
-		vkDestroyCommandPool(mLogicalVkDevice, mVkCommandPool, nullptr);
-
 	if (mLogicalVkDevice != VK_NULL_HANDLE)
 		vkDestroyDevice(mLogicalVkDevice, nullptr);
 }
@@ -240,9 +236,6 @@ VkResult VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatu
 		return result;
 	}
 
-	// Create a default command pool for graphics command buffers
-	mVkCommandPool = CreateCommandPool(mQueueFamilyIndices.graphics);
-
 	return result;
 }
 
@@ -286,27 +279,6 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 	{
 		throw std::runtime_error(std::format("Selected GPU does not support support Vulkan 1.3: {}", VulkanTools::GetErrorString(VK_ERROR_INCOMPATIBLE_DRIVER)));
 	}
-}
-
-/**
-* Create a command pool for allocation command buffers from
-*
-* @param queueFamilyIndex Family index of the queue to create the command pool for
-* @param createFlags (Optional) Command pool creation flags (Defaults to VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
-*
-* @note Command buffers allocated from the created pool can only be submitted to a queue with the same family index
-*
-* @return A handle to the created command buffer
-*/
-VkCommandPool VulkanDevice::CreateCommandPool(std::uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags) const
-{
-	VkCommandPoolCreateInfo cmdPoolInfo = {};
-	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	cmdPoolInfo.queueFamilyIndex = queueFamilyIndex;
-	cmdPoolInfo.flags = createFlags;
-	VkCommandPool cmdPool;
-	VK_CHECK_RESULT(vkCreateCommandPool(mLogicalVkDevice, &cmdPoolInfo, nullptr, &cmdPool));
-	return cmdPool;
 }
 
 /**
