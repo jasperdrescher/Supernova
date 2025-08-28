@@ -1,5 +1,7 @@
 #include "VulkanDebug.hpp"
 
+#include "VulkanTools.hpp"
+
 #include <cassert>
 #include <iostream>
 #include <sstream>
@@ -90,8 +92,7 @@ namespace VulkanDebug
 
 		VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
 		SetupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
-		VkResult result = gVkCreateDebugUtilsMessengerFunction(aVkInstance, &debugUtilsMessengerCI, nullptr, &gVkDebugUtilsMessenger);
-		assert(result == VK_SUCCESS);
+		VK_CHECK_RESULT(gVkCreateDebugUtilsMessengerFunction(aVkInstance, &debugUtilsMessengerCI, nullptr, &gVkDebugUtilsMessenger));
 	}
 
 	void DestroyDebugUtilsMessenger(VkInstance aVkInstance)
