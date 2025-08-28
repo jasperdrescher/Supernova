@@ -33,23 +33,6 @@ public:
 	bool IsPaused() const { return mIsPaused; }
 
 private:
-	struct MouseState
-	{
-		MouseState() : mPosition{0.0f} {}
-
-		struct Buttons
-		{
-			Buttons() : mIsLeftDown{false}, mIsRightDown{false}, mIsMiddleDown{false} {}
-
-			bool mIsLeftDown;
-			bool mIsRightDown;
-			bool mIsMiddleDown;
-		};
-
-		Buttons mButtons;
-		glm::vec2 mPosition;
-	};
-
 	void PrepareVulkanResources();
 	void PrepareFrame();
 	void SetupDepthStencil();
@@ -64,21 +47,19 @@ private:
 	void CreateUniformBuffers();
 
 	void InitializeVulkan();
-
 	void CreateVkInstance();
 	void CreateVulkanDevice();
 
-	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
+	VkPipelineShaderStageCreateInfo LoadShader(std::string aFilename, VkShaderStageFlagBits aVkShaderStageMask);
 
 	void OnResizeWindow();
 
-	std::string getShadersPath() const;
+	std::string GetShadersPath() const;
 
 	void CreateGlfwWindow();
 	void SetWindowSize(int aWidth, int aHeight);
 
 	std::string GetWindowTitle(float aDeltaTime) const;
-	void handleMouseMove(std::int32_t x, std::int32_t y);
 	void NextFrame();
 	void CreatePipelineCache();
 	void InitializeSwapchain();
@@ -89,100 +70,51 @@ private:
 	static void FramebufferResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);
-
-	MouseState mMouseState;
-
-	VkClearColorValue mDefaultClearColor;
-
-	// Defines a frame rate independent timer value clamped from -1.0...1.0
-	// For use in animations, rotations, etc.
-	float mTimer;
-
-	// Multiplier for speeding up (or slowing down) the global timer
-	float TimerSpeed;
-
-	bool mIsPaused;
-
+	
 	Camera mCamera;
-
+	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
 	VulkanDepthStencil mVulkanDepthStencil;
-
-	bool mIsPrepared;
-	bool mIsResized;
-	std::uint32_t mFramebufferWidth;
-	std::uint32_t mFramebufferHeight;
-
-	/** @brief Last frame time measured using a high performance timer (if available) */
-	float mFrameTime;
-
-	/** @brief Encapsulated physical and logical vulkan device */
-	VulkanDevice* mVulkanDevice;
-
-	// Frame counter to display fps
-	std::uint32_t mFrameCounter = 0;
-	std::uint32_t mLastFPS = 0;
-	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
-	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
-
-	// Vulkan instance, stores all per-application states
-	VkInstance mVkInstance;
-
-	std::vector<std::string> mSupportedInstanceExtensions;
-
-	/** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
-	std::vector<const char*> mEnabledDeviceExtensions;
-
-	/** @brief Set of instance extensions to be enabled for this example (must be set in the derived constructor) */
-	std::vector<const char*> mEnabledInstanceExtensions;
-
-	/** @brief Set of layer settings to be enabled for this example (must be set in the derived constructor) */
-	std::vector<VkLayerSettingEXT> mEnabledLayerSettings;
-
-	// Handle to the device graphics queue that command buffers are submitted to
-	VkQueue mVkQueue;
-
-	// Depth buffer format (selected during Vulkan initialization)
-	VkFormat mVkDepthFormat;
-
-	// Command buffer pool
-	VkCommandPool mVkCommandPool;
-
-	// Command buffers used for rendering
-	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers;
-
-	// Descriptor set pool
-	VkDescriptorPool mVkDescriptorPool;
-
-	// List of shader modules created (stored for cleanup)
-	std::vector<VkShaderModule> mVkShaderModules;
-
-	// Pipeline cache object
-	VkPipelineCache mVkPipelineCache;
-
-	// Wraps the swap chain to present images (framebuffers) to the windowing system
-	VulkanSwapChain mVulkanSwapChain;
-
-	GLFWwindow* mGLFWWindow;
-	bool mShouldClose;
-	bool mIsFramebufferResized;
+	VkClearColorValue mDefaultClearColor;
+	VkInstance mVkInstance; // Vulkan instance, stores all per-application states
+	VkQueue mVkQueue; // Handle to the device graphics queue that command buffers are submitted to
+	VkCommandPool mVkCommandPool; // Command buffer pool
+	VkDescriptorPool mVkDescriptorPool; // Descriptor set pool
+	VkPipelineCache mVkPipelineCache; // Pipeline cache object
+	VulkanSwapChain mVulkanSwapChain; // Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanApplicationProperties mVulkanApplicationProperties;
-
 	VulkanBuffer mVulkanVertexBuffer;
 	VulkanBuffer mVulkanIndexBuffer;
-	std::uint32_t mBufferIndexCount;
-
-	std::array<VulkanUniformBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
-
 	VkPipelineLayout mVkPipelineLayout;
 	VkPipeline mVkPipeline;
 	VkDescriptorSetLayout mVkDescriptionSetLayout;
+	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
+	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
+	std::vector<std::string> mSupportedInstanceExtensions{};
+	std::vector<const char*> mEnabledDeviceExtensions{}; // Set of device extensions to be enabled for this example (must be set in the derived constructor)
+	std::vector<const char*> mEnabledInstanceExtensions{}; // Set of instance extensions to be enabled for this example (must be set in the derived constructor)
+	std::vector<VkLayerSettingEXT> mEnabledLayerSettings{}; // Set of layer settings to be enabled for this example (must be set in the derived constructor)
+	std::vector<VkShaderModule> mVkShaderModules{}; // List of shader modules created (stored for cleanup)
 	std::vector<VkSemaphore> mVkPresentCompleteSemaphores{};
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
+	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
+	std::array<VulkanUniformBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers{};
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
-
-	std::uint32_t mCurrentFrameIndex;
-
-	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
-
 	std::string shaderDir;
+	std::uint32_t mFramebufferWidth;
+	std::uint32_t mFramebufferHeight;
+	std::uint32_t mFrameCounter;
+	std::uint32_t mLastFPS;
+	std::uint32_t mBufferIndexCount;
+	std::uint32_t mCurrentFrameIndex;
+	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
+	GLFWwindow* mGLFWWindow;
+	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
+	float mFrameTime; // Last frame time measured using a high performance timer (if available)
+	float mTimer; // Defines a frame rate independent timer value clamped from -1.0...1.0
+	float TimerSpeed; // Multiplier for speeding up (or slowing down) the global timer
+	bool mShouldClose;
+	bool mIsFramebufferResized;
+	bool mIsPaused;
+	bool mIsPrepared;
+	bool mIsResized;
 };

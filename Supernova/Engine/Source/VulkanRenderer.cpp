@@ -49,9 +49,9 @@ namespace VulkanExampleLocal
 }
 
 VulkanRenderer::VulkanRenderer()
-	: mGLFWWindow(nullptr)
-	, mShouldClose(false)
-	, mIsFramebufferResized(false)
+	: mGLFWWindow{nullptr}
+	, mShouldClose{false}
+	, mIsFramebufferResized{false}
 	, mVkCommandBuffers{VK_NULL_HANDLE}
 	, mDefaultClearColor{{0.025f, 0.025f, 0.025f, 1.0f}}
 	, mTimer{0.0f}
@@ -63,8 +63,8 @@ VulkanRenderer::VulkanRenderer()
 	, mFramebufferHeight{0}
 	, mFrameTime{1.0f}
 	, mVulkanDevice{nullptr}
-	, mFrameCounter {0}
-	, mLastFPS {0}
+	, mFrameCounter{0}
+	, mLastFPS{0}
 	, mVkInstance{VK_NULL_HANDLE}
 	, mVkQueue{VK_NULL_HANDLE}
 	, mVkDepthFormat{VK_FORMAT_UNDEFINED}
@@ -77,7 +77,7 @@ VulkanRenderer::VulkanRenderer()
 	, mVkDescriptionSetLayout{VK_NULL_HANDLE}
 	, mCurrentFrameIndex{0}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
-	, shaderDir {"GLSL"}
+	, shaderDir{"GLSL"}
 {
 	mVulkanApplicationProperties.mAPIVersion = VK_API_VERSION_1_3;
 	mVulkanApplicationProperties.mIsValidationEnabled = true;
@@ -625,14 +625,14 @@ void VulkanRenderer::CreatePipeline()
 	// Vertex shader
 	vkPipelineShaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vkPipelineShaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vkPipelineShaderStages[0].module = LoadSPIRVShader(getShadersPath() + "triangle/triangle.vert.spv");
+	vkPipelineShaderStages[0].module = LoadSPIRVShader(GetShadersPath() + "triangle/triangle.vert.spv");
 	vkPipelineShaderStages[0].pName = "main";
 	assert(vkPipelineShaderStages[0].module != VK_NULL_HANDLE);
 
 	// Fragment shader
 	vkPipelineShaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vkPipelineShaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	vkPipelineShaderStages[1].module = LoadSPIRVShader(getShadersPath() + "triangle/triangle.frag.spv");
+	vkPipelineShaderStages[1].module = LoadSPIRVShader(GetShadersPath() + "triangle/triangle.frag.spv");
 	vkPipelineShaderStages[1].pName = "main";
 	assert(vkPipelineShaderStages[1].module != VK_NULL_HANDLE);
 
@@ -1107,7 +1107,7 @@ std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const
 		mFramebufferHeight);
 }
 
-std::string VulkanRenderer::getShadersPath() const
+std::string VulkanRenderer::GetShadersPath() const
 {
 	return GetShaderBasePath() + shaderDir + "/";
 }
@@ -1124,7 +1124,7 @@ void VulkanRenderer::InitializeSwapchain()
 	mVulkanSwapChain.InitializeSurface();
 }
 
-VkPipelineShaderStageCreateInfo VulkanRenderer::loadShader(std::string fileName, VkShaderStageFlagBits stage)
+VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage)
 {
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1231,34 +1231,6 @@ void VulkanRenderer::OnResizeWindow()
 	}
 
 	mIsPrepared = true;
-}
-
-void VulkanRenderer::handleMouseMove(std::int32_t x, std::int32_t y)
-{
-	std::int32_t dx = static_cast<std::int32_t>(mMouseState.mPosition.x - x);
-	std::int32_t dy = static_cast<std::uint32_t>(mMouseState.mPosition.y - y);
-
-	bool handled = false;
-
-	if (handled)
-	{
-		mMouseState.mPosition = glm::vec2(static_cast<float>(x), static_cast<float>(y));
-		return;
-	}
-
-	if (mMouseState.mButtons.mIsLeftDown)
-	{
-		mCamera.rotate(glm::vec3(dy * mCamera.mRotationSpeed, -dx * mCamera.mRotationSpeed, 0.0f));
-	}
-	if (mMouseState.mButtons.mIsRightDown)
-	{
-		mCamera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
-	}
-	if (mMouseState.mButtons.mIsMiddleDown)
-	{
-		mCamera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
-	}
-	mMouseState.mPosition = glm::vec2(static_cast<float>(x), static_cast<float>(y));
 }
 
 void VulkanRenderer::SetupSwapchain()
