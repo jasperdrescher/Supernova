@@ -62,18 +62,15 @@ private:
 	void CreatePipeline();
 	void CreateUniformBuffers();
 
-	/** @brief Setup the vulkan instance, enable required extensions and connect to the physical device (GPU) */
 	bool InitializeVulkan();
 
 	VkResult CreateVkInstance();
 	VkResult CreateVulkanDevice();
 
-	/** @brief Loads a SPIR-V shader file for the given shader stage */
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 
 	void OnResizeWindow();
 
-	// Returns the path to the root of the glsl, hlsl or slang shader directory.
 	std::string getShadersPath() const;
 
 	void CreateGlfwWindow();
@@ -100,8 +97,10 @@ private:
 	// Defines a frame rate independent timer value clamped from -1.0...1.0
 	// For use in animations, rotations, etc.
 	float mTimer;
+
 	// Multiplier for speeding up (or slowing down) the global timer
 	float TimerSpeed;
+
 	bool mIsPaused;
 
 	Camera mCamera;
@@ -124,39 +123,42 @@ private:
 	std::uint32_t mLastFPS = 0;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
+
 	// Vulkan instance, stores all per-application states
 	VkInstance mVkInstance;
+
 	std::vector<std::string> mSupportedInstanceExtensions;
-	// Physical device (GPU) that Vulkan will use
-	VkPhysicalDevice mVkPhysicalDevice;
-	// Stores physical device properties (for e.g. checking device limits)
-	VkPhysicalDeviceProperties mVkPhysicalDeviceProperties{};
-	// Stores the features available on the selected physical device (for e.g. checking if a feature is available)
-	VkPhysicalDeviceFeatures mEnabledVkPhysicalDeviceFeatures{};
-	// Stores all available memory (type) properties for the physical device
-	VkPhysicalDeviceMemoryProperties mVkPhysicalDeviceMemoryProperties{};
+
 	/** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
 	std::vector<const char*> mEnabledDeviceExtensions;
+
 	/** @brief Set of instance extensions to be enabled for this example (must be set in the derived constructor) */
 	std::vector<const char*> mEnabledInstanceExtensions;
+
 	/** @brief Set of layer settings to be enabled for this example (must be set in the derived constructor) */
 	std::vector<VkLayerSettingEXT> mEnabledLayerSettings;
-	/** @brief Logical device, application's view of the physical device (GPU) */
-	VkDevice mVkLogicalDevice;
+
 	// Handle to the device graphics queue that command buffers are submitted to
 	VkQueue mVkQueue;
+
 	// Depth buffer format (selected during Vulkan initialization)
 	VkFormat mVkDepthFormat;
+
 	// Command buffer pool
 	VkCommandPool mVkCommandPool;
+
 	// Command buffers used for rendering
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers;
+
 	// Descriptor set pool
 	VkDescriptorPool mVkDescriptorPool;
+
 	// List of shader modules created (stored for cleanup)
 	std::vector<VkShaderModule> mVkShaderModules;
+
 	// Pipeline cache object
 	VkPipelineCache mVkPipelineCache;
+
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanSwapChain mVulkanSwapChain;
 

@@ -66,8 +66,6 @@ VulkanRenderer::VulkanRenderer()
 	, mFrameCounter {0}
 	, mLastFPS {0}
 	, mVkInstance{VK_NULL_HANDLE}
-	, mVkPhysicalDevice{VK_NULL_HANDLE}
-	, mVkLogicalDevice{VK_NULL_HANDLE}
 	, mVkQueue{VK_NULL_HANDLE}
 	, mVkDepthFormat{VK_FORMAT_UNDEFINED}
 	, mVkCommandPool{VK_NULL_HANDLE}
@@ -104,61 +102,61 @@ VulkanRenderer::~VulkanRenderer()
 	mVulkanSwapChain.cleanup();
 
 	if (mVkDescriptorPool != VK_NULL_HANDLE)
-		vkDestroyDescriptorPool(mVkLogicalDevice, mVkDescriptorPool, nullptr);
+		vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, mVkDescriptorPool, nullptr);
 
 	destroyCommandBuffers();
 
 	for (VkShaderModule& shaderModule : mVkShaderModules)
-		vkDestroyShaderModule(mVkLogicalDevice, shaderModule, nullptr);
+		vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, shaderModule, nullptr);
 
-	vkDestroyImageView(mVkLogicalDevice, mVulkanDepthStencil.mVkImageView, nullptr);
-	vkDestroyImage(mVkLogicalDevice, mVulkanDepthStencil.mVkImage, nullptr);
-	vkFreeMemory(mVkLogicalDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
+	vkDestroyImageView(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImageView, nullptr);
+	vkDestroyImage(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, nullptr);
+	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
 
-	vkDestroyPipelineCache(mVkLogicalDevice, mVkPipelineCache, nullptr);
+	vkDestroyPipelineCache(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, nullptr);
 
-	vkDestroyCommandPool(mVkLogicalDevice, mVkCommandPool, nullptr);
+	vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, nullptr);
 
 	for (VkFence& fence : mVkWaitFences)
-		vkDestroyFence(mVkLogicalDevice, fence, nullptr);
+		vkDestroyFence(mVulkanDevice->mLogicalVkDevice, fence, nullptr);
 
 	for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
-		vkDestroySemaphore(mVkLogicalDevice, semaphore, nullptr);
+		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
 	
 	for (VkSemaphore& semaphore : mVkRenderCompleteSemaphores)
-		vkDestroySemaphore(mVkLogicalDevice, semaphore, nullptr);
-
-	delete mVulkanDevice;
+		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
 
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
-	vkDestroyInstance(mVkInstance, nullptr);
-
-	if (mVkLogicalDevice != VK_NULL_HANDLE)
+	if (mVulkanDevice->mLogicalVkDevice != VK_NULL_HANDLE)
 	{
-		vkDestroyPipeline(mVkLogicalDevice, mVkPipeline, nullptr);
-		vkDestroyPipelineLayout(mVkLogicalDevice, mVkPipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(mVkLogicalDevice, mVkDescriptionSetLayout, nullptr);
-		vkDestroyBuffer(mVkLogicalDevice, mVulkanVertexBuffer.mVkBuffer, nullptr);
-		vkFreeMemory(mVkLogicalDevice, mVulkanVertexBuffer.mVkDeviceMemory, nullptr);
-		vkDestroyBuffer(mVkLogicalDevice, mVulkanIndexBuffer.mVkBuffer, nullptr);
-		vkFreeMemory(mVkLogicalDevice, mVulkanIndexBuffer.mVkDeviceMemory, nullptr);
-		vkDestroyCommandPool(mVkLogicalDevice, mVkCommandPool, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipeline, nullptr);
+		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptionSetLayout, nullptr);
+		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkBuffer, nullptr);
+		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkDeviceMemory, nullptr);
+		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkBuffer, nullptr);
+		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkDeviceMemory, nullptr);
+		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, nullptr);
 
 		for (size_t i = 0; i < mVkPresentCompleteSemaphores.size(); i++)
-			vkDestroySemaphore(mVkLogicalDevice, mVkPresentCompleteSemaphores[i], nullptr);
+			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, mVkPresentCompleteSemaphores[i], nullptr);
 		
 		for (size_t i = 0; i < mVkRenderCompleteSemaphores.size(); i++)
-			vkDestroySemaphore(mVkLogicalDevice, mVkRenderCompleteSemaphores[i], nullptr);
+			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, mVkRenderCompleteSemaphores[i], nullptr);
 
 		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 		{
-			vkDestroyFence(mVkLogicalDevice, mVkWaitFences[i], nullptr);
-			vkDestroyBuffer(mVkLogicalDevice, mVulkanUniformBuffers[i].mVkBuffer, nullptr);
-			vkFreeMemory(mVkLogicalDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
+			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, mVkWaitFences[i], nullptr);
+			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, nullptr);
+			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
 	}
+
+	delete mVulkanDevice;
+
+	vkDestroyInstance(mVkInstance, nullptr);
 }
 
 void VulkanRenderer::InitializeRenderer()
@@ -183,9 +181,9 @@ void VulkanRenderer::UpdateRenderer(float aDeltaTime)
 
 	mCamera.update(mFrameTime);
 
-	if (mVkLogicalDevice != VK_NULL_HANDLE)
+	if (mVulkanDevice->mLogicalVkDevice != VK_NULL_HANDLE)
 	{
-		vkDeviceWaitIdle(mVkLogicalDevice);
+		vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
 	}
 
 	glfwSetWindowTitle(mGLFWWindow, GetWindowTitle(aDeltaTime).c_str());
@@ -204,7 +202,7 @@ void VulkanRenderer::DestroyRenderer()
 void VulkanRenderer::GetEnabledFeatures() const
 {
 	// Vulkan 1.3 device support is required for this example
-	if (mVkPhysicalDeviceProperties.apiVersion < VK_API_VERSION_1_3)
+	if (mVulkanDevice->mVkPhysicalDeviceProperties.apiVersion < VK_API_VERSION_1_3)
 	{
 		VulkanTools::ExitFatal("Selected GPU does not support support Vulkan 1.3", VK_ERROR_INCOMPATIBLE_DRIVER);
 	}
@@ -213,11 +211,11 @@ void VulkanRenderer::GetEnabledFeatures() const
 std::uint32_t VulkanRenderer::GetMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties) const
 {
 	// Iterate over all memory types available for the device used in this example
-	for (std::uint32_t i = 0; i < mVkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+	for (std::uint32_t i = 0; i < mVulkanDevice->mVkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
 	{
 		if ((typeBits & 1) == 1)
 		{
-			if ((mVkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			if ((mVulkanDevice->mVkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
 			{
 				return i;
 			}
@@ -236,7 +234,7 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 		VkFenceCreateInfo vkFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
 		// Create the fences in signaled state (so we don't wait on first render of each command buffer)
 		vkFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		VK_CHECK_RESULT(vkCreateFence(mVkLogicalDevice, &vkFenceCreateInfo, nullptr, &mVkWaitFences[i]));
+		VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &vkFenceCreateInfo, nullptr, &mVkWaitFences[i]));
 	}
 
 	// Semaphores are used for correct command ordering within a queue
@@ -245,7 +243,7 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 	for (VkSemaphore& vkSemaphore : mVkPresentCompleteSemaphores)
 	{
 		VkSemaphoreCreateInfo vkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-		VK_CHECK_RESULT(vkCreateSemaphore(mVkLogicalDevice, &vkSemaphoreCreateInfo, nullptr, &vkSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &vkSemaphoreCreateInfo, nullptr, &vkSemaphore));
 	}
 
 	// Render completion
@@ -254,7 +252,7 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 	for (VkSemaphore& vkSemaphore : mVkRenderCompleteSemaphores)
 	{
 		VkSemaphoreCreateInfo vkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-		VK_CHECK_RESULT(vkCreateSemaphore(mVkLogicalDevice, &vkSemaphoreCreateInfo, nullptr, &vkSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &vkSemaphoreCreateInfo, nullptr, &vkSemaphore));
 	}
 }
 
@@ -265,10 +263,10 @@ void VulkanRenderer::CreateCommandBuffers()
 	VkCommandPoolCreateInfo vkCommandPoolCreateInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
 	vkCommandPoolCreateInfo.queueFamilyIndex = mVulkanSwapChain.mQueueNodeIndex;
 	vkCommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	VK_CHECK_RESULT(vkCreateCommandPool(mVkLogicalDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
+	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
 	// Allocate one command buffer per max. concurrent frame from above pool
 	VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVkLogicalDevice, &cmdBufAllocateInfo, mVkCommandBuffers.data()));
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &cmdBufAllocateInfo, mVkCommandBuffers.data()));
 }
 
 void VulkanRenderer::CreateVertexBuffer()
@@ -309,17 +307,17 @@ void VulkanRenderer::CreateVertexBuffer()
 	// Buffer is used as the copy source
 	vkBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	// Create a host-visible buffer to copy the vertex data to (staging buffer)
-	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &vkBufferCreateInfo, nullptr, &vulkanStagingBuffer.mVkBuffer));
-	vkGetBufferMemoryRequirements(mVkLogicalDevice, vulkanStagingBuffer.mVkBuffer, &vkMemoryRequirements);
+	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkBufferCreateInfo, nullptr, &vulkanStagingBuffer.mVkBuffer));
+	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkBuffer, &vkMemoryRequirements);
 	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
 	// Request a host visible memory type that can be used to copy our data to
 	// Also request it to be coherent, so that writes are visible to the GPU right after unmapping the buffer
 	vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &vkMemoryAllocateInfo, nullptr, &vulkanStagingBuffer.mVkDeviceMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, vulkanStagingBuffer.mVkBuffer, vulkanStagingBuffer.mVkDeviceMemory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &vulkanStagingBuffer.mVkDeviceMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkBuffer, vulkanStagingBuffer.mVkDeviceMemory, 0));
 	// Map the buffer and copy vertices and indices into it, this way we can use a single buffer as the source for both vertex and index GPU buffers
 	uint8_t* data{nullptr};
-	VK_CHECK_RESULT(vkMapMemory(mVkLogicalDevice, vulkanStagingBuffer.mVkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, (void**)&data));
+	VK_CHECK_RESULT(vkMapMemory(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, (void**)&data));
 	memcpy(data, vertices.data(), vertexBufferSize);
 	memcpy(((char*)data) + vertexBufferSize, indices.data(), indexBufferSize);
 
@@ -327,23 +325,23 @@ void VulkanRenderer::CreateVertexBuffer()
 	VkBufferCreateInfo vkVertexBufferCreateInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
 	vkVertexBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	vkVertexBufferCreateInfo.size = vertexBufferSize;
-	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &vkVertexBufferCreateInfo, nullptr, &mVulkanVertexBuffer.mVkBuffer));
-	vkGetBufferMemoryRequirements(mVkLogicalDevice, mVulkanVertexBuffer.mVkBuffer, &vkMemoryRequirements);
+	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkVertexBufferCreateInfo, nullptr, &mVulkanVertexBuffer.mVkBuffer));
+	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkBuffer, &vkMemoryRequirements);
 	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
 	vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanVertexBuffer.mVkDeviceMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, mVulkanVertexBuffer.mVkBuffer, mVulkanVertexBuffer.mVkDeviceMemory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanVertexBuffer.mVkDeviceMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkBuffer, mVulkanVertexBuffer.mVkDeviceMemory, 0));
 
 	// Create a device local buffer to which the (host local) index data will be copied and which will be used for rendering
 	VkBufferCreateInfo vkIndexBufferCreateInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
 	vkIndexBufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	vkIndexBufferCreateInfo.size = indexBufferSize;
-	VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &vkIndexBufferCreateInfo, nullptr, &mVulkanIndexBuffer.mVkBuffer));
-	vkGetBufferMemoryRequirements(mVkLogicalDevice, mVulkanIndexBuffer.mVkBuffer, &vkMemoryRequirements);
+	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkIndexBufferCreateInfo, nullptr, &mVulkanIndexBuffer.mVkBuffer));
+	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkBuffer, &vkMemoryRequirements);
 	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
 	vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanIndexBuffer.mVkDeviceMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, mVulkanIndexBuffer.mVkBuffer, mVulkanIndexBuffer.mVkDeviceMemory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanIndexBuffer.mVkDeviceMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkBuffer, mVulkanIndexBuffer.mVkDeviceMemory, 0));
 
 	// Buffer copies have to be submitted to a queue, so we need a command buffer for them
 	VkCommandBuffer vkCopyCommandBuffer;
@@ -352,7 +350,7 @@ void VulkanRenderer::CreateVertexBuffer()
 	vkCommandBufferAllocateInfo.commandPool = mVkCommandPool;
 	vkCommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	vkCommandBufferAllocateInfo.commandBufferCount = 1;
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVkLogicalDevice, &vkCommandBufferAllocateInfo, &vkCopyCommandBuffer));
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &vkCommandBufferAllocateInfo, &vkCopyCommandBuffer));
 
 	VkCommandBufferBeginInfo vkCommandBufferBeginInfo = VulkanInitializers::CommandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(vkCopyCommandBuffer, &vkCommandBufferBeginInfo));
@@ -374,17 +372,17 @@ void VulkanRenderer::CreateVertexBuffer()
 	// Create fence to ensure that the command buffer has finished executing
 	VkFenceCreateInfo vkFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
 	VkFence vkFence;
-	VK_CHECK_RESULT(vkCreateFence(mVkLogicalDevice, &vkFenceCreateInfo, nullptr, &vkFence));
+	VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &vkFenceCreateInfo, nullptr, &vkFence));
 	// Submit copies to the queue
 	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &vkSubmitInfo, vkFence));
 	// Wait for the fence to signal that command buffer has finished executing
-	VK_CHECK_RESULT(vkWaitForFences(mVkLogicalDevice, 1, &vkFence, VK_TRUE, gDefaultFenceTimeoutNS));
-	vkDestroyFence(mVkLogicalDevice, vkFence, nullptr);
-	vkFreeCommandBuffers(mVkLogicalDevice, mVkCommandPool, 1, &vkCopyCommandBuffer);
+	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &vkFence, VK_TRUE, gDefaultFenceTimeoutNS));
+	vkDestroyFence(mVulkanDevice->mLogicalVkDevice, vkFence, nullptr);
+	vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, 1, &vkCopyCommandBuffer);
 
 	// The fence made sure copies are finished, so we can safely delete the staging buffer
-	vkDestroyBuffer(mVkLogicalDevice, vulkanStagingBuffer.mVkBuffer, nullptr);
-	vkFreeMemory(mVkLogicalDevice, vulkanStagingBuffer.mVkDeviceMemory, nullptr);
+	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkBuffer, nullptr);
+	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkDeviceMemory, nullptr);
 }
 
 void VulkanRenderer::CreateDescriptors()
@@ -408,7 +406,7 @@ void VulkanRenderer::CreateDescriptors()
 	// Set the max. number of descriptor sets that can be requested from this pool (requesting beyond this limit will result in an error)
 	// Our sample will create one set per uniform buffer per frame
 	vkDescriptorPoolCreateInfo.maxSets = gMaxConcurrentFrames;
-	VK_CHECK_RESULT(vkCreateDescriptorPool(mVkLogicalDevice, &vkDescriptorPoolCreateInfo, nullptr, &mVkDescriptorPool));
+	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &vkDescriptorPoolCreateInfo, nullptr, &mVkDescriptorPool));
 
 	// Descriptor set layouts define the interface between our application and the shader
 	// Basically connects the different shader stages to descriptors for binding uniform buffers, image samplers, etc.
@@ -422,7 +420,7 @@ void VulkanRenderer::CreateDescriptors()
 	VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
 	vkDescriptorSetLayoutCreateInfo.bindingCount = 1;
 	vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
-	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVkLogicalDevice, &vkDescriptorSetLayoutCreateInfo, nullptr, &mVkDescriptionSetLayout));
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &vkDescriptorSetLayoutCreateInfo, nullptr, &mVkDescriptionSetLayout));
 
 	// Where the descriptor set layout is the interface, the descriptor set points to actual data
 	// Descriptors that are changed per frame need to be multiplied, so we can update descriptor n+1 while n is still used by the GPU, so we create one per max frame in flight
@@ -432,7 +430,7 @@ void VulkanRenderer::CreateDescriptors()
 		vkDescriptorSetAllocateInfo.descriptorPool = mVkDescriptorPool;
 		vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
 		vkDescriptorSetAllocateInfo.pSetLayouts = &mVkDescriptionSetLayout;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVkLogicalDevice, &vkDescriptorSetAllocateInfo, &mVulkanUniformBuffers[i].mVkDescriptorSet));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &vkDescriptorSetAllocateInfo, &mVulkanUniformBuffers[i].mVkDescriptorSet));
 
 		// Update the descriptor set determining the shader binding points
 		// For every binding point used in a shader there needs to be one
@@ -450,7 +448,7 @@ void VulkanRenderer::CreateDescriptors()
 		vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
 		vkWriteDescriptorSet.dstBinding = 0;
-		vkUpdateDescriptorSets(mVkLogicalDevice, 1, &vkWriteDescriptorSet, 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, 1, &vkWriteDescriptorSet, 0, nullptr);
 	}
 }
 
@@ -467,16 +465,16 @@ void VulkanRenderer::SetupDepthStencil()
 	vkImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	vkImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	vkImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	VK_CHECK_RESULT(vkCreateImage(mVkLogicalDevice, &vkImageCreateInfo, nullptr, &mVulkanDepthStencil.mVkImage));
+	VK_CHECK_RESULT(vkCreateImage(mVulkanDevice->mLogicalVkDevice, &vkImageCreateInfo, nullptr, &mVulkanDepthStencil.mVkImage));
 
 	// Allocate memory for the image (device local) and bind it to our image
 	VkMemoryAllocateInfo vkMemoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
 	VkMemoryRequirements vkMemoryRequirements;
-	vkGetImageMemoryRequirements(mVkLogicalDevice, mVulkanDepthStencil.mVkImage, &vkMemoryRequirements);
+	vkGetImageMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, &vkMemoryRequirements);
 	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
 	vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanDepthStencil.mVkDeviceMemory));
-	VK_CHECK_RESULT(vkBindImageMemory(mVkLogicalDevice, mVulkanDepthStencil.mVkImage, mVulkanDepthStencil.mVkDeviceMemory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanDepthStencil.mVkDeviceMemory));
+	VK_CHECK_RESULT(vkBindImageMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, mVulkanDepthStencil.mVkDeviceMemory, 0));
 
 	// Create a view for the depth stencil image
 	// Images aren't directly accessed in Vulkan, but rather through views described by a subresource range
@@ -496,7 +494,7 @@ void VulkanRenderer::SetupDepthStencil()
 	vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 	vkImageViewCreateInfo.subresourceRange.layerCount = 1;
 	vkImageViewCreateInfo.image = mVulkanDepthStencil.mVkImage;
-	VK_CHECK_RESULT(vkCreateImageView(mVkLogicalDevice, &vkImageViewCreateInfo, nullptr, &mVulkanDepthStencil.mVkImageView));
+	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &vkImageViewCreateInfo, nullptr, &mVulkanDepthStencil.mVkImageView));
 }
 
 VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::string& filename) const
@@ -525,7 +523,7 @@ VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::string& filename) cons
 		shaderModuleCI.pCode = (std::uint32_t*)shaderCode;
 
 		VkShaderModule shaderModule;
-		VK_CHECK_RESULT(vkCreateShaderModule(mVkLogicalDevice, &shaderModuleCI, nullptr, &shaderModule));
+		VK_CHECK_RESULT(vkCreateShaderModule(mVulkanDevice->mLogicalVkDevice, &shaderModuleCI, nullptr, &shaderModule));
 
 		delete[] shaderCode;
 
@@ -544,7 +542,7 @@ void VulkanRenderer::CreatePipeline()
 	VkPipelineLayoutCreateInfo vkPipelineLayoutCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
 	vkPipelineLayoutCreateInfo.setLayoutCount = 1;
 	vkPipelineLayoutCreateInfo.pSetLayouts = &mVkDescriptionSetLayout;
-	VK_CHECK_RESULT(vkCreatePipelineLayout(mVkLogicalDevice, &vkPipelineLayoutCreateInfo, nullptr, &mVkPipelineLayout));
+	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &vkPipelineLayoutCreateInfo, nullptr, &mVkPipelineLayout));
 
 	// Create the graphics pipeline used in this example
 	// Vulkan uses the concept of rendering pipelines to encapsulate fixed states, replacing OpenGL's complex state machine
@@ -686,11 +684,11 @@ void VulkanRenderer::CreatePipeline()
 	vkGraphicsPipelineCreateInfo.pNext = &vkPipelineRenderingCreateInfoKHR;
 
 	// Create rendering pipeline using the specified states
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVkLogicalDevice, mVkPipelineCache, 1, &vkGraphicsPipelineCreateInfo, nullptr, &mVkPipeline));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &vkGraphicsPipelineCreateInfo, nullptr, &mVkPipeline));
 
 	// Shader modules can safely be destroyed when the pipeline has been created
-	vkDestroyShaderModule(mVkLogicalDevice, vkPipelineShaderStages[0].module, nullptr);
-	vkDestroyShaderModule(mVkLogicalDevice, vkPipelineShaderStages[1].module, nullptr);
+	vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, vkPipelineShaderStages[0].module, nullptr);
+	vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, vkPipelineShaderStages[1].module, nullptr);
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -705,10 +703,10 @@ void VulkanRenderer::CreateUniformBuffers()
 	// Create the buffers
 	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 	{
-		VK_CHECK_RESULT(vkCreateBuffer(mVkLogicalDevice, &vkBufferCreateInfo, nullptr, &mVulkanUniformBuffers[i].mVkBuffer));
+		VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkBufferCreateInfo, nullptr, &mVulkanUniformBuffers[i].mVkBuffer));
 		// Get memory requirements including size, alignment and memory type based on the buffer type we request (uniform buffer)
 		VkMemoryRequirements vkMemoryRequirements;
-		vkGetBufferMemoryRequirements(mVkLogicalDevice, mVulkanUniformBuffers[i].mVkBuffer, &vkMemoryRequirements);
+		vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, &vkMemoryRequirements);
 		VkMemoryAllocateInfo vkMemoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
 		// Note that we use the size we got from the memory requirements and not the actual buffer size, as the former may be larger due to alignment requirements of the device
 		vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
@@ -717,11 +715,11 @@ void VulkanRenderer::CreateUniformBuffers()
 		// We also want the buffer to be host coherent so we don't have to flush (or sync after every update).
 		vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		// Allocate memory for the uniform buffer
-		VK_CHECK_RESULT(vkAllocateMemory(mVkLogicalDevice, &vkMemoryAllocateInfo, nullptr, &(mVulkanUniformBuffers[i].mVkDeviceMemory)));
+		VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &(mVulkanUniformBuffers[i].mVkDeviceMemory)));
 		// Bind memory to buffer
-		VK_CHECK_RESULT(vkBindBufferMemory(mVkLogicalDevice, mVulkanUniformBuffers[i].mVkBuffer, mVulkanUniformBuffers[i].mVkDeviceMemory, 0));
+		VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, mVulkanUniformBuffers[i].mVkDeviceMemory, 0));
 		// We map the buffer once, so we can update it without having to map it again
-		VK_CHECK_RESULT(vkMapMemory(mVkLogicalDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, 0, sizeof(VulkanShaderData), 0, (void**)&mVulkanUniformBuffers[i].mMappedData));
+		VK_CHECK_RESULT(vkMapMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, 0, sizeof(VulkanShaderData), 0, (void**)&mVulkanUniformBuffers[i].mMappedData));
 	}
 
 }
@@ -746,13 +744,13 @@ void VulkanRenderer::PrepareVulkanResources()
 void VulkanRenderer::PrepareFrame()
 {
 	// Use a fence to wait until the command buffer has finished execution before using it again
-	vkWaitForFences(mVkLogicalDevice, 1, &mVkWaitFences[mCurrentFrameIndex], VK_TRUE, UINT64_MAX);
-	VK_CHECK_RESULT(vkResetFences(mVkLogicalDevice, 1, &mVkWaitFences[mCurrentFrameIndex]));
+	vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mVkWaitFences[mCurrentFrameIndex], VK_TRUE, UINT64_MAX);
+	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mVkWaitFences[mCurrentFrameIndex]));
 
 	// Get the next swap chain image from the implementation
 	// Note that the implementation is free to return the images in any order, so we must use the acquire function and can't just cycle through the images/imageIndex on our own
 	std::uint32_t imageIndex{0};
-	VkResult result = vkAcquireNextImageKHR(mVkLogicalDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[mCurrentFrameIndex], VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[mCurrentFrameIndex], VK_NULL_HANDLE, &imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		OnResizeWindow();
@@ -1111,12 +1109,13 @@ VkResult VulkanRenderer::CreateVulkanDevice()
 	// Defaults to the first device unless specified by command line
 	std::uint32_t selectedDevice = 0;
 
-	mVkPhysicalDevice = vkPhysicalDevices[selectedDevice];
+	VkPhysicalDevice vkPhysicalDevice = vkPhysicalDevices[selectedDevice];
+	mVulkanDevice = new VulkanDevice(vkPhysicalDevice);
 
 	// Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
-	vkGetPhysicalDeviceProperties(mVkPhysicalDevice, &mVkPhysicalDeviceProperties);
-	vkGetPhysicalDeviceFeatures(mVkPhysicalDevice, &mEnabledVkPhysicalDeviceFeatures);
-	vkGetPhysicalDeviceMemoryProperties(mVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);
+	vkGetPhysicalDeviceProperties(vkPhysicalDevice, &mVulkanDevice->mVkPhysicalDeviceProperties);
+	vkGetPhysicalDeviceFeatures(vkPhysicalDevice, &mVulkanDevice->mEnabledVkPhysicalDeviceFeatures);
+	vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &mVulkanDevice->mVkPhysicalDeviceMemoryProperties);
 
 	// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
 	GetEnabledFeatures();
@@ -1124,16 +1123,16 @@ VkResult VulkanRenderer::CreateVulkanDevice()
 	// Vulkan device creation
 	// This is handled by a separate class that gets a logical device representation
 	// and encapsulates functions related to a device
-	mVulkanDevice = new VulkanDevice(mVkPhysicalDevice);
+	mVulkanDevice = new VulkanDevice(vkPhysicalDevice);
 
-	result = mVulkanDevice->createLogicalDevice(mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
+	result = mVulkanDevice->createLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
 	if (result != VK_SUCCESS)
 	{
 		VulkanTools::ExitFatal("Could not create Vulkan device: \n" + VulkanTools::GetErrorString(result), result);
 		return VkResult::VK_ERROR_DEVICE_LOST;
 	}
 
-	mVkLogicalDevice = mVulkanDevice->mLogicalVkDevice;
+	mVulkanDevice->mLogicalVkDevice = mVulkanDevice->mLogicalVkDevice;
 
 	return result;
 }
@@ -1154,7 +1153,7 @@ std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const
 
 void VulkanRenderer::destroyCommandBuffers()
 {
-	vkFreeCommandBuffers(mVkLogicalDevice, mVkCommandPool, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
+	vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
 }
 
 std::string VulkanRenderer::getShadersPath() const
@@ -1166,7 +1165,7 @@ void VulkanRenderer::CreatePipelineCache()
 {
 	VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo = {};
 	vkPipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-	VK_CHECK_RESULT(vkCreatePipelineCache(mVkLogicalDevice, &vkPipelineCacheCreateInfo, nullptr, &mVkPipelineCache));
+	VK_CHECK_RESULT(vkCreatePipelineCache(mVulkanDevice->mLogicalVkDevice, &vkPipelineCacheCreateInfo, nullptr, &mVkPipelineCache));
 }
 
 void VulkanRenderer::InitializeSwapchain()
@@ -1179,7 +1178,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::loadShader(std::string fileName,
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
-	shaderStage.module = VulkanTools::LoadShader(fileName.c_str(), mVkLogicalDevice);
+	shaderStage.module = VulkanTools::LoadShader(fileName.c_str(), mVulkanDevice->mLogicalVkDevice);
 	shaderStage.pName = "main";
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	mVkShaderModules.push_back(shaderStage.module);
@@ -1231,16 +1230,16 @@ bool VulkanRenderer::InitializeVulkan()
 	}
 
 	// Get a graphics queue from the device
-	vkGetDeviceQueue(mVkLogicalDevice, mVulkanDevice->mQueueFamilyIndices.graphics, 0, &mVkQueue);
+	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.graphics, 0, &mVkQueue);
 
 	// Find a suitable depth and/or stencil format
 	VkBool32 validFormat{false};
 
 	// Applications that make use of stencil will require a depth + stencil format
-	validFormat = VulkanTools::GetSupportedDepthFormat(mVkPhysicalDevice, &mVkDepthFormat);
+	validFormat = VulkanTools::GetSupportedDepthFormat(mVulkanDevice->mVkPhysicalDevice, &mVkDepthFormat);
 	assert(validFormat);
 
-	mVulkanSwapChain.setContext(mVkInstance, mVkPhysicalDevice, mVkLogicalDevice);
+	mVulkanSwapChain.setContext(mVkInstance, mVulkanDevice->mVkPhysicalDevice, mVulkanDevice->mLogicalVkDevice);
 
 	return true;
 }
@@ -1251,7 +1250,7 @@ void VulkanRenderer::CreateCommandPool()
 	vkCommandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	vkCommandPoolCreateInfo.queueFamilyIndex = mVulkanSwapChain.mQueueNodeIndex;
 	vkCommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	VK_CHECK_RESULT(vkCreateCommandPool(mVkLogicalDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
+	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
 }
 
 void VulkanRenderer::OnResizeWindow()
@@ -1263,32 +1262,32 @@ void VulkanRenderer::OnResizeWindow()
 	mIsResized = true;
 
 	// Ensure all operations on the device have been finished before destroying resources
-	vkDeviceWaitIdle(mVkLogicalDevice);
+	vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
 
 	// Recreate swap chain
 	SetupSwapchain();
 
 	// Recreate the frame buffers
-	vkDestroyImageView(mVkLogicalDevice, mVulkanDepthStencil.mVkImageView, nullptr);
-	vkDestroyImage(mVkLogicalDevice, mVulkanDepthStencil.mVkImage, nullptr);
-	vkFreeMemory(mVkLogicalDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
+	vkDestroyImageView(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImageView, nullptr);
+	vkDestroyImage(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, nullptr);
+	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
 	SetupDepthStencil();
 
 	for (auto& semaphore : mVkPresentCompleteSemaphores)
 	{
-		vkDestroySemaphore(mVkLogicalDevice, semaphore, nullptr);
+		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
 	}
 	for (auto& semaphore : mVkRenderCompleteSemaphores)
 	{
-		vkDestroySemaphore(mVkLogicalDevice, semaphore, nullptr);
+		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
 	}
 	for (auto& fence : mVkWaitFences)
 	{
-		vkDestroyFence(mVkLogicalDevice, fence, nullptr);
+		vkDestroyFence(mVulkanDevice->mLogicalVkDevice, fence, nullptr);
 	}
 	CreateSynchronizationPrimitives();
 
-	vkDeviceWaitIdle(mVkLogicalDevice);
+	vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
 
 	if ((mFramebufferWidth > 0.0f) && (mFramebufferHeight > 0.0f))
 	{

@@ -53,7 +53,7 @@ struct VulkanDevice
 	VkPhysicalDeviceFeatures mEnabledVkPhysicalDeviceFeatures{};
 
 	/** @brief Memory types and heaps of the physical device */
-	VkPhysicalDeviceMemoryProperties VkPhysicalDeviceMemoryProperties{};
+	VkPhysicalDeviceMemoryProperties mVkPhysicalDeviceMemoryProperties{};
 
 	/** @brief Queue family properties of the physical device */
 	std::vector<VkQueueFamilyProperties> mVkQueueFamilyProperties{};

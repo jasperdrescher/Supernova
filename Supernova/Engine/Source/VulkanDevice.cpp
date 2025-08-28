@@ -24,7 +24,7 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice aPhysicalDevice)
 	// Features should be checked by the examples before using them
 	vkGetPhysicalDeviceFeatures(mVkPhysicalDevice, &mVkPhysicalDeviceFeatures);
 	// Memory properties are used regularly for creating all kinds of buffers
-	vkGetPhysicalDeviceMemoryProperties(mVkPhysicalDevice, &VkPhysicalDeviceMemoryProperties);
+	vkGetPhysicalDeviceMemoryProperties(mVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);
 	// Queue family properties, used for setting up requested queues upon device creation
 	std::uint32_t queueFamilyCount;
 	vkGetPhysicalDeviceQueueFamilyProperties(mVkPhysicalDevice, &queueFamilyCount, nullptr);
@@ -70,11 +70,11 @@ VulkanDevice::~VulkanDevice()
 */
 std::uint32_t VulkanDevice::getMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound) const
 {
-	for (std::uint32_t i = 0; i < VkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+	for (std::uint32_t i = 0; i < mVkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
 	{
 		if ((typeBits & 1) == 1)
 		{
-			if ((VkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			if ((mVkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
 			{
 				if (memTypeFound)
 				{
