@@ -16,9 +16,9 @@ namespace VulkanDebug
 
 	VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessageCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT aMessageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT aMessageType,
+		VkDebugUtilsMessageTypeFlagsEXT /*aMessageType*/,
 		const VkDebugUtilsMessengerCallbackDataEXT* aCallbackData,
-		void* aUserData)
+		void* /*aUserData*/)
 	{
 		std::string prefix;
 		if (aMessageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
