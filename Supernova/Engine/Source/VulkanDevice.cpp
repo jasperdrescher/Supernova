@@ -10,42 +10,11 @@
 #include <string>
 #include <vector>
 
-VulkanDevice::VulkanDevice(VkPhysicalDevice aPhysicalDevice)
+VulkanDevice::VulkanDevice()
 	: mVkPhysicalDevice{VK_NULL_HANDLE}
 	, mLogicalVkDevice{VK_NULL_HANDLE}
 	, mVkCommandPool{VK_NULL_HANDLE}
 {
-	assert(aPhysicalDevice);
-	mVkPhysicalDevice = aPhysicalDevice;
-
-	// Store Properties features, limits and properties of the physical device for later use
-	// Device properties also contain limits and sparse properties
-	vkGetPhysicalDeviceProperties(mVkPhysicalDevice, &mVkPhysicalDeviceProperties);
-	// Features should be checked by the examples before using them
-	vkGetPhysicalDeviceFeatures(mVkPhysicalDevice, &mVkPhysicalDeviceFeatures);
-	// Memory properties are used regularly for creating all kinds of buffers
-	vkGetPhysicalDeviceMemoryProperties(mVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);
-	// Queue family properties, used for setting up requested queues upon device creation
-	std::uint32_t queueFamilyCount;
-	vkGetPhysicalDeviceQueueFamilyProperties(mVkPhysicalDevice, &queueFamilyCount, nullptr);
-	assert(queueFamilyCount > 0);
-	mVkQueueFamilyProperties.resize(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(mVkPhysicalDevice, &queueFamilyCount, mVkQueueFamilyProperties.data());
-
-	// Get list of supported extensions
-	std::uint32_t extCount = 0;
-	vkEnumerateDeviceExtensionProperties(mVkPhysicalDevice, nullptr, &extCount, nullptr);
-	if (extCount > 0)
-	{
-		std::vector<VkExtensionProperties> extensions(extCount);
-		if (vkEnumerateDeviceExtensionProperties(mVkPhysicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
-		{
-			for (auto& ext : extensions)
-			{
-				mSupportedExtensions.push_back(ext.extensionName);
-			}
-		}
-	}
 }
 
 VulkanDevice::~VulkanDevice()
@@ -157,12 +126,8 @@ std::uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const
 *
 * @return VkResult of the device creation call
 */
-VkResult VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain, VkQueueFlags requestedQueueTypes)
+VkResult VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain, VkQueueFlags requestedQueueTypes)
 {
-	// Desired queues need to be requested upon logical device creation
-	// Due to differing queue family configurations of Vulkan implementations this can be a bit tricky, especially if the application
-	// requests different queue types
-
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
 	// Get queue family indices for the requested queue family types
@@ -279,6 +244,48 @@ VkResult VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatu
 	mVkCommandPool = CreateCommandPool(mQueueFamilyIndices.graphics);
 
 	return result;
+}
+
+void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
+{
+	mVkPhysicalDevice = aVkPhysicalDevice;
+
+	// Store Properties features, limits and properties of the physical device for later use
+	// Device properties also contain limits and sparse properties
+	vkGetPhysicalDeviceProperties(aVkPhysicalDevice, &mVkPhysicalDeviceProperties);
+
+	// Features should be checked by the examples before using them
+	vkGetPhysicalDeviceFeatures(aVkPhysicalDevice, &mVkPhysicalDeviceFeatures);
+
+	// Memory properties are used regularly for creating all kinds of buffers
+	vkGetPhysicalDeviceMemoryProperties(aVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);
+
+	// Queue family properties, used for setting up requested queues upon device creation
+	std::uint32_t queueFamilyCount;
+	vkGetPhysicalDeviceQueueFamilyProperties(aVkPhysicalDevice, &queueFamilyCount, nullptr);
+	assert(queueFamilyCount > 0);
+
+	mVkQueueFamilyProperties.resize(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(aVkPhysicalDevice, &queueFamilyCount, mVkQueueFamilyProperties.data());
+
+	std::uint32_t extensionCount = 0;
+	VK_CHECK_RESULT(vkEnumerateDeviceExtensionProperties(aVkPhysicalDevice, nullptr, &extensionCount, nullptr));
+	if (extensionCount > 0)
+	{
+		std::vector<VkExtensionProperties> extensions(extensionCount);
+		if (vkEnumerateDeviceExtensionProperties(aVkPhysicalDevice, nullptr, &extensionCount, &extensions.front()) == VK_SUCCESS)
+		{
+			for (const VkExtensionProperties& vkExtensionProperties : extensions)
+			{
+				mSupportedExtensions.push_back(vkExtensionProperties.extensionName);
+			}
+		}
+	}
+
+	if (mVkPhysicalDeviceProperties.apiVersion < VK_API_VERSION_1_3)
+	{
+		VulkanTools::ExitFatal("Selected GPU does not support support Vulkan 1.3", VK_ERROR_INCOMPATIBLE_DRIVER);
+	}
 }
 
 /**

@@ -1103,29 +1103,12 @@ VkResult VulkanRenderer::CreateVulkanDevice()
 		return VkResult::VK_ERROR_DEVICE_LOST;
 	}
 
-	// GPU selection
-
-	// Select physical device to be used for the Vulkan example
-	// Defaults to the first device unless specified by command line
 	std::uint32_t selectedDevice = 0;
-
 	VkPhysicalDevice vkPhysicalDevice = vkPhysicalDevices[selectedDevice];
-	mVulkanDevice = new VulkanDevice(vkPhysicalDevice);
-
-	// Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
-	vkGetPhysicalDeviceProperties(vkPhysicalDevice, &mVulkanDevice->mVkPhysicalDeviceProperties);
-	vkGetPhysicalDeviceFeatures(vkPhysicalDevice, &mVulkanDevice->mEnabledVkPhysicalDeviceFeatures);
-	vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &mVulkanDevice->mVkPhysicalDeviceMemoryProperties);
-
-	// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
-	GetEnabledFeatures();
-
-	// Vulkan device creation
-	// This is handled by a separate class that gets a logical device representation
-	// and encapsulates functions related to a device
-	mVulkanDevice = new VulkanDevice(vkPhysicalDevice);
-
-	result = mVulkanDevice->createLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
+	mVulkanDevice = new VulkanDevice();
+	mVulkanDevice->CreatePhysicalDevice(vkPhysicalDevice);
+	
+	result = mVulkanDevice->CreateLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
 	if (result != VK_SUCCESS)
 	{
 		VulkanTools::ExitFatal("Could not create Vulkan device: \n" + VulkanTools::GetErrorString(result), result);
