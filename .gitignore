@@ -445,7 +445,7 @@ FodyWeavers.xsd
 *.sln.iml
 
 ## Custom
-!Supernova/ThirdParty/
+!Supernova/ThirdParty/**
 !glfw3.lib
 !glfw3_mtlib
 !glfw3dll.lib
