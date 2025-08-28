@@ -239,11 +239,6 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 // Command buffers are used to record commands to and are submitted to a queue for execution ("rendering")
 void VulkanRenderer::CreateCommandBuffers()
 {
-	// All command buffers are allocated from the same command pool
-	VkCommandPoolCreateInfo vkCommandPoolCreateInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-	vkCommandPoolCreateInfo.queueFamilyIndex = mVulkanSwapChain.mQueueNodeIndex;
-	vkCommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
 	// Allocate one command buffer per max. concurrent frame from above pool
 	VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &cmdBufAllocateInfo, mVkCommandBuffers.data()));
