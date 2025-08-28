@@ -144,7 +144,7 @@ namespace VulkanTools
 
 	void ExitFatal(const std::string& aMessage, VkResult aResultCode)
 	{
-		ExitFatal(aMessage, (std::int32_t)aResultCode);
+		ExitFatal(aMessage, static_cast<std::int32_t>(aResultCode));
 	}
 
 	VkShaderModule LoadShader(const char* aFilename, VkDevice aVkDevice)

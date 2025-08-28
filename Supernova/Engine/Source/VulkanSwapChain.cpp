@@ -102,7 +102,7 @@ void VulkanSwapChain::InitializeSurface()
 		VK_FORMAT_A8B8G8R8_UNORM_PACK32
 	};
 
-	for (auto& availableFormat : surfaceFormats)
+	for (VkSurfaceFormatKHR& availableFormat : surfaceFormats)
 	{
 		if (std::find(preferredImageFormats.begin(), preferredImageFormats.end(), availableFormat.format) != preferredImageFormats.end())
 		{
@@ -137,7 +137,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 
 	VkExtent2D swapchainExtent = {};
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
-	if (surfCaps.currentExtent.width == (std::uint32_t)-1)
+	if (surfCaps.currentExtent.width == static_cast<std::uint32_t>(-1))
 	{
 		// If the surface size is undefined, the size is set to the size of the images requested
 		swapchainExtent.width = width;
@@ -175,6 +175,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 				swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
 				break;
 			}
+
 			if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)
 			{
 				swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -210,7 +211,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
 		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
 	};
-	for (auto& compositeAlphaFlag : compositeAlphaFlags)
+	for (VkCompositeAlphaFlagBitsKHR& compositeAlphaFlag : compositeAlphaFlags)
 	{
 		if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag)
 		{
@@ -255,7 +256,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 	// If an existing swap chain is re-created, destroy the old swap chain and the ressources owned by the application (image views, images are owned by the swap chain)
 	if (oldSwapchain != VK_NULL_HANDLE)
 	{
-		for (auto i = 0; i < mVkImages.size(); i++)
+		for (size_t i = 0; i < mVkImages.size(); i++)
 		{
 			vkDestroyImageView(mActiveVulkanDevice, mVkImageViews[i], nullptr);
 		}
@@ -269,7 +270,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 
 	// Get the swap chain buffers containing the image and imageview
 	mVkImageViews.resize(mImageCount);
-	for (auto i = 0; i < mVkImages.size(); i++)
+	for (size_t i = 0; i < mVkImages.size(); i++)
 	{
 		VkImageViewCreateInfo colorAttachmentView = {};
 		colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -304,16 +305,15 @@ void VulkanSwapChain::cleanup()
 {
 	if (mVkSwapchainKHR != VK_NULL_HANDLE)
 	{
-		for (auto i = 0; i < mVkImages.size(); i++)
-		{
+		for (size_t i = 0; i < mVkImages.size(); i++)
 			vkDestroyImageView(mActiveVulkanDevice, mVkImageViews[i], nullptr);
-		}
+
 		vkDestroySwapchainKHR(mActiveVulkanDevice, mVkSwapchainKHR, nullptr);
 	}
+
 	if (mVkSurfaceKHR != VK_NULL_HANDLE)
-	{
 		vkDestroySurfaceKHR(mActiveVkInstance, mVkSurfaceKHR, nullptr);
-	}
+	
 	mVkSurfaceKHR = VK_NULL_HANDLE;
 	mVkSwapchainKHR = VK_NULL_HANDLE;
 }

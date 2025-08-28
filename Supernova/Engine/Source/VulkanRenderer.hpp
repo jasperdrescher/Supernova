@@ -178,7 +178,7 @@ private:
 	VkDescriptorSetLayout mVkDescriptionSetLayout;
 	std::vector<VkSemaphore> mVkPresentCompleteSemaphores{};
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
-	std::array<VkFence, gMaxConcurrentFrames> mVkWaitFences{};
+	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
 
 	std::uint32_t mCurrentFrameIndex;
 

@@ -117,7 +117,7 @@ VulkanRenderer::~VulkanRenderer()
 
 	vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, nullptr);
 
-	for (VkFence& fence : mVkWaitFences)
+	for (VkFence& fence : mWaitVkFences)
 		vkDestroyFence(mVulkanDevice->mLogicalVkDevice, fence, nullptr);
 
 	for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
@@ -148,7 +148,7 @@ VulkanRenderer::~VulkanRenderer()
 
 		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 		{
-			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, mVkWaitFences[i], nullptr);
+			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, mWaitVkFences[i], nullptr);
 			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, nullptr);
 			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
@@ -234,7 +234,7 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 		VkFenceCreateInfo vkFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
 		// Create the fences in signaled state (so we don't wait on first render of each command buffer)
 		vkFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &vkFenceCreateInfo, nullptr, &mVkWaitFences[i]));
+		VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &vkFenceCreateInfo, nullptr, &mWaitVkFences[i]));
 	}
 
 	// Semaphores are used for correct command ordering within a queue
@@ -744,8 +744,8 @@ void VulkanRenderer::PrepareVulkanResources()
 void VulkanRenderer::PrepareFrame()
 {
 	// Use a fence to wait until the command buffer has finished execution before using it again
-	vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mVkWaitFences[mCurrentFrameIndex], VK_TRUE, UINT64_MAX);
-	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mVkWaitFences[mCurrentFrameIndex]));
+	vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentFrameIndex], VK_TRUE, UINT64_MAX);
+	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentFrameIndex]));
 
 	// Get the next swap chain image from the implementation
 	// Note that the implementation is free to return the images in any order, so we must use the acquire function and can't just cycle through the images/imageIndex on our own
@@ -847,7 +847,7 @@ void VulkanRenderer::PrepareFrame()
 	submitInfo.signalSemaphoreCount = 1;
 
 	// Submit to the graphics queue passing a wait fence
-	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &submitInfo, mVkWaitFences[mCurrentFrameIndex]));
+	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &submitInfo, mWaitVkFences[mCurrentFrameIndex]));
 
 	// Present the current frame buffer to the swap chain
 	// Pass the semaphore signaled by the command buffer submission from the submit info as the wait semaphore for swap chain presentation
@@ -1256,18 +1256,15 @@ void VulkanRenderer::OnResizeWindow()
 	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
 	SetupDepthStencil();
 
-	for (auto& semaphore : mVkPresentCompleteSemaphores)
-	{
-		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
-	}
-	for (auto& semaphore : mVkRenderCompleteSemaphores)
-	{
-		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
-	}
-	for (auto& fence : mVkWaitFences)
-	{
-		vkDestroyFence(mVulkanDevice->mLogicalVkDevice, fence, nullptr);
-	}
+	for (VkSemaphore& vkPresentCompleteSemaphore : mVkPresentCompleteSemaphores)
+		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, vkPresentCompleteSemaphore, nullptr);
+	
+	for (VkSemaphore& vkRendercompleteSemaphore : mVkRenderCompleteSemaphores)
+		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, vkRendercompleteSemaphore, nullptr);
+	
+	for (VkFence& waitVkFence : mWaitVkFences)
+		vkDestroyFence(mVulkanDevice->mLogicalVkDevice, waitVkFence, nullptr);
+	
 	CreateSynchronizationPrimitives();
 
 	vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
@@ -1282,14 +1279,14 @@ void VulkanRenderer::OnResizeWindow()
 
 void VulkanRenderer::handleMouseMove(std::int32_t x, std::int32_t y)
 {
-	std::int32_t dx = (std::int32_t)mMouseState.mPosition.x - x;
-	std::int32_t dy = (std::int32_t)mMouseState.mPosition.y - y;
+	std::int32_t dx = static_cast<std::int32_t>(mMouseState.mPosition.x - x);
+	std::int32_t dy = static_cast<std::uint32_t>(mMouseState.mPosition.y - y);
 
 	bool handled = false;
 
 	if (handled)
 	{
-		mMouseState.mPosition = glm::vec2((float)x, (float)y);
+		mMouseState.mPosition = glm::vec2(static_cast<float>(x), static_cast<float>(y));
 		return;
 	}
 
@@ -1305,7 +1302,7 @@ void VulkanRenderer::handleMouseMove(std::int32_t x, std::int32_t y)
 	{
 		mCamera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
 	}
-	mMouseState.mPosition = glm::vec2((float)x, (float)y);
+	mMouseState.mPosition = glm::vec2(static_cast<float>(x), static_cast<float>(y));
 }
 
 void VulkanRenderer::SetupSwapchain()

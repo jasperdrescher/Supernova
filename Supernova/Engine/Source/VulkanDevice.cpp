@@ -228,7 +228,7 @@ VkResult VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatu
 			}
 		}
 
-		deviceCreateInfo.enabledExtensionCount = (std::uint32_t)deviceExtensions.size();
+		deviceCreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(deviceExtensions.size());
 		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	}
 
