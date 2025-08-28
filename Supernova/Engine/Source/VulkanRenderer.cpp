@@ -866,7 +866,8 @@ void VulkanRenderer::CreateGlfwWindow()
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_SAMPLES, 4);
-	mGLFWWindow = glfwCreateWindow(mVulkanApplicationProperties.mWindowWidth, mVulkanApplicationProperties.mWindowHeight, "Supernova", nullptr, nullptr);
+
+	mGLFWWindow = glfwCreateWindow(mVulkanApplicationProperties.mWindowWidth, mVulkanApplicationProperties.mWindowHeight, mVulkanApplicationProperties.mApplicationName.c_str(), nullptr, nullptr);
 	if (!mGLFWWindow)
 	{
 		glfwTerminate();
