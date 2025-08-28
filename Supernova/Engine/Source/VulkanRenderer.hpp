@@ -35,6 +35,8 @@ public:
 private:
 	struct MouseState
 	{
+		MouseState() : mPosition{0.0f} {}
+
 		struct Buttons
 		{
 			Buttons() : mIsLeftDown{false}, mIsRightDown{false}, mIsMiddleDown{false} {}
@@ -63,7 +65,7 @@ private:
 
 	void InitializeVulkan();
 
-	VkResult CreateVkInstance();
+	void CreateVkInstance();
 	void CreateVulkanDevice();
 
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);

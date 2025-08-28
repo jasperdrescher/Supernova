@@ -926,7 +926,7 @@ void VulkanRenderer::WindowMinimizedCallback(GLFWwindow* aWindow, int aValue)
 	vulkanRenderer->mIsPaused = aValue;
 }
 
-VkResult VulkanRenderer::CreateVkInstance()
+void VulkanRenderer::CreateVkInstance()
 {
 	std::vector<const char*> instanceExtensions = {VK_KHR_SURFACE_EXTENSION_NAME};
 
@@ -1049,6 +1049,11 @@ VkResult VulkanRenderer::CreateVkInstance()
 	}
 
 	VkResult result = vkCreateInstance(&vkInstanceCreateInfo, nullptr, &mVkInstance);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error(std::format("Could not create Vulkan instance: {}", VulkanTools::GetErrorString(result)));
+	}
+
 	VK_CHECK_RESULT(glfwCreateWindowSurface(mVkInstance, mGLFWWindow, nullptr, &mVulkanSwapChain.mVkSurfaceKHR));
 
 	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
@@ -1056,8 +1061,6 @@ VkResult VulkanRenderer::CreateVkInstance()
 	{
 		VulkanDebug::SetupDebugUtils(mVkInstance);
 	}
-
-	return result;
 }
 
 void VulkanRenderer::CreateVulkanDevice()
@@ -1157,11 +1160,7 @@ void VulkanRenderer::NextFrame()
 
 void VulkanRenderer::InitializeVulkan()
 {
-	VkResult result = CreateVkInstance();
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error(std::format("Could not create Vulkan instance: {}", VulkanTools::GetErrorString(result)));
-	}
+	CreateVkInstance();
 
 	// If requested, we enable the default validation layers for debugging
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
