@@ -495,7 +495,7 @@ VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::string& filename) cons
 		// Create a new shader module that will be used for pipeline creation
 		VkShaderModuleCreateInfo shaderModuleCI{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 		shaderModuleCI.codeSize = shaderSize;
-		shaderModuleCI.pCode = (std::uint32_t*)shaderCode;
+		shaderModuleCI.pCode = reinterpret_cast<std::uint32_t*>(shaderCode);
 
 		VkShaderModule shaderModule;
 		VK_CHECK_RESULT(vkCreateShaderModule(mVulkanDevice->mLogicalVkDevice, &shaderModuleCI, nullptr, &shaderModule));
@@ -1074,24 +1074,13 @@ void VulkanRenderer::CreateVulkanDevice()
 	}
 
 	std::vector<VkPhysicalDevice> vkPhysicalDevices(physicalDeviceCount);
-	VkResult result = vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, vkPhysicalDevices.data());
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error(std::format("Could not enumerate physical devices: {}", VulkanTools::GetErrorString(result)));
-	}
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, vkPhysicalDevices.data()));
 
 	std::uint32_t selectedDevice = 0;
 	VkPhysicalDevice vkPhysicalDevice = vkPhysicalDevices[selectedDevice];
 	mVulkanDevice = new VulkanDevice();
 	mVulkanDevice->CreatePhysicalDevice(vkPhysicalDevice);
-	
-	result = mVulkanDevice->CreateLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error(std::format("Could not create Vulkan device: {}", VulkanTools::GetErrorString(result)));
-	}
-
-	mVulkanDevice->mLogicalVkDevice = mVulkanDevice->mLogicalVkDevice;
+	mVulkanDevice->CreateLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
 }
 
 std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const

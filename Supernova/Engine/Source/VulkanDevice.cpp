@@ -33,7 +33,7 @@ VulkanDevice::~VulkanDevice()
 *
 * @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested properties
 */
-std::uint32_t VulkanDevice::getMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound) const
+std::uint32_t VulkanDevice::GetMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound) const
 {
 	for (std::uint32_t i = 0; i < mVkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
 	{
@@ -72,7 +72,7 @@ std::uint32_t VulkanDevice::getMemoryType(std::uint32_t typeBits, VkMemoryProper
 *
 * @throw Throws an exception if no queue family index could be found that supports the requested flags
 */
-std::uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const
+std::uint32_t VulkanDevice::GetQueueFamilyIndex(VkQueueFlags queueFlags) const
 {
 	// Dedicated queue for compute
 	// Try to find a queue family index that supports compute but not graphics
@@ -122,7 +122,7 @@ std::uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const
 *
 * @return VkResult of the device creation call
 */
-VkResult VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain, VkQueueFlags requestedQueueTypes)
+void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain, VkQueueFlags requestedQueueTypes)
 {
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
@@ -134,7 +134,7 @@ VkResult VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatu
 	// Graphics queue
 	if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
 	{
-		mQueueFamilyIndices.graphics = getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
+		mQueueFamilyIndices.graphics = GetQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
 		VkDeviceQueueCreateInfo queueInfo{};
 		queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 		queueInfo.queueFamilyIndex = mQueueFamilyIndices.graphics;
@@ -150,7 +150,7 @@ VkResult VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatu
 	// Dedicated compute queue
 	if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT)
 	{
-		mQueueFamilyIndices.compute = getQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT);
+		mQueueFamilyIndices.compute = GetQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT);
 		if (mQueueFamilyIndices.compute != mQueueFamilyIndices.graphics)
 		{
 			// If compute family index differs, we need an additional queue create info for the compute queue
@@ -171,7 +171,7 @@ VkResult VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatu
 	// Dedicated transfer queue
 	if (requestedQueueTypes & VK_QUEUE_TRANSFER_BIT)
 	{
-		mQueueFamilyIndices.transfer = getQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
+		mQueueFamilyIndices.transfer = GetQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
 		if ((mQueueFamilyIndices.transfer != mQueueFamilyIndices.graphics) && (mQueueFamilyIndices.transfer != mQueueFamilyIndices.compute))
 		{
 			// If transfer family index differs, we need an additional queue create info for the transfer queue
@@ -233,10 +233,8 @@ VkResult VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatu
 	VkResult result = vkCreateDevice(mVkPhysicalDevice, &deviceCreateInfo, nullptr, &mLogicalVkDevice);
 	if (result != VK_SUCCESS)
 	{
-		return result;
+		throw std::runtime_error(std::format("Could not create Vulkan device: {}", VulkanTools::GetErrorString(result)));
 	}
-
-	return result;
 }
 
 void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
@@ -288,9 +286,9 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 *
 * @return True if the extension is supported (present in the list read at device creation time)
 */
-bool VulkanDevice::IsExtensionSupported(std::string extension)
+bool VulkanDevice::IsExtensionSupported(const std::string& aExtension) const
 {
-	return (std::find(mSupportedExtensions.begin(), mSupportedExtensions.end(), extension) != mSupportedExtensions.end());
+	return (std::find(mSupportedExtensions.begin(), mSupportedExtensions.end(), aExtension) != mSupportedExtensions.end());
 }
 
 /**

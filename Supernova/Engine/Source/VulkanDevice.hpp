@@ -25,12 +25,13 @@ struct VulkanDevice
 	VulkanDevice();
 	~VulkanDevice();
 
-	std::uint32_t        getMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound = nullptr) const;
-	std::uint32_t        getQueueFamilyIndex(VkQueueFlags queueFlags) const;
-	VkResult        CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+	void CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 	void CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice);
-	bool            IsExtensionSupported(std::string extension);
-	VkFormat        GetSupportedDepthFormat(bool checkSamplingSupport) const;
+
+	std::uint32_t GetMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound = nullptr) const;
+	std::uint32_t GetQueueFamilyIndex(VkQueueFlags queueFlags) const;
+	bool IsExtensionSupported(const std::string& aExtension) const;
+	VkFormat GetSupportedDepthFormat(bool checkSamplingSupport) const;
 
 	/** @brief Physical device representation */
 	VkPhysicalDevice mVkPhysicalDevice;
