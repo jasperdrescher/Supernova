@@ -75,12 +75,12 @@ void VulkanSwapChain::InitializeSurface()
 	// Exit if either a graphics or a presenting queue hasn't been found
 	if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX)
 	{
-		VulkanTools::ExitFatal("Could not find a graphics and/or presenting queue!", -1);
+		throw std::runtime_error("Could not find a graphics and/or presenting queue!");
 	}
 
 	if (graphicsQueueNodeIndex != presentQueueNodeIndex)
 	{
-		VulkanTools::ExitFatal("Separate graphics and presenting queues are not supported yet!", -1);
+		throw std::runtime_error("Separate graphics and presenting queues are not supported yet!");
 	}
 
 	mQueueNodeIndex = graphicsQueueNodeIndex;

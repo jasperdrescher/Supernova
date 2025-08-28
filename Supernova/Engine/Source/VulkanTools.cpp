@@ -4,7 +4,6 @@
 
 #include <cassert>
 #include <cstdint>
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -55,7 +54,7 @@ namespace VulkanTools
 			STR(ERROR_INCOMPATIBLE_SHADER_BINARY_EXT);
 #undef STR
 			default:
-				return "UNKNOWN_ERROR";
+				return std::to_string(static_cast<int>(aErrorCode));
 		}
 	}
 
@@ -134,17 +133,6 @@ namespace VulkanTools
 			0, nullptr,
 			0, nullptr,
 			1, &imageMemoryBarrier);
-	}
-
-	void ExitFatal(const std::string& aMessage, std::int32_t aExitCode)
-	{
-		std::cerr << aMessage << "\n";
-		exit(aExitCode);
-	}
-
-	void ExitFatal(const std::string& aMessage, VkResult aResultCode)
-	{
-		ExitFatal(aMessage, static_cast<std::int32_t>(aResultCode));
 	}
 
 	VkShaderModule LoadShader(const char* aFilename, VkDevice aVkDevice)

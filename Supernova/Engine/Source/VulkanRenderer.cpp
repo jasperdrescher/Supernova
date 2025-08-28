@@ -204,7 +204,7 @@ void VulkanRenderer::GetEnabledFeatures() const
 	// Vulkan 1.3 device support is required for this example
 	if (mVulkanDevice->mVkPhysicalDeviceProperties.apiVersion < VK_API_VERSION_1_3)
 	{
-		VulkanTools::ExitFatal("Selected GPU does not support support Vulkan 1.3", VK_ERROR_INCOMPATIBLE_DRIVER);
+		throw std::runtime_error(std::format("Selected GPU does not support support Vulkan 1.3: {}", VulkanTools::GetErrorString(VK_ERROR_INCOMPATIBLE_DRIVER)));
 	}
 }
 
@@ -1085,22 +1085,20 @@ VkResult VulkanRenderer::CreateVkInstance()
 	return result;
 }
 
-VkResult VulkanRenderer::CreateVulkanDevice()
+void VulkanRenderer::CreateVulkanDevice()
 {
 	std::uint32_t physicalDeviceCount = 0;
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, nullptr));
 	if (physicalDeviceCount == 0)
 	{
-		VulkanTools::ExitFatal("No device with Vulkan support found", -1);
-		return VkResult::VK_ERROR_DEVICE_LOST;
+		throw std::runtime_error(std::format("No device with Vulkan support found: {}", VulkanTools::GetErrorString(VK_ERROR_DEVICE_LOST)));
 	}
 
 	std::vector<VkPhysicalDevice> vkPhysicalDevices(physicalDeviceCount);
 	VkResult result = vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, vkPhysicalDevices.data());
 	if (result != VK_SUCCESS)
 	{
-		VulkanTools::ExitFatal("Could not enumerate physical devices : \n" + VulkanTools::GetErrorString(result), result);
-		return VkResult::VK_ERROR_DEVICE_LOST;
+		throw std::runtime_error(std::format("Could not enumerate physical devices: {}", VulkanTools::GetErrorString(result)));
 	}
 
 	std::uint32_t selectedDevice = 0;
@@ -1111,13 +1109,10 @@ VkResult VulkanRenderer::CreateVulkanDevice()
 	result = mVulkanDevice->CreateLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
 	if (result != VK_SUCCESS)
 	{
-		VulkanTools::ExitFatal("Could not create Vulkan device: \n" + VulkanTools::GetErrorString(result), result);
-		return VkResult::VK_ERROR_DEVICE_LOST;
+		throw std::runtime_error(std::format("Could not create Vulkan device: {}", VulkanTools::GetErrorString(result)));
 	}
 
 	mVulkanDevice->mLogicalVkDevice = mVulkanDevice->mLogicalVkDevice;
-
-	return result;
 }
 
 std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const
@@ -1190,13 +1185,12 @@ void VulkanRenderer::NextFrame()
 	mPreviousEndTime = frameTimeEnd;
 }
 
-bool VulkanRenderer::InitializeVulkan()
+void VulkanRenderer::InitializeVulkan()
 {
 	VkResult result = CreateVkInstance();
 	if (result != VK_SUCCESS)
 	{
-		VulkanTools::ExitFatal("Could not create Vulkan instance : \n" + VulkanTools::GetErrorString(result), result);
-		return false;
+		throw std::runtime_error(std::format("Could not create Vulkan instance: {}", VulkanTools::GetErrorString(result)));
 	}
 
 	// If requested, we enable the default validation layers for debugging
@@ -1205,12 +1199,7 @@ bool VulkanRenderer::InitializeVulkan()
 		VulkanDebug::SetupDebugUtilsMessenger(mVkInstance);
 	}
 
-	result = CreateVulkanDevice();
-	if (result != VK_SUCCESS)
-	{
-		VulkanTools::ExitFatal("Could not create Vulkan device : \n" + VulkanTools::GetErrorString(result), result);
-		return false;
-	}
+	CreateVulkanDevice();
 
 	// Get a graphics queue from the device
 	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.graphics, 0, &mVkQueue);
@@ -1223,8 +1212,6 @@ bool VulkanRenderer::InitializeVulkan()
 	assert(validFormat);
 
 	mVulkanSwapChain.setContext(mVkInstance, mVulkanDevice->mVkPhysicalDevice, mVulkanDevice->mLogicalVkDevice);
-
-	return true;
 }
 
 void VulkanRenderer::CreateCommandPool()

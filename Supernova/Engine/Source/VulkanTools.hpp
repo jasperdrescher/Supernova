@@ -2,7 +2,6 @@
 
 #include "vulkan/vulkan_core.h"
 
-#include <cstdint>
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -47,10 +46,6 @@ namespace VulkanTools
 		VkPipelineStageFlags aSourceVkPipelineStageMask,
 		VkPipelineStageFlags aDestinationVkPipelineStageMask,
 		VkImageSubresourceRange aVkImageSubresourceRange);
-
-	// Display error message and exit on fatal error
-	void ExitFatal(const std::string& aMessage, std::int32_t aExitCode);
-	void ExitFatal(const std::string& aMessage, VkResult aResultCode);
 
 	// Load a SPIR-V shader (binary)
 	VkShaderModule LoadShader(const char* aFilename, VkDevice aVkDevice);

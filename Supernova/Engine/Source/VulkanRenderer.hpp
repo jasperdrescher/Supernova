@@ -62,10 +62,10 @@ private:
 	void CreatePipeline();
 	void CreateUniformBuffers();
 
-	bool InitializeVulkan();
+	void InitializeVulkan();
 
 	VkResult CreateVkInstance();
-	VkResult CreateVulkanDevice();
+	void CreateVulkanDevice();
 
 	VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
 

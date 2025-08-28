@@ -284,7 +284,7 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 
 	if (mVkPhysicalDeviceProperties.apiVersion < VK_API_VERSION_1_3)
 	{
-		VulkanTools::ExitFatal("Selected GPU does not support support Vulkan 1.3", VK_ERROR_INCOMPATIBLE_DRIVER);
+		throw std::runtime_error(std::format("Selected GPU does not support support Vulkan 1.3: {}", VulkanTools::GetErrorString(VK_ERROR_INCOMPATIBLE_DRIVER)));
 	}
 }
 
