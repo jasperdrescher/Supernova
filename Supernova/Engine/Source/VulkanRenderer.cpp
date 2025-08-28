@@ -99,38 +99,24 @@ VulkanRenderer::VulkanRenderer()
 
 VulkanRenderer::~VulkanRenderer()
 {
-	mVulkanSwapChain.cleanup();
-
-	if (mVkDescriptorPool != VK_NULL_HANDLE)
-		vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, mVkDescriptorPool, nullptr);
-
-	destroyCommandBuffers();
-
-	for (VkShaderModule& shaderModule : mVkShaderModules)
-		vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, shaderModule, nullptr);
-
-	vkDestroyImageView(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImageView, nullptr);
-	vkDestroyImage(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, nullptr);
-	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
-
-	vkDestroyPipelineCache(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, nullptr);
-
-	vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, nullptr);
-
-	for (VkFence& fence : mWaitVkFences)
-		vkDestroyFence(mVulkanDevice->mLogicalVkDevice, fence, nullptr);
-
-	for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
-		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
-	
-	for (VkSemaphore& semaphore : mVkRenderCompleteSemaphores)
-		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
-
-	if (mVulkanApplicationProperties.mIsValidationEnabled)
-		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
+	mVulkanSwapChain.CleanUp();
 
 	if (mVulkanDevice->mLogicalVkDevice != VK_NULL_HANDLE)
 	{
+		if (mVkDescriptorPool != VK_NULL_HANDLE)
+			vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, mVkDescriptorPool, nullptr);
+
+		vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
+
+		for (VkShaderModule& shaderModule : mVkShaderModules)
+			vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, shaderModule, nullptr);
+
+		vkDestroyImageView(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImageView, nullptr);
+		vkDestroyImage(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, nullptr);
+		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
+
+		vkDestroyPipelineCache(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, nullptr);
+
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipeline, nullptr);
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptionSetLayout, nullptr);
@@ -140,11 +126,11 @@ VulkanRenderer::~VulkanRenderer()
 		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkDeviceMemory, nullptr);
 		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, nullptr);
 
-		for (size_t i = 0; i < mVkPresentCompleteSemaphores.size(); i++)
-			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, mVkPresentCompleteSemaphores[i], nullptr);
-		
-		for (size_t i = 0; i < mVkRenderCompleteSemaphores.size(); i++)
-			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, mVkRenderCompleteSemaphores[i], nullptr);
+		for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
+			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
+
+		for (VkSemaphore& semaphore : mVkRenderCompleteSemaphores)
+			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
 
 		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 		{
@@ -153,6 +139,9 @@ VulkanRenderer::~VulkanRenderer()
 			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
 	}
+
+	if (mVulkanApplicationProperties.mIsValidationEnabled)
+		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
 	delete mVulkanDevice;
 
@@ -197,15 +186,6 @@ void VulkanRenderer::DestroyRenderer()
 {
 	glfwDestroyWindow(mGLFWWindow);
 	glfwTerminate();
-}
-
-void VulkanRenderer::GetEnabledFeatures() const
-{
-	// Vulkan 1.3 device support is required for this example
-	if (mVulkanDevice->mVkPhysicalDeviceProperties.apiVersion < VK_API_VERSION_1_3)
-	{
-		throw std::runtime_error(std::format("Selected GPU does not support support Vulkan 1.3: {}", VulkanTools::GetErrorString(VK_ERROR_INCOMPATIBLE_DRIVER)));
-	}
 }
 
 std::uint32_t VulkanRenderer::GetMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties) const
@@ -1129,11 +1109,6 @@ std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const
 		mFramebufferHeight);
 }
 
-void VulkanRenderer::destroyCommandBuffers()
-{
-	vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
-}
-
 std::string VulkanRenderer::getShadersPath() const
 {
 	return GetShaderBasePath() + shaderDir + "/";
@@ -1211,7 +1186,7 @@ void VulkanRenderer::InitializeVulkan()
 	validFormat = VulkanTools::GetSupportedDepthFormat(mVulkanDevice->mVkPhysicalDevice, &mVkDepthFormat);
 	assert(validFormat);
 
-	mVulkanSwapChain.setContext(mVkInstance, mVulkanDevice->mVkPhysicalDevice, mVulkanDevice->mLogicalVkDevice);
+	mVulkanSwapChain.SetContext(mVkInstance, mVulkanDevice);
 }
 
 void VulkanRenderer::CreateCommandPool()

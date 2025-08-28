@@ -14,7 +14,7 @@ public:
 
 	void InitializeSurface();
 
-	void setContext(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device);
+	void SetContext(VkInstance aVkInstance, VulkanDevice* aVulkanDevice);
 
 	/**
 	* Create the swapchain and get its images with given width and height
@@ -24,6 +24,7 @@ public:
 	* @param vsync (Optional, default = false) Can be used to force vsync-ed rendering (by using VK_PRESENT_MODE_FIFO_KHR as presentation mode)
 	*/
 	void CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync = false);
+
 	/**
 	* Acquires the next image in the swap chain
 	*
@@ -36,8 +37,7 @@ public:
 	*/
 	VkResult acquireNextImage(VkSemaphore presentCompleteSemaphore, std::uint32_t& imageIndex) const;
 	
-	/* Free all Vulkan resources acquired by the swapchain */
-	void cleanup();
+	void CleanUp();
 
 	VkFormat mColorVkFormat;
 	VkColorSpaceKHR mVkColorSpaceKHR;
@@ -50,6 +50,5 @@ public:
 
 private:
 	VkInstance mActiveVkInstance;
-	VkDevice mActiveVulkanDevice;
-	VkPhysicalDevice mVkPhysicalDevice;
+	VulkanDevice* mActiveVulkanDevice;
 };

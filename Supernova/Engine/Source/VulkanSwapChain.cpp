@@ -7,13 +7,12 @@
 #include <cassert>
 
 VulkanSwapChain::VulkanSwapChain()
-	: mActiveVkInstance{VK_NULL_HANDLE}
-	, mActiveVulkanDevice{VK_NULL_HANDLE}
+	: mActiveVulkanDevice{nullptr}
+	, mActiveVkInstance{VK_NULL_HANDLE}
 	, mVkSurfaceKHR{VK_NULL_HANDLE}
 	, mColorVkFormat{VK_FORMAT_UNDEFINED}
 	, mVkColorSpaceKHR{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}
 	, mVkSwapchainKHR{VK_NULL_HANDLE}
-	, mVkPhysicalDevice {VK_NULL_HANDLE}
 	, mQueueNodeIndex{UINT32_MAX}
 	, mImageCount{0}
 {
@@ -22,11 +21,11 @@ VulkanSwapChain::VulkanSwapChain()
 void VulkanSwapChain::InitializeSurface()
 {
 	std::uint32_t queueCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(mVkPhysicalDevice, &queueCount, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(mActiveVulkanDevice->mVkPhysicalDevice, &queueCount, nullptr);
 	assert(queueCount >= 1);
 
 	std::vector<VkQueueFamilyProperties> queueProps(queueCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(mVkPhysicalDevice, &queueCount, queueProps.data());
+	vkGetPhysicalDeviceQueueFamilyProperties(mActiveVulkanDevice->mVkPhysicalDevice, &queueCount, queueProps.data());
 
 	// Iterate over each queue to learn whether it supports presenting:
 	// Find a queue with present support
@@ -34,7 +33,7 @@ void VulkanSwapChain::InitializeSurface()
 	std::vector<VkBool32> supportsPresent(queueCount);
 	for (std::uint32_t i = 0; i < queueCount; i++)
 	{
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(mVkPhysicalDevice, i, mVkSurfaceKHR, &supportsPresent[i]));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(mActiveVulkanDevice->mVkPhysicalDevice, i, mVkSurfaceKHR, &supportsPresent[i]));
 	}
 
 	// Search for a graphics and a present queue in the array of queue
@@ -87,11 +86,11 @@ void VulkanSwapChain::InitializeSurface()
 
 	// Get list of supported surface formats
 	std::uint32_t formatCount;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mVkPhysicalDevice, mVkSurfaceKHR, &formatCount, NULL));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &formatCount, nullptr));
 	assert(formatCount > 0);
 
 	std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mVkPhysicalDevice, mVkSurfaceKHR, &formatCount, surfaceFormats.data()));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &formatCount, surfaceFormats.data()));
 
 	// We want to get a format that best suits our needs, so we try to get one from a set of preferred formats
 	// Initialize the format to the first one returned by the implementation in case we can't find one of the preffered formats
@@ -115,16 +114,14 @@ void VulkanSwapChain::InitializeSurface()
 	mVkColorSpaceKHR = selectedFormat.colorSpace;
 }
 
-void VulkanSwapChain::setContext(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
+void VulkanSwapChain::SetContext(VkInstance aVkInstance, VulkanDevice* aVulkanDevice)
 {
-	this->mActiveVkInstance = instance;
-	this->mVkPhysicalDevice = physicalDevice;
-	this->mActiveVulkanDevice = device;
+	mActiveVkInstance = aVkInstance;
+	mActiveVulkanDevice = aVulkanDevice;
 }
 
 void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync)
 {
-	assert(mVkPhysicalDevice);
 	assert(mActiveVulkanDevice);
 	assert(mActiveVkInstance);
 
@@ -133,7 +130,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 
 	// Get physical device surface properties and formats
 	VkSurfaceCapabilitiesKHR surfCaps;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mVkPhysicalDevice, mVkSurfaceKHR, &surfCaps));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &surfCaps));
 
 	VkExtent2D swapchainExtent = {};
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
@@ -154,11 +151,11 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 
 	// Select a present mode for the swapchain
 	std::uint32_t presentModeCount;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, NULL));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, NULL));
 	assert(presentModeCount > 0);
 
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, presentModes.data()));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, presentModes.data()));
 
 	// The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
 	// This mode waits for the vertical blank ("v-sync")
@@ -251,22 +248,22 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 		swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
 
-	VK_CHECK_RESULT(vkCreateSwapchainKHR(mActiveVulkanDevice, &swapchainCI, nullptr, &mVkSwapchainKHR));
+	VK_CHECK_RESULT(vkCreateSwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, &swapchainCI, nullptr, &mVkSwapchainKHR));
 
 	// If an existing swap chain is re-created, destroy the old swap chain and the ressources owned by the application (image views, images are owned by the swap chain)
 	if (oldSwapchain != VK_NULL_HANDLE)
 	{
 		for (size_t i = 0; i < mVkImages.size(); i++)
-		{
-			vkDestroyImageView(mActiveVulkanDevice, mVkImageViews[i], nullptr);
-		}
-		vkDestroySwapchainKHR(mActiveVulkanDevice, oldSwapchain, nullptr);
+			vkDestroyImageView(mActiveVulkanDevice->mLogicalVkDevice, mVkImageViews[i], nullptr);
+		
+		vkDestroySwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, oldSwapchain, nullptr);
 	}
-	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(mActiveVulkanDevice, mVkSwapchainKHR, &mImageCount, nullptr));
+
+	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, &mImageCount, nullptr));
 
 	// Get the swap chain images
 	mVkImages.resize(mImageCount);
-	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(mActiveVulkanDevice, mVkSwapchainKHR, &mImageCount, mVkImages.data()));
+	VK_CHECK_RESULT(vkGetSwapchainImagesKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, &mImageCount, mVkImages.data()));
 
 	// Get the swap chain buffers containing the image and imageview
 	mVkImageViews.resize(mImageCount);
@@ -290,7 +287,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 		colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		colorAttachmentView.flags = 0;
 		colorAttachmentView.image = mVkImages[i];
-		VK_CHECK_RESULT(vkCreateImageView(mActiveVulkanDevice, &colorAttachmentView, nullptr, &mVkImageViews[i]));
+		VK_CHECK_RESULT(vkCreateImageView(mActiveVulkanDevice->mLogicalVkDevice, &colorAttachmentView, nullptr, &mVkImageViews[i]));
 	}
 }
 
@@ -298,17 +295,17 @@ VkResult VulkanSwapChain::acquireNextImage(VkSemaphore presentCompleteSemaphore,
 {
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
-	return vkAcquireNextImageKHR(mActiveVulkanDevice, mVkSwapchainKHR, UINT64_MAX, presentCompleteSemaphore, (VkFence)nullptr, &imageIndex);
+	return vkAcquireNextImageKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, UINT64_MAX, presentCompleteSemaphore, static_cast<VkFence>(nullptr), &imageIndex);
 }
 
-void VulkanSwapChain::cleanup()
+void VulkanSwapChain::CleanUp()
 {
 	if (mVkSwapchainKHR != VK_NULL_HANDLE)
 	{
 		for (size_t i = 0; i < mVkImages.size(); i++)
-			vkDestroyImageView(mActiveVulkanDevice, mVkImageViews[i], nullptr);
+			vkDestroyImageView(mActiveVulkanDevice->mLogicalVkDevice, mVkImageViews[i], nullptr);
 
-		vkDestroySwapchainKHR(mActiveVulkanDevice, mVkSwapchainKHR, nullptr);
+		vkDestroySwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, nullptr);
 	}
 
 	if (mVkSurfaceKHR != VK_NULL_HANDLE)

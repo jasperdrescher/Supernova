@@ -48,7 +48,6 @@ private:
 		glm::vec2 mPosition;
 	};
 
-	void GetEnabledFeatures() const;
 	void PrepareVulkanResources();
 	void PrepareFrame();
 	void SetupDepthStencil();
@@ -83,7 +82,6 @@ private:
 	void InitializeSwapchain();
 	void CreateCommandPool();
 	void SetupSwapchain();
-	void destroyCommandBuffers();
 
 	static void KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aAction, int aMode);
 	static void FramebufferResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
