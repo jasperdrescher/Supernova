@@ -99,7 +99,7 @@ private:
 	float mFrameTime = 1.0f;
 
 	/** @brief Encapsulated physical and logical vulkan device */
-	vks::VulkanDevice* vulkanDevice;
+	VulkanDevice* vulkanDevice;
 
 	// Frame counter to display fps
 	std::uint32_t mFrameCounter = 0;

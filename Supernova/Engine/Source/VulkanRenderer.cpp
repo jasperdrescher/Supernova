@@ -104,7 +104,7 @@ VulkanRenderer::~VulkanRenderer()
 	delete vulkanDevice;
 
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
-		vks::debug::DestroyDebugUtilsMessenger(mVkInstance);
+		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
 	vkDestroyInstance(mVkInstance, nullptr);
 
@@ -179,7 +179,7 @@ void VulkanRenderer::GetEnabledFeatures() const
 	// Vulkan 1.3 device support is required for this example
 	if (mVkPhysicalDeviceProperties.apiVersion < VK_API_VERSION_1_3)
 	{
-		vks::tools::exitFatal("Selected GPU does not support support Vulkan 1.3", VK_ERROR_INCOMPATIBLE_DRIVER);
+		VulkanTools::ExitFatal("Selected GPU does not support support Vulkan 1.3", VK_ERROR_INCOMPATIBLE_DRIVER);
 	}
 }
 
@@ -240,7 +240,7 @@ void VulkanRenderer::CreateCommandBuffers()
 	vkCommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	VK_CHECK_RESULT(vkCreateCommandPool(mVkLogicalDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
 	// Allocate one command buffer per max. concurrent frame from above pool
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::CommandBufferAllocateInfo(mVkCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
+	VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVkLogicalDevice, &cmdBufAllocateInfo, mVkCommandBuffers.data()));
 }
 
@@ -327,7 +327,7 @@ void VulkanRenderer::CreateVertexBuffer()
 	vkCommandBufferAllocateInfo.commandBufferCount = 1;
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVkLogicalDevice, &vkCommandBufferAllocateInfo, &vkCopyCommandBuffer));
 
-	VkCommandBufferBeginInfo vkCommandBufferBeginInfo = vks::initializers::CommandBufferBeginInfo();
+	VkCommandBufferBeginInfo vkCommandBufferBeginInfo = VulkanInitializers::CommandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(vkCopyCommandBuffer, &vkCommandBufferBeginInfo));
 	// Copy vertex and index buffers to the device
 	VkBufferCopy vkRegionBufferCopy{};
@@ -351,7 +351,7 @@ void VulkanRenderer::CreateVertexBuffer()
 	// Submit copies to the queue
 	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &vkSubmitInfo, vkFence));
 	// Wait for the fence to signal that command buffer has finished executing
-	VK_CHECK_RESULT(vkWaitForFences(mVkLogicalDevice, 1, &vkFence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+	VK_CHECK_RESULT(vkWaitForFences(mVkLogicalDevice, 1, &vkFence, VK_TRUE, gDefaultFenceTimeoutNS));
 	vkDestroyFence(mVkLogicalDevice, vkFence, nullptr);
 	vkFreeCommandBuffers(mVkLogicalDevice, mVkCommandPool, 1, &vkCopyCommandBuffer);
 
@@ -751,8 +751,8 @@ void VulkanRenderer::PrepareFrame()
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
 	// With dynamic rendering we need to explicitly add layout transitions by using barriers, this set of barriers prepares the color and depth images for output
-	vks::tools::insertImageMemoryBarrier(commandBuffer, mVulkanSwapChain.mVkImages[imageIndex], 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
-	vks::tools::insertImageMemoryBarrier(commandBuffer, mVulkanDepthStencil.mVkImage, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1});
+	VulkanTools::InsertImageMemoryBarrier(commandBuffer, mVulkanSwapChain.mVkImages[imageIndex], 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+	VulkanTools::InsertImageMemoryBarrier(commandBuffer, mVulkanDepthStencil.mVkImage, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1});
 
 	// New structures are used to define the attachments used in dynamic rendering
 	// Color attachment
@@ -801,7 +801,7 @@ void VulkanRenderer::PrepareFrame()
 	vkCmdEndRendering(commandBuffer);
 
 	// This barrier prepares the color image for presentation, we don't need to care for the depth image
-	vks::tools::insertImageMemoryBarrier(commandBuffer, mVulkanSwapChain.mVkImages[imageIndex], VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE, VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+	VulkanTools::InsertImageMemoryBarrier(commandBuffer, mVulkanSwapChain.mVkImages[imageIndex], VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE, VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
 	// Submit the command buffer to the graphics queue
@@ -979,7 +979,7 @@ VkResult VulkanRenderer::createInstance()
 	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{};
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
-		vks::debug::SetupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
+		VulkanDebug::SetupDebugingMessengerCreateInfo(debugUtilsMessengerCI);
 		debugUtilsMessengerCI.pNext = instanceCreateInfo.pNext;
 		instanceCreateInfo.pNext = &debugUtilsMessengerCI;
 	}
@@ -1054,7 +1054,7 @@ VkResult VulkanRenderer::createInstance()
 	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
 	if (std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
 	{
-		vks::debugutils::SetupDebugUtils(mVkInstance);
+		VulkanDebug::SetupDebugUtils(mVkInstance);
 	}
 
 	return result;
@@ -1081,7 +1081,7 @@ void VulkanRenderer::destroyCommandBuffers()
 
 std::string VulkanRenderer::getShadersPath() const
 {
-	return getShaderBasePath() + shaderDir + "/";
+	return GetShaderBasePath() + shaderDir + "/";
 }
 
 void VulkanRenderer::CreatePipelineCache()
@@ -1101,7 +1101,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::loadShader(std::string fileName,
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStage.stage = stage;
-	shaderStage.module = vks::tools::loadShader(fileName.c_str(), mVkLogicalDevice);
+	shaderStage.module = VulkanTools::LoadShader(fileName.c_str(), mVkLogicalDevice);
 	shaderStage.pName = "main";
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	mVkShaderModules.push_back(shaderStage.module);
@@ -1135,14 +1135,14 @@ bool VulkanRenderer::initVulkan()
 	VkResult result = createInstance();
 	if (result != VK_SUCCESS)
 	{
-		vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(result), result);
+		VulkanTools::ExitFatal("Could not create Vulkan instance : \n" + VulkanTools::GetErrorString(result), result);
 		return false;
 	}
 
 	// If requested, we enable the default validation layers for debugging
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 	{
-		vks::debug::SetupDebugUtilsMessenger(mVkInstance);
+		VulkanDebug::SetupDebugUtilsMessenger(mVkInstance);
 	}
 
 	// Physical device
@@ -1151,7 +1151,7 @@ bool VulkanRenderer::initVulkan()
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, nullptr));
 	if (gpuCount == 0)
 	{
-		vks::tools::exitFatal("No device with Vulkan support found", -1);
+		VulkanTools::ExitFatal("No device with Vulkan support found", -1);
 		return false;
 	}
 	// Enumerate devices
@@ -1159,7 +1159,7 @@ bool VulkanRenderer::initVulkan()
 	result = vkEnumeratePhysicalDevices(mVkInstance, &gpuCount, physicalDevices.data());
 	if (result != VK_SUCCESS)
 	{
-		vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(result), result);
+		VulkanTools::ExitFatal("Could not enumerate physical devices : \n" + VulkanTools::GetErrorString(result), result);
 		return false;
 	}
 
@@ -1182,12 +1182,12 @@ bool VulkanRenderer::initVulkan()
 	// Vulkan device creation
 	// This is handled by a separate class that gets a logical device representation
 	// and encapsulates functions related to a device
-	vulkanDevice = new vks::VulkanDevice(mVkPhysicalDevice);
+	vulkanDevice = new VulkanDevice(mVkPhysicalDevice);
 
 	result = vulkanDevice->createLogicalDevice(mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
 	if (result != VK_SUCCESS)
 	{
-		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(result), result);
+		VulkanTools::ExitFatal("Could not create Vulkan device: \n" + VulkanTools::GetErrorString(result), result);
 		return false;
 	}
 	mVkLogicalDevice = vulkanDevice->logicalDevice;
@@ -1199,7 +1199,7 @@ bool VulkanRenderer::initVulkan()
 	VkBool32 validFormat{false};
 
 	// Applications that make use of stencil will require a depth + stencil format
-	validFormat = vks::tools::getSupportedDepthFormat(mVkPhysicalDevice, &mVkDepthFormat);
+	validFormat = VulkanTools::GetSupportedDepthFormat(mVkPhysicalDevice, &mVkDepthFormat);
 	assert(validFormat);
 
 	mVulkanSwapChain.setContext(mVkInstance, mVkPhysicalDevice, mVkLogicalDevice);
