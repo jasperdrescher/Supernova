@@ -13,11 +13,11 @@ void Camera::updateViewMatrix()
 	glm::mat4 rotM = glm::mat4(1.0f);
 	glm::mat4 transM;
 
-	rotM = glm::rotate(rotM, glm::radians(rotation.x * (flipY ? -1.0f : 1.0f)), glm::vec3(1.0f, 0.0f, 0.0f));
-	rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-	rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+	rotM = glm::rotate(rotM, glm::radians(mRotation.x * (flipY ? -1.0f : 1.0f)), glm::vec3(1.0f, 0.0f, 0.0f));
+	rotM = glm::rotate(rotM, glm::radians(mRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+	rotM = glm::rotate(rotM, glm::radians(mRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
-	glm::vec3 translation = position;
+	glm::vec3 translation = mPosition;
 	if (flipY)
 	{
 		translation.y *= -1.0f;
@@ -33,7 +33,7 @@ void Camera::updateViewMatrix()
 		matrices.view = transM * rotM;
 	}
 
-	viewPos = glm::vec4(position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+	viewPos = glm::vec4(mPosition, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
 	if (matrices.view != currentMatrix)
 	{
@@ -48,21 +48,21 @@ bool Camera::moving() const
 
 float Camera::getNearClip() const
 {
-	return znear;
+	return mZNear;
 }
 
 float Camera::getFarClip() const
 {
-	return zfar;
+	return mZFar;
 }
 
-void Camera::setPerspective(float fov, float aspect, float znear, float zfar)
+void Camera::setPerspective(float aFoV, float aAspectRatio, float aZNear, float aZFar)
 {
 	glm::mat4 currentMatrix = matrices.perspective;
-	this->fov = fov;
-	this->znear = znear;
-	this->zfar = zfar;
-	matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+	mFoV = aFoV;
+	mZNear = aZNear;
+	mZFar = aZFar;
+	matrices.perspective = glm::perspective(glm::radians(aFoV), aAspectRatio, aZNear, aZFar);
 	if (flipY)
 	{
 		matrices.perspective[1][1] *= -1.0f;
@@ -76,7 +76,7 @@ void Camera::setPerspective(float fov, float aspect, float znear, float zfar)
 void Camera::updateAspectRatio(float aspect)
 {
 	glm::mat4 currentMatrix = matrices.perspective;
-	matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+	matrices.perspective = glm::perspective(glm::radians(mFoV), aspect, mZNear, mZFar);
 	if (flipY)
 	{
 		matrices.perspective[1][1] *= -1.0f;
@@ -87,44 +87,44 @@ void Camera::updateAspectRatio(float aspect)
 	}
 }
 
-void Camera::setPosition(glm::vec3 position)
+void Camera::setPosition(glm::vec3 aPosition)
 {
-	this->position = position;
+	mPosition = aPosition;
 	updateViewMatrix();
 }
 
-void Camera::setRotation(glm::vec3 rotation)
+void Camera::setRotation(glm::vec3 aRotation)
 {
-	this->rotation = rotation;
+	mRotation = aRotation;
 	updateViewMatrix();
 }
 
 void Camera::rotate(glm::vec3 delta)
 {
-	this->rotation += delta;
+	mRotation += delta;
 	updateViewMatrix();
 }
 
 void Camera::setTranslation(glm::vec3 translation)
 {
-	this->position = translation;
+	mPosition = translation;
 	updateViewMatrix();
 };
 
 void Camera::translate(glm::vec3 delta)
 {
-	this->position += delta;
+	mPosition += delta;
 	updateViewMatrix();
 }
 
-void Camera::setRotationSpeed(float rotationSpeed)
+void Camera::setRotationSpeed(float aRotationSpeed)
 {
-	this->rotationSpeed = rotationSpeed;
+	mRotationSpeed = aRotationSpeed;
 }
 
-void Camera::setMovementSpeed(float movementSpeed)
+void Camera::setMovementSpeed(float aMovementSpeed)
 {
-	this->movementSpeed = movementSpeed;
+	mMovementSpeed = aMovementSpeed;
 }
 
 void Camera::update(float deltaTime)
@@ -135,21 +135,21 @@ void Camera::update(float deltaTime)
 		if (moving())
 		{
 			glm::vec3 camFront;
-			camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
-			camFront.y = sin(glm::radians(rotation.x));
-			camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
+			camFront.x = -cos(glm::radians(mRotation.x)) * sin(glm::radians(mRotation.y));
+			camFront.y = sin(glm::radians(mRotation.x));
+			camFront.z = cos(glm::radians(mRotation.x)) * cos(glm::radians(mRotation.y));
 			camFront = glm::normalize(camFront);
 
-			float moveSpeed = deltaTime * movementSpeed;
+			float moveSpeed = deltaTime * mMovementSpeed;
 
 			if (keys.up)
-				position += camFront * moveSpeed;
+				mPosition += camFront * moveSpeed;
 			if (keys.down)
-				position -= camFront * moveSpeed;
+				mPosition -= camFront * moveSpeed;
 			if (keys.left)
-				position -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+				mPosition -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
 			if (keys.right)
-				position += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+				mPosition += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
 		}
 	}
 	updateViewMatrix();
@@ -170,25 +170,25 @@ bool Camera::updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime)
 		const float range = 1.0f - deadZone;
 
 		glm::vec3 camFront;
-		camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
-		camFront.y = sin(glm::radians(rotation.x));
-		camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
+		camFront.x = -cos(glm::radians(mRotation.x)) * sin(glm::radians(mRotation.y));
+		camFront.y = sin(glm::radians(mRotation.x));
+		camFront.z = cos(glm::radians(mRotation.x)) * cos(glm::radians(mRotation.y));
 		camFront = glm::normalize(camFront);
 
-		float moveSpeed = deltaTime * movementSpeed * 2.0f;
-		float rotSpeed = deltaTime * rotationSpeed * 50.0f;
+		float moveSpeed = deltaTime * mMovementSpeed * 2.0f;
+		float rotSpeed = deltaTime * mRotationSpeed * 50.0f;
 
 		// Move
 		if (fabsf(axisLeft.y) > deadZone)
 		{
 			float pos = (fabsf(axisLeft.y) - deadZone) / range;
-			position -= camFront * pos * ((axisLeft.y < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
+			mPosition -= camFront * pos * ((axisLeft.y < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
 			retVal = true;
 		}
 		if (fabsf(axisLeft.x) > deadZone)
 		{
 			float pos = (fabsf(axisLeft.x) - deadZone) / range;
-			position += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * pos * ((axisLeft.x < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
+			mPosition += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * pos * ((axisLeft.x < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
 			retVal = true;
 		}
 
@@ -196,13 +196,13 @@ bool Camera::updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime)
 		if (fabsf(axisRight.x) > deadZone)
 		{
 			float pos = (fabsf(axisRight.x) - deadZone) / range;
-			rotation.y += pos * ((axisRight.x < 0.0f) ? -1.0f : 1.0f) * rotSpeed;
+			mRotation.y += pos * ((axisRight.x < 0.0f) ? -1.0f : 1.0f) * rotSpeed;
 			retVal = true;
 		}
 		if (fabsf(axisRight.y) > deadZone)
 		{
 			float pos = (fabsf(axisRight.y) - deadZone) / range;
-			rotation.x -= pos * ((axisRight.y < 0.0f) ? -1.0f : 1.0f) * rotSpeed;
+			mRotation.x -= pos * ((axisRight.y < 0.0f) ? -1.0f : 1.0f) * rotSpeed;
 			retVal = true;
 		}
 	}

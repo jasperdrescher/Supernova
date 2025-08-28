@@ -8,8 +8,8 @@
 class Camera
 {
 private:
-	float fov;
-	float znear, zfar;
+	float mFoV;
+	float mZNear, mZFar;
 
 	void updateViewMatrix();
 
@@ -17,12 +17,12 @@ public:
 	enum CameraType { lookat, firstperson };
 	CameraType type = CameraType::lookat;
 
-	glm::vec3 rotation;
-	glm::vec3 position;
+	glm::vec3 mRotation;
+	glm::vec3 mPosition;
 	glm::vec4 viewPos;
 
-	float rotationSpeed = 1.0f;
-	float movementSpeed = 1.0f;
+	float mRotationSpeed = 1.0f;
+	float mMovementSpeed = 1.0f;
 
 	bool updated = true;
 	bool flipY = false;

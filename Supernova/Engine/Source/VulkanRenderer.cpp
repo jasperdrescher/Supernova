@@ -501,7 +501,7 @@ void VulkanRenderer::SetupDepthStencil()
 
 VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::string& filename) const
 {
-	size_t shaderSize;
+	size_t shaderSize{0};
 	char* shaderCode{nullptr};
 
 	std::ifstream is(filename, std::ios::binary | std::ios::in | std::ios::ate);
@@ -1305,8 +1305,6 @@ void VulkanRenderer::handleMouseMove(std::int32_t x, std::int32_t y)
 
 	bool handled = false;
 
-	mouseMoved((float)x, (float)y, handled);
-
 	if (handled)
 	{
 		mMouseState.mPosition = glm::vec2((float)x, (float)y);
@@ -1315,7 +1313,7 @@ void VulkanRenderer::handleMouseMove(std::int32_t x, std::int32_t y)
 
 	if (mMouseState.mButtons.mIsLeftDown)
 	{
-		mCamera.rotate(glm::vec3(dy * mCamera.rotationSpeed, -dx * mCamera.rotationSpeed, 0.0f));
+		mCamera.rotate(glm::vec3(dy * mCamera.mRotationSpeed, -dx * mCamera.mRotationSpeed, 0.0f));
 	}
 	if (mMouseState.mButtons.mIsRightDown)
 	{

@@ -49,7 +49,6 @@ private:
 	};
 
 	void GetEnabledFeatures() const;
-	void mouseMoved(double x, double y, bool& handled) {}
 	void PrepareVulkanResources();
 	void PrepareFrame();
 	void SetupDepthStencil();
