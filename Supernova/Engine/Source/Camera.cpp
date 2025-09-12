@@ -64,21 +64,6 @@ void Camera::SetType(CameraType aType)
 	mType = aType;
 }
 
-bool Camera::IsMoving() const
-{
-	return mKeys.left || mKeys.right || mKeys.up || mKeys.down;
-}
-
-float Camera::GetNearClip() const
-{
-	return mZNear;
-}
-
-float Camera::GetFarClip() const
-{
-	return mZFar;
-}
-
 void Camera::SetPerspective(float aFoV, float aAspectRatio, float aZNear, float aZFar)
 {
 	const glm::mat4 currentMatrix = mMatrices.mPerspective;
@@ -167,16 +152,31 @@ void Camera::Update(float aDeltaTime)
 
 			const float moveSpeed = aDeltaTime * mMovementSpeed;
 
-			if (mKeys.up)
+			if (mKeys.mIsUpDown)
 				mPosition += camFront * moveSpeed;
-			if (mKeys.down)
+			if (mKeys.mIsDownDown)
 				mPosition -= camFront * moveSpeed;
-			if (mKeys.left)
+			if (mKeys.mIsLeftDown)
 				mPosition -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
-			if (mKeys.right)
+			if (mKeys.mIsRightDown)
 				mPosition += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
 		}
 	}
 
 	UpdateViewMatrix();
 };
+
+bool Camera::IsMoving() const
+{
+	return mKeys.mIsLeftDown || mKeys.mIsRightDown || mKeys.mIsUpDown || mKeys.mIsDownDown;
+}
+
+float Camera::GetNearClip() const
+{
+	return mZNear;
+}
+
+float Camera::GetFarClip() const
+{
+	return mZFar;
+}

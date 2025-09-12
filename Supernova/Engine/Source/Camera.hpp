@@ -22,39 +22,29 @@ public:
 
 	struct Keys
 	{
-		bool left = false;
-		bool right = false;
-		bool up = false;
-		bool down = false;
+		Keys() : mIsLeftDown{false}, mIsRightDown{false}, mIsUpDown{false}, mIsDownDown{false} {}
+
+		bool mIsLeftDown;
+		bool mIsRightDown;
+		bool mIsUpDown;
+		bool mIsDownDown;
 	} mKeys;
 
 	void SetType(CameraType aType);
+	void SetPerspective(float fov, float aspect, float znear, float zfar);
+	void UpdateAspectRatio(float aspect);
+	void SetPosition(glm::vec3 position);
+	void SetRotation(glm::vec3 rotation);
+	void Rotate(glm::vec3 delta);
+	void SetTranslation(glm::vec3 translation);
+	void Translate(glm::vec3 delta);
+	void SetRotationSpeed(float rotationSpeed);
+	void SetMovementSpeed(float movementSpeed);
+	void Update(float aDeltaTime);
 
 	bool IsMoving() const;
-
 	float GetNearClip() const;
-
 	float GetFarClip() const;
-
-	void SetPerspective(float fov, float aspect, float znear, float zfar);
-
-	void UpdateAspectRatio(float aspect);
-
-	void SetPosition(glm::vec3 position);
-
-	void SetRotation(glm::vec3 rotation);
-
-	void Rotate(glm::vec3 delta);
-
-	void SetTranslation(glm::vec3 translation);
-
-	void Translate(glm::vec3 delta);
-
-	void SetRotationSpeed(float rotationSpeed);
-
-	void SetMovementSpeed(float movementSpeed);
-
-	void Update(float aDeltaTime);
 
 private:
 	void UpdateViewMatrix();
