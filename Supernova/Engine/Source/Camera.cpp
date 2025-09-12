@@ -26,7 +26,7 @@ Camera::Camera()
 
 void Camera::UpdateViewMatrix()
 {
-	glm::mat4 currentMatrix = mMatrices.mView;
+	const glm::mat4 currentMatrix = mMatrices.mView;
 
 	glm::mat4 rotationMatrix = glm::mat4(1.0f);
 	glm::mat4 translationMatrix;
