@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Engine.cpp" />
+    <ClCompile Include="Source\InputManager.cpp" />
     <ClCompile Include="Source\VulkanRenderer.cpp" />
     <ClCompile Include="Source\Supernova.cpp" />
     <ClCompile Include="Source\VulkanDebug.cpp" />
@@ -39,6 +40,8 @@
   <ItemGroup>
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Engine.hpp" />
+    <ClInclude Include="Source\InputKeys.hpp" />
+    <ClInclude Include="Source\InputManager.hpp" />
     <ClInclude Include="Source\VulkanRenderer.hpp" />
     <ClInclude Include="Source\VulkanDebug.hpp" />
     <ClInclude Include="Source\VulkanDevice.hpp" />

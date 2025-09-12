@@ -1,5 +1,6 @@
 #include "VulkanRenderer.hpp"
 
+#include "InputManager.hpp"
 #include "VulkanDebug.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
@@ -167,6 +168,11 @@ void VulkanRenderer::UpdateRenderer(float aDeltaTime)
 	{
 		NextFrame();
 	}
+
+	mCamera.mKeys.mIsRightDown = InputManager::GetInstance().GetIsKeyDown(Key::Right);
+	mCamera.mKeys.mIsUpDown = InputManager::GetInstance().GetIsKeyDown(Key::Up);
+	mCamera.mKeys.mIsDownDown = InputManager::GetInstance().GetIsKeyDown(Key::Down);
+	mCamera.mKeys.mIsLeftDown = InputManager::GetInstance().GetIsKeyDown(Key::Left);
 
 	mCamera.Update(mFrameTime);
 
@@ -896,13 +902,15 @@ void VulkanRenderer::SetWindowSize(int aWidth, int aHeight)
 	mVulkanApplicationProperties.mWindowHeight = aHeight;
 }
 
-void VulkanRenderer::KeyCallback(GLFWwindow* aWindow, int aKey, int /*aScancode*/, int aAction, int /*aMode*/)
+void VulkanRenderer::KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aAction, int aMode)
 {
 	VulkanRenderer* vulkanRenderer = reinterpret_cast<VulkanRenderer*>(glfwGetWindowUserPointer(aWindow));
 	if (aKey == GLFW_KEY_ESCAPE && aAction != GLFW_RELEASE)
 	{
 		glfwSetWindowShouldClose(vulkanRenderer->mGLFWWindow, GLFW_TRUE);
 	}
+
+	InputManager::GetInstance().OnKeyAction(aKey, aScancode, aAction != GLFW_RELEASE, aMode);
 }
 
 void VulkanRenderer::FramebufferResizeCallback(GLFWwindow* aWindow, int /*aWidth*/, int /*aHeight*/)
