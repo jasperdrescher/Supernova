@@ -91,10 +91,10 @@ VulkanRenderer::VulkanRenderer()
 	mVkPhysicalDevice13Features.synchronization2 = VK_TRUE;
 
 	// Setup a default look-at camera
-	mCamera.type = Camera::CameraType::lookat;
-	mCamera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
-	mCamera.setRotation(glm::vec3(0.0f));
-	mCamera.setPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 1.0f, 256.0f);
+	mCamera.mType = Camera::CameraType::LookAt;
+	mCamera.SetPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+	mCamera.SetRotation(glm::vec3(0.0f));
+	mCamera.SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 1.0f, 256.0f);
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -168,7 +168,7 @@ void VulkanRenderer::UpdateRenderer(float aDeltaTime)
 		NextFrame();
 	}
 
-	mCamera.update(mFrameTime);
+	mCamera.Update(mFrameTime);
 
 	if (mVulkanDevice->mLogicalVkDevice != VK_NULL_HANDLE)
 	{
@@ -1217,7 +1217,7 @@ void VulkanRenderer::OnResizeWindow()
 
 	if ((mFramebufferWidth > 0.0f) && (mFramebufferHeight > 0.0f))
 	{
-		mCamera.updateAspectRatio(static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight));
+		mCamera.UpdateAspectRatio(static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight));
 	}
 
 	mIsPrepared = true;

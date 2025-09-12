@@ -8,12 +8,12 @@
 class Camera
 {
 public:
-	enum CameraType { lookat, firstperson };
-	CameraType type = CameraType::lookat;
+	enum CameraType { LookAt, FirstPerson };
+	CameraType mType = CameraType::LookAt;
 
 	glm::vec3 mRotation;
 	glm::vec3 mPosition;
-	glm::vec4 viewPos;
+	glm::vec4 mViewPosition;
 
 	float mRotationSpeed = 1.0f;
 	float mMovementSpeed = 1.0f;
@@ -37,29 +37,29 @@ public:
 
 	bool IsMoving() const;
 
-	float getNearClip() const;
+	float GetNearClip() const;
 
-	float getFarClip() const;
+	float GetFarClip() const;
 
-	void setPerspective(float fov, float aspect, float znear, float zfar);
+	void SetPerspective(float fov, float aspect, float znear, float zfar);
 
-	void updateAspectRatio(float aspect);
+	void UpdateAspectRatio(float aspect);
 
-	void setPosition(glm::vec3 position);
+	void SetPosition(glm::vec3 position);
 
-	void setRotation(glm::vec3 rotation);
+	void SetRotation(glm::vec3 rotation);
 
-	void rotate(glm::vec3 delta);
+	void Rotate(glm::vec3 delta);
 
-	void setTranslation(glm::vec3 translation);
+	void SetTranslation(glm::vec3 translation);
 
-	void translate(glm::vec3 delta);
+	void Translate(glm::vec3 delta);
 
-	void setRotationSpeed(float rotationSpeed);
+	void SetRotationSpeed(float rotationSpeed);
 
-	void setMovementSpeed(float movementSpeed);
+	void SetMovementSpeed(float movementSpeed);
 
-	void update(float deltaTime);
+	void Update(float aDeltaTime);
 
 private:
 	void UpdateViewMatrix();
