@@ -91,7 +91,7 @@ VulkanRenderer::VulkanRenderer()
 	mVkPhysicalDevice13Features.synchronization2 = VK_TRUE;
 
 	// Setup a default look-at camera
-	mCamera.mType = Camera::CameraType::LookAt;
+	mCamera.SetType(CameraType::LookAt);
 	mCamera.SetPosition(glm::vec3(0.0f, 0.0f, -2.5f));
 	mCamera.SetRotation(glm::vec3(0.0f));
 	mCamera.SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 1.0f, 256.0f);
@@ -738,8 +738,8 @@ void VulkanRenderer::PrepareFrame()
 
 	// Update the uniform buffer for the next frame
 	VulkanShaderData shaderData{};
-	shaderData.projectionMatrix = mCamera.matrices.perspective;
-	shaderData.viewMatrix = mCamera.matrices.view;
+	shaderData.projectionMatrix = mCamera.mMatrices.mPerspective;
+	shaderData.viewMatrix = mCamera.mMatrices.mView;
 	shaderData.modelMatrix = glm::mat4(1.0f);
 	// Copy the current matrices to the current frame's uniform buffer. As we requested a host coherent memory type for the uniform buffer, the write is instantly visible to the GPU.
 	memcpy(mVulkanUniformBuffers[mCurrentFrameIndex].mMappedData, &shaderData, sizeof(VulkanShaderData));

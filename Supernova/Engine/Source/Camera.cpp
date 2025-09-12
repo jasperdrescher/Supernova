@@ -8,44 +8,65 @@
 
 #include <cmath>
 
+Camera::Camera()
+	: mMatrices{}
+	, mViewPosition{0.0f}
+	, mPosition{0.0f}
+	, mRotation{0.0f}
+	, mType(CameraType::LookAt)
+	, mFoV(0.0f)
+	, mZNear(0.0f)
+	, mZFar(0.0f)
+	, mRotationSpeed(1.0f)
+	, mMovementSpeed(1.0f)
+	, mIsUpdated(false)
+	, mFlipY(false)
+{
+}
+
 void Camera::UpdateViewMatrix()
 {
-	glm::mat4 currentMatrix = matrices.view;
+	glm::mat4 currentMatrix = mMatrices.mView;
 
-	glm::mat4 rotM = glm::mat4(1.0f);
-	glm::mat4 transM;
+	glm::mat4 rotationMatrix = glm::mat4(1.0f);
+	glm::mat4 translationMatrix;
 
-	rotM = glm::rotate(rotM, glm::radians(mRotation.x * (mFlipY ? -1.0f : 1.0f)), glm::vec3(1.0f, 0.0f, 0.0f));
-	rotM = glm::rotate(rotM, glm::radians(mRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-	rotM = glm::rotate(rotM, glm::radians(mRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+	rotationMatrix = glm::rotate(rotationMatrix, glm::radians(mRotation.x * (mFlipY ? -1.0f : 1.0f)), glm::vec3(1.0f, 0.0f, 0.0f));
+	rotationMatrix = glm::rotate(rotationMatrix, glm::radians(mRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+	rotationMatrix = glm::rotate(rotationMatrix, glm::radians(mRotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	glm::vec3 translation = mPosition;
 	if (mFlipY)
 	{
 		translation.y *= -1.0f;
 	}
-	transM = glm::translate(glm::mat4(1.0f), translation);
-
 	if (mType == CameraType::FirstPerson)
 	{
-		matrices.view = rotM * transM;
+		mMatrices.mView = rotationMatrix * translationMatrix;
 	}
 	else
 	{
-		matrices.view = transM * rotM;
+	translationMatrix = glm::translate(glm::mat4(1.0f), translation);
+
+		mMatrices.mView = translationMatrix * rotationMatrix;
 	}
 
 	mViewPosition = glm::vec4(mPosition, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
-	if (matrices.view != currentMatrix)
+	if (mMatrices.mView != currentMatrix)
 	{
 		mIsUpdated = true;
 	}
 }
 
+void Camera::SetType(CameraType aType)
+{
+	mType = aType;
+}
+
 bool Camera::IsMoving() const
 {
-	return keys.left || keys.right || keys.up || keys.down;
+	return mKeys.left || mKeys.right || mKeys.up || mKeys.down;
 }
 
 float Camera::GetNearClip() const
@@ -60,18 +81,18 @@ float Camera::GetFarClip() const
 
 void Camera::SetPerspective(float aFoV, float aAspectRatio, float aZNear, float aZFar)
 {
-	const glm::mat4 currentMatrix = matrices.perspective;
+	const glm::mat4 currentMatrix = mMatrices.mPerspective;
 	mFoV = aFoV;
 	mZNear = aZNear;
 	mZFar = aZFar;
-	matrices.perspective = glm::perspective(glm::radians(aFoV), aAspectRatio, aZNear, aZFar);
+	mMatrices.mPerspective = glm::perspective(glm::radians(aFoV), aAspectRatio, aZNear, aZFar);
 
 	if (mFlipY)
 	{
-		matrices.perspective[1][1] *= -1.0f;
+		mMatrices.mPerspective[1][1] *= -1.0f;
 	}
 
-	if (matrices.view != currentMatrix)
+	if (mMatrices.mView != currentMatrix)
 	{
 		mIsUpdated = true;
 	}
@@ -79,13 +100,13 @@ void Camera::SetPerspective(float aFoV, float aAspectRatio, float aZNear, float 
 
 void Camera::UpdateAspectRatio(float aAspectRatio)
 {
-	const glm::mat4 currentMatrix = matrices.perspective;
-	matrices.perspective = glm::perspective(glm::radians(mFoV), aAspectRatio, mZNear, mZFar);
+	const glm::mat4 currentMatrix = mMatrices.mPerspective;
+	mMatrices.mPerspective = glm::perspective(glm::radians(mFoV), aAspectRatio, mZNear, mZFar);
 	if (mFlipY)
 	{
-		matrices.perspective[1][1] *= -1.0f;
+		mMatrices.mPerspective[1][1] *= -1.0f;
 	}
-	if (matrices.view != currentMatrix)
+	if (mMatrices.mView != currentMatrix)
 	{
 		mIsUpdated = true;
 	}
@@ -146,13 +167,13 @@ void Camera::Update(float aDeltaTime)
 
 			const float moveSpeed = aDeltaTime * mMovementSpeed;
 
-			if (keys.up)
+			if (mKeys.up)
 				mPosition += camFront * moveSpeed;
-			if (keys.down)
+			if (mKeys.down)
 				mPosition -= camFront * moveSpeed;
-			if (keys.left)
+			if (mKeys.left)
 				mPosition -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
-			if (keys.right)
+			if (mKeys.right)
 				mPosition += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
 		}
 	}

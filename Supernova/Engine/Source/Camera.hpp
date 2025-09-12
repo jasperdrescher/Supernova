@@ -5,35 +5,30 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
+enum class CameraType { LookAt, FirstPerson };
+
 class Camera
 {
 public:
-	enum CameraType { LookAt, FirstPerson };
-	CameraType mType = CameraType::LookAt;
+	Camera();
 
-	glm::vec3 mRotation;
-	glm::vec3 mPosition;
-	glm::vec4 mViewPosition;
-
-	float mRotationSpeed = 1.0f;
-	float mMovementSpeed = 1.0f;
-
-	bool mIsUpdated = true;
-	bool mFlipY = false;
-
-	struct
+	struct Matrices
 	{
-		glm::mat4 perspective;
-		glm::mat4 view;
-	} matrices;
+		Matrices() : mPerspective{0.0f}, mView{0.0f} {}
 
-	struct
+		glm::mat4 mPerspective;
+		glm::mat4 mView;
+	} mMatrices;
+
+	struct Keys
 	{
 		bool left = false;
 		bool right = false;
 		bool up = false;
 		bool down = false;
-	} keys;
+	} mKeys;
+
+	void SetType(CameraType aType);
 
 	bool IsMoving() const;
 
@@ -64,7 +59,15 @@ public:
 private:
 	void UpdateViewMatrix();
 
+	glm::vec4 mViewPosition;
+	glm::vec3 mRotation;
+	glm::vec3 mPosition;
+	CameraType mType;
 	float mFoV;
 	float mZNear;
 	float mZFar;
+	float mRotationSpeed;
+	float mMovementSpeed;
+	bool mIsUpdated;
+	bool mFlipY;
 };
