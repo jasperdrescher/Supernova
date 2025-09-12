@@ -144,23 +144,36 @@ void Camera::Update(float aDeltaTime)
 	{
 		if (IsMoving())
 		{
-			glm::vec3 camFront;
-			camFront.x = -std::cos(glm::radians(mRotation.x)) * std::sin(glm::radians(mRotation.y));
-			camFront.y = std::sin(glm::radians(mRotation.x));
-			camFront.z = std::cos(glm::radians(mRotation.x)) * std::cos(glm::radians(mRotation.y));
-			camFront = glm::normalize(camFront);
+			glm::vec3 cameraFront;
+			cameraFront.x = -std::cos(glm::radians(mRotation.x)) * std::sin(glm::radians(mRotation.y));
+			cameraFront.y = std::sin(glm::radians(mRotation.x));
+			cameraFront.z = std::cos(glm::radians(mRotation.x)) * std::cos(glm::radians(mRotation.y));
+			cameraFront = glm::normalize(cameraFront);
 
 			const float moveSpeed = aDeltaTime * mMovementSpeed;
 
 			if (mKeys.mIsUpDown)
-				mPosition += camFront * moveSpeed;
+				mPosition += cameraFront * moveSpeed;
 			if (mKeys.mIsDownDown)
-				mPosition -= camFront * moveSpeed;
+				mPosition -= cameraFront * moveSpeed;
 			if (mKeys.mIsLeftDown)
-				mPosition -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+				mPosition -= glm::normalize(glm::cross(cameraFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
 			if (mKeys.mIsRightDown)
-				mPosition += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+				mPosition += glm::normalize(glm::cross(cameraFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
 		}
+	}
+	else if (mType == CameraType::LookAt)
+	{
+		const float moveSpeed = aDeltaTime * mMovementSpeed;
+
+		if (mKeys.mIsUpDown)
+			mPosition.y += moveSpeed;
+		if (mKeys.mIsDownDown)
+			mPosition.y -= moveSpeed;
+		if (mKeys.mIsLeftDown)
+			mPosition.x += moveSpeed;
+		if (mKeys.mIsRightDown)
+			mPosition.x -= moveSpeed;
 	}
 
 	UpdateViewMatrix();
