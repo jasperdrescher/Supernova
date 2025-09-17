@@ -749,9 +749,9 @@ void VulkanRenderer::PrepareFrame()
 
 	// Update the uniform buffer for the next frame
 	VulkanShaderData shaderData{};
-	shaderData.projectionMatrix = mCamera.mMatrices.mPerspective;
-	shaderData.viewMatrix = mCamera.mMatrices.mView;
-	shaderData.modelMatrix = glm::mat4(1.0f);
+	shaderData.mProjectionMatrix = mCamera.mMatrices.mPerspective;
+	shaderData.mViewMatrix = mCamera.mMatrices.mView;
+	shaderData.mModelMatrix = glm::mat4(1.0f);
 	// Copy the current matrices to the current frame's uniform buffer. As we requested a host coherent memory type for the uniform buffer, the write is instantly visible to the GPU.
 	memcpy(mVulkanUniformBuffers[mCurrentFrameIndex].mMappedData, &shaderData, sizeof(VulkanShaderData));
 

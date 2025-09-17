@@ -48,9 +48,9 @@ struct VulkanUniformBuffer : VulkanBuffer
 
 struct VulkanShaderData
 {
-	glm::mat4 projectionMatrix;
-	glm::mat4 modelMatrix;
-	glm::mat4 viewMatrix;
+	glm::mat4 mProjectionMatrix;
+	glm::mat4 mModelMatrix;
+	glm::mat4 mViewMatrix;
 };
 
 struct VulkanDepthStencil
