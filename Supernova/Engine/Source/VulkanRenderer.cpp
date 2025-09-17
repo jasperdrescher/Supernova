@@ -28,6 +28,7 @@
 #include <cstring>
 #include <cstdint>
 #include <vector>
+#include <numeric>
 
 namespace VulkanRendererLocal
 {
@@ -56,16 +57,18 @@ VulkanRenderer::VulkanRenderer()
 	, mVkCommandBuffers{VK_NULL_HANDLE}
 	, mDefaultClearColor{{0.025f, 0.025f, 0.025f, 1.0f}}
 	, mTimer{0.0f}
-	, TimerSpeed{0.25f}
+	, mTimerSpeed{0.25f}
 	, mIsPaused{false}
 	, mIsPrepared{false}
 	, mIsResized{false}
 	, mFramebufferWidth{0}
 	, mFramebufferHeight{0}
+	, mMaxFrameTimes{10}
 	, mFrameTime{1.0f}
 	, mVulkanDevice{nullptr}
 	, mFrameCounter{0}
 	, mLastFPS{0}
+	, mAverageFrameTime{0.0f}
 	, mVkInstance{VK_NULL_HANDLE}
 	, mVkQueue{VK_NULL_HANDLE}
 	, mVkDepthFormat{VK_FORMAT_UNDEFINED}
@@ -162,7 +165,7 @@ void VulkanRenderer::PrepareUpdate()
 	mPreviousEndTime = mLastTimestamp;
 }
 
-void VulkanRenderer::UpdateRenderer(float aDeltaTime)
+void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 {
 	if (mIsPrepared)
 	{
@@ -181,7 +184,7 @@ void VulkanRenderer::UpdateRenderer(float aDeltaTime)
 		vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
 	}
 
-	glfwSetWindowTitle(mGLFWWindow, GetWindowTitle(aDeltaTime).c_str());
+	glfwSetWindowTitle(mGLFWWindow, GetWindowTitle().c_str());
 	glfwPollEvents();
 
 	mVulkanApplicationProperties.mIsFocused = glfwGetWindowAttrib(mGLFWWindow, GLFW_FOCUSED);
@@ -1091,14 +1094,13 @@ void VulkanRenderer::CreateVulkanDevice()
 	mVulkanDevice->CreateLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
 }
 
-std::string VulkanRenderer::GetWindowTitle(float aDeltaTime) const
+std::string VulkanRenderer::GetWindowTitle() const
 {
-	return std::format("{} - {} - {:.3f} ms {} fps - {:.3f} ms - {}/{} window - {}/{} framebuffer",
+	return std::format("{} - {} - {:.3f} ms {} fps - {}/{} window - {}/{} framebuffer",
 		mVulkanApplicationProperties.mApplicationName,
 		mVulkanDevice->mVkPhysicalDeviceProperties.deviceName,
-		(mFrameTime * 1000.f),
+		(mAverageFrameTime * 1000.f),
 		mLastFPS,
-		(aDeltaTime * 1000.f),
 		mVulkanApplicationProperties.mWindowWidth,
 		mVulkanApplicationProperties.mWindowHeight,
 		mFramebufferWidth,
@@ -1145,10 +1147,18 @@ void VulkanRenderer::NextFrame()
 	const float frameTimeDelta = std::chrono::duration<float, std::milli>(frameTimeEnd - frameTimeStart).count();
 	mFrameTime = frameTimeDelta / 1000.0f;
 
+	mFrameTimes.push_back(mFrameTime);
+	if (mFrameTimes.size() > mMaxFrameTimes)
+	{
+		mFrameTimes.erase(mFrameTimes.begin());
+	}
+
 	const float fpsTimer = std::chrono::duration<float, std::milli>(frameTimeEnd - mLastTimestamp).count();
 	if (fpsTimer > 1000.0f)
 	{
 		mLastFPS = static_cast<std::uint32_t>(static_cast<float>(mFrameCounter) * (1000.0f / fpsTimer));
+		const float frameTimeSum = std::accumulate(mFrameTimes.begin(), mFrameTimes.end(), 0.0f);
+		mAverageFrameTime = frameTimeSum / mFrameTimes.size();
 		mFrameCounter = 0;
 		mLastTimestamp = frameTimeEnd;
 	}
