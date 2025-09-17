@@ -111,15 +111,15 @@ void Camera::SetRotation(glm::vec3 aRotation)
 	UpdateViewMatrix();
 }
 
-void Camera::Rotate(glm::vec3 delta)
+void Camera::Rotate(glm::vec3 aDelta)
 {
-	mRotation += delta;
+	mRotation += aDelta;
 	UpdateViewMatrix();
 }
 
-void Camera::SetTranslation(glm::vec3 translation)
+void Camera::SetTranslation(glm::vec3 aTranslation)
 {
-	mPosition = translation;
+	mPosition = aTranslation;
 	UpdateViewMatrix();
 };
 

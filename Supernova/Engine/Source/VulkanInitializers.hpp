@@ -7,15 +7,15 @@
 namespace VulkanInitializers
 {
 	inline VkCommandBufferAllocateInfo CommandBufferAllocateInfo(
-		VkCommandPool commandPool,
-		VkCommandBufferLevel level,
-		std::uint32_t bufferCount)
+		VkCommandPool aVkCommandPool,
+		VkCommandBufferLevel aVkCommandBufferLevel,
+		std::uint32_t aBufferCount)
 	{
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
 		commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		commandBufferAllocateInfo.commandPool = commandPool;
-		commandBufferAllocateInfo.level = level;
-		commandBufferAllocateInfo.commandBufferCount = bufferCount;
+		commandBufferAllocateInfo.commandPool = aVkCommandPool;
+		commandBufferAllocateInfo.level = aVkCommandBufferLevel;
+		commandBufferAllocateInfo.commandBufferCount = aBufferCount;
 		return commandBufferAllocateInfo;
 	}
 

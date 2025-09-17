@@ -11,27 +11,27 @@ struct VulkanDevice
 	struct QueueFamilyIndices
 	{
 		QueueFamilyIndices()
-			: graphics(0)
-			, compute(0)
-			, transfer(0)
+			: mGraphics{0}
+			, mCompute{0}
+			, mTransfer{0}
 		{
 		}
 
-		std::uint32_t graphics;
-		std::uint32_t compute;
-		std::uint32_t transfer;
+		std::uint32_t mGraphics;
+		std::uint32_t mCompute;
+		std::uint32_t mTransfer;
 	};
 
 	VulkanDevice();
 	~VulkanDevice();
 
-	void CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+	void CreateLogicalDevice(VkPhysicalDeviceFeatures aEnabledFeatures, std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain = true, VkQueueFlags aRequestedQueueTypes = VK_QUEUE_GRAPHICS_BIT|VK_QUEUE_COMPUTE_BIT);
 	void CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice);
 
-	std::uint32_t GetMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound = nullptr) const;
-	std::uint32_t GetQueueFamilyIndex(VkQueueFlags queueFlags) const;
+	std::uint32_t GetMemoryType(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32 * aMemTypeFound = nullptr) const;
+	std::uint32_t GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) const;
 	bool IsExtensionSupported(const std::string& aExtension) const;
-	VkFormat GetSupportedDepthFormat(bool checkSamplingSupport) const;
+	VkFormat GetSupportedDepthFormat(bool aCheckSamplingSupport) const;
 
 	/** @brief Physical device representation */
 	VkPhysicalDevice mVkPhysicalDevice;

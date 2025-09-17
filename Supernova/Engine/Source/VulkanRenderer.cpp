@@ -197,20 +197,22 @@ void VulkanRenderer::DestroyRenderer()
 	glfwTerminate();
 }
 
-std::uint32_t VulkanRenderer::GetMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties) const
+std::uint32_t VulkanRenderer::GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties) const
 {
 	// Iterate over all memory types available for the device used in this example
 	for (std::uint32_t i = 0; i < mVulkanDevice->mVkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
 	{
-		if ((typeBits & 1) == 1)
+		if ((aTypeBits & 1) == 1)
 		{
-			if ((mVulkanDevice->mVkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			if ((mVulkanDevice->mVkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & aProperties) == aProperties)
 			{
 				return i;
 			}
 		}
-		typeBits >>= 1;
+
+		aTypeBits >>= 1;
 	}
+
 	throw std::runtime_error("Could not find a suitable memory type!");
 }
 
@@ -481,12 +483,12 @@ void VulkanRenderer::SetupDepthStencil()
 	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &vkImageViewCreateInfo, nullptr, &mVulkanDepthStencil.mVkImageView));
 }
 
-VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::string& filename) const
+VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::string& aFilename) const
 {
 	size_t shaderSize{0};
 	char* shaderCode{nullptr};
 
-	std::ifstream is(filename, std::ios::binary | std::ios::in | std::ios::ate);
+	std::ifstream is(aFilename, std::ios::binary | std::ios::in | std::ios::ate);
 
 	if (is.is_open())
 	{
@@ -515,7 +517,7 @@ VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::string& filename) cons
 	}
 	else
 	{
-		std::cerr << "Error: Could not open shader file \"" << filename << "\"" << std::endl;
+		std::cerr << "Error: Could not open shader file \"" << aFilename << "\"" << std::endl;
 		return VK_NULL_HANDLE;
 	}
 }
@@ -1091,7 +1093,7 @@ void VulkanRenderer::CreateVulkanDevice()
 	VkPhysicalDevice vkPhysicalDevice = vkPhysicalDevices[selectedDevice];
 	mVulkanDevice = new VulkanDevice();
 	mVulkanDevice->CreatePhysicalDevice(vkPhysicalDevice);
-	mVulkanDevice->CreateLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features);
+	mVulkanDevice->CreateLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features, true, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 }
 
 std::string VulkanRenderer::GetWindowTitle() const
@@ -1124,12 +1126,12 @@ void VulkanRenderer::InitializeSwapchain()
 	mVulkanSwapChain.InitializeSurface();
 }
 
-VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage)
+VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string aFilename, VkShaderStageFlagBits aVkShaderStageMask)
 {
 	VkPipelineShaderStageCreateInfo shaderStage = {};
 	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shaderStage.stage = stage;
-	shaderStage.module = VulkanTools::LoadShader(fileName.c_str(), mVulkanDevice->mLogicalVkDevice);
+	shaderStage.stage = aVkShaderStageMask;
+	shaderStage.module = VulkanTools::LoadShader(aFilename.c_str(), mVulkanDevice->mLogicalVkDevice);
 	shaderStage.pName = "main";
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	mVkShaderModules.push_back(shaderStage.module);
@@ -1179,7 +1181,7 @@ void VulkanRenderer::InitializeVulkan()
 	CreateVulkanDevice();
 
 	// Get a graphics queue from the device
-	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.graphics, 0, &mVkQueue);
+	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.mGraphics, 0, &mVkQueue);
 
 	// Find a suitable depth and/or stencil format
 	VkBool32 validFormat{false};

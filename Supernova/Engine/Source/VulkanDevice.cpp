@@ -33,27 +33,28 @@ VulkanDevice::~VulkanDevice()
 *
 * @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested properties
 */
-std::uint32_t VulkanDevice::GetMemoryType(std::uint32_t typeBits, VkMemoryPropertyFlags properties, VkBool32* memTypeFound) const
+std::uint32_t VulkanDevice::GetMemoryType(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32* aMemTypeFound) const
 {
 	for (std::uint32_t i = 0; i < mVkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
 	{
-		if ((typeBits & 1) == 1)
+		if ((aTypeBits & 1) == 1)
 		{
-			if ((mVkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			if ((mVkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & aProperties) == aProperties)
 			{
-				if (memTypeFound)
+				if (aMemTypeFound)
 				{
-					*memTypeFound = true;
+					*aMemTypeFound = true;
 				}
 				return i;
 			}
 		}
-		typeBits >>= 1;
+
+		aTypeBits >>= 1;
 	}
 
-	if (memTypeFound)
+	if (aMemTypeFound)
 	{
-		*memTypeFound = false;
+		*aMemTypeFound = false;
 		return 0;
 	}
 	else
@@ -72,11 +73,11 @@ std::uint32_t VulkanDevice::GetMemoryType(std::uint32_t typeBits, VkMemoryProper
 *
 * @throw Throws an exception if no queue family index could be found that supports the requested flags
 */
-std::uint32_t VulkanDevice::GetQueueFamilyIndex(VkQueueFlags queueFlags) const
+std::uint32_t VulkanDevice::GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) const
 {
 	// Dedicated queue for compute
 	// Try to find a queue family index that supports compute but not graphics
-	if ((queueFlags & VK_QUEUE_COMPUTE_BIT) == queueFlags)
+	if ((aVkQueueFlags & VK_QUEUE_COMPUTE_BIT) == aVkQueueFlags)
 	{
 		for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(mVkQueueFamilyProperties.size()); i++)
 		{
@@ -89,7 +90,7 @@ std::uint32_t VulkanDevice::GetQueueFamilyIndex(VkQueueFlags queueFlags) const
 
 	// Dedicated queue for transfer
 	// Try to find a queue family index that supports transfer but not graphics and compute
-	if ((queueFlags & VK_QUEUE_TRANSFER_BIT) == queueFlags)
+	if ((aVkQueueFlags & VK_QUEUE_TRANSFER_BIT) == aVkQueueFlags)
 	{
 		for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(mVkQueueFamilyProperties.size()); i++)
 		{
@@ -103,7 +104,7 @@ std::uint32_t VulkanDevice::GetQueueFamilyIndex(VkQueueFlags queueFlags) const
 	// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
 	for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(mVkQueueFamilyProperties.size()); i++)
 	{
-		if ((mVkQueueFamilyProperties[i].queueFlags & queueFlags) == queueFlags)
+		if ((mVkQueueFamilyProperties[i].queueFlags & aVkQueueFlags) == aVkQueueFlags)
 		{
 			return i;
 		}
@@ -122,7 +123,7 @@ std::uint32_t VulkanDevice::GetQueueFamilyIndex(VkQueueFlags queueFlags) const
 *
 * @return VkResult of the device creation call
 */
-void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain, VkQueueFlags requestedQueueTypes)
+void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures aEnabledFeatures, std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain, VkQueueFlags aRequestedQueueTypes)
 {
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
@@ -132,31 +133,31 @@ void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures,
 	const float defaultQueuePriority(0.0f);
 
 	// Graphics queue
-	if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
+	if (aRequestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
 	{
-		mQueueFamilyIndices.graphics = GetQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
+		mQueueFamilyIndices.mGraphics = GetQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
 		VkDeviceQueueCreateInfo queueInfo{};
 		queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueInfo.queueFamilyIndex = mQueueFamilyIndices.graphics;
+		queueInfo.queueFamilyIndex = mQueueFamilyIndices.mGraphics;
 		queueInfo.queueCount = 1;
 		queueInfo.pQueuePriorities = &defaultQueuePriority;
 		queueCreateInfos.push_back(queueInfo);
 	}
 	else
 	{
-		mQueueFamilyIndices.graphics = 0;
+		mQueueFamilyIndices.mGraphics = 0;
 	}
 
 	// Dedicated compute queue
-	if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT)
+	if (aRequestedQueueTypes & VK_QUEUE_COMPUTE_BIT)
 	{
-		mQueueFamilyIndices.compute = GetQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT);
-		if (mQueueFamilyIndices.compute != mQueueFamilyIndices.graphics)
+		mQueueFamilyIndices.mCompute = GetQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT);
+		if (mQueueFamilyIndices.mCompute != mQueueFamilyIndices.mGraphics)
 		{
 			// If compute family index differs, we need an additional queue create info for the compute queue
 			VkDeviceQueueCreateInfo queueInfo{};
 			queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueInfo.queueFamilyIndex = mQueueFamilyIndices.compute;
+			queueInfo.queueFamilyIndex = mQueueFamilyIndices.mCompute;
 			queueInfo.queueCount = 1;
 			queueInfo.pQueuePriorities = &defaultQueuePriority;
 			queueCreateInfos.push_back(queueInfo);
@@ -165,19 +166,19 @@ void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures,
 	else
 	{
 		// Else we use the same queue
-		mQueueFamilyIndices.compute = mQueueFamilyIndices.graphics;
+		mQueueFamilyIndices.mCompute = mQueueFamilyIndices.mGraphics;
 	}
 
 	// Dedicated transfer queue
-	if (requestedQueueTypes & VK_QUEUE_TRANSFER_BIT)
+	if (aRequestedQueueTypes & VK_QUEUE_TRANSFER_BIT)
 	{
-		mQueueFamilyIndices.transfer = GetQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
-		if ((mQueueFamilyIndices.transfer != mQueueFamilyIndices.graphics) && (mQueueFamilyIndices.transfer != mQueueFamilyIndices.compute))
+		mQueueFamilyIndices.mTransfer = GetQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
+		if ((mQueueFamilyIndices.mTransfer != mQueueFamilyIndices.mGraphics) && (mQueueFamilyIndices.mTransfer != mQueueFamilyIndices.mCompute))
 		{
 			// If transfer family index differs, we need an additional queue create info for the transfer queue
 			VkDeviceQueueCreateInfo queueInfo{};
 			queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueInfo.queueFamilyIndex = mQueueFamilyIndices.transfer;
+			queueInfo.queueFamilyIndex = mQueueFamilyIndices.mTransfer;
 			queueInfo.queueCount = 1;
 			queueInfo.pQueuePriorities = &defaultQueuePriority;
 			queueCreateInfos.push_back(queueInfo);
@@ -186,12 +187,12 @@ void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures,
 	else
 	{
 		// Else we use the same queue
-		mQueueFamilyIndices.transfer = mQueueFamilyIndices.graphics;
+		mQueueFamilyIndices.mTransfer = mQueueFamilyIndices.mGraphics;
 	}
 
 	// Create the logical device representation
-	std::vector<const char*> deviceExtensions(enabledExtensions);
-	if (useSwapChain)
+	std::vector<const char*> deviceExtensions(aEnabledExtensions);
+	if (aUseSwapChain)
 	{
 		// If the device will be used for presenting to a display via a swapchain we need to request the swapchain extension
 		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -201,15 +202,15 @@ void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures,
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size());;
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-	deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+	deviceCreateInfo.pEnabledFeatures = &aEnabledFeatures;
 
 	// If a pNext(Chain) has been passed, we need to add it to the device creation info
 	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
-	if (pNextChain)
+	if (aNextChain)
 	{
 		physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		physicalDeviceFeatures2.features = enabledFeatures;
-		physicalDeviceFeatures2.pNext = pNextChain;
+		physicalDeviceFeatures2.features = aEnabledFeatures;
+		physicalDeviceFeatures2.pNext = aNextChain;
 		deviceCreateInfo.pEnabledFeatures = nullptr;
 		deviceCreateInfo.pNext = &physicalDeviceFeatures2;
 	}
@@ -228,7 +229,7 @@ void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures,
 		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	}
 
-	mEnabledVkPhysicalDeviceFeatures = enabledFeatures;
+	mEnabledVkPhysicalDeviceFeatures = aEnabledFeatures;
 
 	VkResult result = vkCreateDevice(mVkPhysicalDevice, &deviceCreateInfo, nullptr, &mLogicalVkDevice);
 	if (result != VK_SUCCESS)
@@ -300,7 +301,7 @@ bool VulkanDevice::IsExtensionSupported(const std::string& aExtension) const
 *
 * @throw Throws an exception if no depth format fits the requirements
 */
-VkFormat VulkanDevice::GetSupportedDepthFormat(bool checkSamplingSupport) const
+VkFormat VulkanDevice::GetSupportedDepthFormat(bool aCheckSamplingSupport) const
 {
 	// All depth formats may be optional, so we need to find a suitable depth format to use
 	std::vector<VkFormat> depthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
@@ -311,7 +312,7 @@ VkFormat VulkanDevice::GetSupportedDepthFormat(bool checkSamplingSupport) const
 		// Format must support depth stencil attachment for optimal tiling
 		if (formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 		{
-			if (checkSamplingSupport)
+			if (aCheckSamplingSupport)
 			{
 				if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT))
 				{

@@ -31,15 +31,15 @@ public:
 	} mKeys;
 
 	void SetType(CameraType aType);
-	void SetPerspective(float fov, float aspect, float znear, float zfar);
-	void UpdateAspectRatio(float aspect);
-	void SetPosition(glm::vec3 position);
-	void SetRotation(glm::vec3 rotation);
-	void Rotate(glm::vec3 delta);
-	void SetTranslation(glm::vec3 translation);
-	void Translate(glm::vec3 delta);
-	void SetRotationSpeed(float rotationSpeed);
-	void SetMovementSpeed(float movementSpeed);
+	void SetPerspective(float aFoV, float aAspectRatio, float aZNear, float aZFar);
+	void UpdateAspectRatio(float aAspectRatio);
+	void SetPosition(glm::vec3 aPosition);
+	void SetRotation(glm::vec3 aRotation);
+	void Rotate(glm::vec3 aDelta);
+	void SetTranslation(glm::vec3 aTranslation);
+	void Translate(glm::vec3 aDelta);
+	void SetRotationSpeed(float aRotationSpeed);
+	void SetMovementSpeed(float aMovementSpeed);
 	void Update(float aDeltaTime);
 
 	bool IsMoving() const;

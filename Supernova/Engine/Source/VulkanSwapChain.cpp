@@ -120,7 +120,7 @@ void VulkanSwapChain::SetContext(VkInstance aVkInstance, VulkanDevice* aVulkanDe
 	mActiveVulkanDevice = aVulkanDevice;
 }
 
-void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync)
+void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHeight, bool aUseVSync)
 {
 	assert(mActiveVulkanDevice);
 	assert(mActiveVkInstance);
@@ -137,15 +137,15 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 	if (surfCaps.currentExtent.width == static_cast<std::uint32_t>(-1))
 	{
 		// If the surface size is undefined, the size is set to the size of the images requested
-		swapchainExtent.width = width;
-		swapchainExtent.height = height;
+		swapchainExtent.width = aWidth;
+		swapchainExtent.height = aHeight;
 	}
 	else
 	{
 		// If the surface size is defined, the swap chain size must match
 		swapchainExtent = surfCaps.currentExtent;
-		width = surfCaps.currentExtent.width;
-		height = surfCaps.currentExtent.height;
+		aWidth = surfCaps.currentExtent.width;
+		aHeight = surfCaps.currentExtent.height;
 	}
 
 
@@ -163,7 +163,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 
 	// If v-sync is not requested, try to find a mailbox mode
 	// It's the lowest latency non-tearing present mode available
-	if (!vsync)
+	if (!aUseVSync)
 	{
 		for (size_t i = 0; i < presentModeCount; i++)
 		{
@@ -291,11 +291,11 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& width, std::uint32_t& heigh
 	}
 }
 
-VkResult VulkanSwapChain::acquireNextImage(VkSemaphore presentCompleteSemaphore, std::uint32_t& imageIndex) const
+VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore aPresentCompleteSemaphore, std::uint32_t& aImageIndex) const
 {
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
-	return vkAcquireNextImageKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, UINT64_MAX, presentCompleteSemaphore, static_cast<VkFence>(nullptr), &imageIndex);
+	return vkAcquireNextImageKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, UINT64_MAX, aPresentCompleteSemaphore, static_cast<VkFence>(nullptr), &aImageIndex);
 }
 
 void VulkanSwapChain::CleanUp()

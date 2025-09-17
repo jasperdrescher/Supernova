@@ -23,7 +23,7 @@ public:
 	* @param height Pointer to the height of the swapchain (may be adjusted to fit the requirements of the swapchain)
 	* @param vsync (Optional, default = false) Can be used to force vsync-ed rendering (by using VK_PRESENT_MODE_FIFO_KHR as presentation mode)
 	*/
-	void CreateSwapchain(std::uint32_t& width, std::uint32_t& height, bool vsync = false);
+	void CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHeight, bool aUseVSync = false);
 
 	/**
 	* Acquires the next image in the swap chain
@@ -35,7 +35,7 @@ public:
 	*
 	* @return VkResult of the image acquisition
 	*/
-	VkResult acquireNextImage(VkSemaphore presentCompleteSemaphore, std::uint32_t& imageIndex) const;
+	VkResult AcquireNextImage(VkSemaphore aPresentCompleteSemaphore, std::uint32_t& aImageIndex) const;
 	
 	void CleanUp();
 
@@ -43,8 +43,8 @@ public:
 	VkColorSpaceKHR mVkColorSpaceKHR;
 	VkSwapchainKHR mVkSwapchainKHR;
 	VkSurfaceKHR mVkSurfaceKHR;
-	std::vector<VkImage> mVkImages;
-	std::vector<VkImageView> mVkImageViews;
+	std::vector<VkImage> mVkImages{};
+	std::vector<VkImageView> mVkImageViews{};
 	std::uint32_t mQueueNodeIndex;
 	std::uint32_t mImageCount;
 

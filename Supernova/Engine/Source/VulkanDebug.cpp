@@ -15,8 +15,7 @@ namespace VulkanDebug
 	PFN_vkCmdInsertDebugUtilsLabelEXT gVkCmdInsertDebugUtilsLabelFunction{nullptr};
 	VkDebugUtilsMessengerEXT gVkDebugUtilsMessenger{VK_NULL_HANDLE};
 
-	VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessageCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT aMessageSeverity,
+	VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT aMessageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT /*aMessageType*/,
 		const VkDebugUtilsMessengerCallbackDataEXT* aCallbackData,
 		void* /*aUserData*/)

@@ -37,12 +37,12 @@ private:
 	void PrepareFrame();
 	void SetupDepthStencil();
 
-	std::uint32_t GetMemoryTypeIndex(std::uint32_t typeBits, VkMemoryPropertyFlags properties) const;
+	std::uint32_t GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties) const;
 	void CreateSynchronizationPrimitives();
 	void CreateCommandBuffers();
 	void CreateVertexBuffer();
 	void CreateDescriptors();
-	VkShaderModule LoadSPIRVShader(const std::string& filename) const;
+	VkShaderModule LoadSPIRVShader(const std::string& aFilename) const;
 	void CreatePipeline();
 	void CreateUniformBuffers();
 
