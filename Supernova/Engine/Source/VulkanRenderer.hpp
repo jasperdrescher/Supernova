@@ -37,7 +37,6 @@ private:
 	void PrepareFrame();
 	void SetupDepthStencil();
 
-	std::uint32_t GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties) const;
 	void CreateSynchronizationPrimitives();
 	void CreateCommandBuffers();
 	void CreateVertexBuffer();

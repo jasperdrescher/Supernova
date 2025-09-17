@@ -33,7 +33,7 @@ VulkanDevice::~VulkanDevice()
 *
 * @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested properties
 */
-std::uint32_t VulkanDevice::GetMemoryType(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32* aMemTypeFound) const
+std::uint32_t VulkanDevice::GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32* aMemTypeFound) const
 {
 	for (std::uint32_t i = 0; i < mVkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
 	{

@@ -197,25 +197,6 @@ void VulkanRenderer::DestroyRenderer()
 	glfwTerminate();
 }
 
-std::uint32_t VulkanRenderer::GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties) const
-{
-	// Iterate over all memory types available for the device used in this example
-	for (std::uint32_t i = 0; i < mVulkanDevice->mVkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
-	{
-		if ((aTypeBits & 1) == 1)
-		{
-			if ((mVulkanDevice->mVkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & aProperties) == aProperties)
-			{
-				return i;
-			}
-		}
-
-		aTypeBits >>= 1;
-	}
-
-	throw std::runtime_error("Could not find a suitable memory type!");
-}
-
 void VulkanRenderer::CreateSynchronizationPrimitives()
 {
 	// Fences are per frame in flight
@@ -298,7 +279,7 @@ void VulkanRenderer::CreateVertexBuffer()
 	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
 	// Request a host visible memory type that can be used to copy our data to
 	// Also request it to be coherent, so that writes are visible to the GPU right after unmapping the buffer
-	vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &vulkanStagingBuffer.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkBuffer, vulkanStagingBuffer.mVkDeviceMemory, 0));
 	// Map the buffer and copy vertices and indices into it, this way we can use a single buffer as the source for both vertex and index GPU buffers
@@ -314,7 +295,7 @@ void VulkanRenderer::CreateVertexBuffer()
 	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkVertexBufferCreateInfo, nullptr, &mVulkanVertexBuffer.mVkBuffer));
 	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkBuffer, &vkMemoryRequirements);
 	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-	vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanVertexBuffer.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkBuffer, mVulkanVertexBuffer.mVkDeviceMemory, 0));
 
@@ -325,7 +306,7 @@ void VulkanRenderer::CreateVertexBuffer()
 	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkIndexBufferCreateInfo, nullptr, &mVulkanIndexBuffer.mVkBuffer));
 	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkBuffer, &vkMemoryRequirements);
 	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-	vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanIndexBuffer.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkBuffer, mVulkanIndexBuffer.mVkDeviceMemory, 0));
 
@@ -458,7 +439,7 @@ void VulkanRenderer::SetupDepthStencil()
 	VkMemoryRequirements vkMemoryRequirements;
 	vkGetImageMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, &vkMemoryRequirements);
 	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-	vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanDepthStencil.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindImageMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, mVulkanDepthStencil.mVkDeviceMemory, 0));
 
@@ -699,7 +680,7 @@ void VulkanRenderer::CreateUniformBuffers()
 		// Get the memory type index that supports host visible memory access
 		// Most implementations offer multiple memory types and selecting the correct one to allocate memory from is crucial
 		// We also want the buffer to be host coherent so we don't have to flush (or sync after every update).
-		vkMemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		// Allocate memory for the uniform buffer
 		VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &(mVulkanUniformBuffers[i].mVkDeviceMemory)));
 		// Bind memory to buffer
