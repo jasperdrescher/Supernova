@@ -7,24 +7,27 @@
 #include <filesystem>
 #include <string>
 
-static bool FileLoader::IsFileValid(const std::string& aPath)
+namespace FileLoader
 {
-	return std::filesystem::exists(aPath);
-}
-
-unsigned char* FileLoader::LoadImage(const std::string& aFilename, int& aWidth, int& aHeight, int& aNumberOfComponents)
-{
-	const bool isFileValid = FileLoader::IsFileValid(aFilename);
-	assert(isFileValid);
-	if (!isFileValid)
-		return nullptr;
-
-	unsigned char* image = stbi_load(aFilename.c_str(), &aWidth, &aHeight, &aNumberOfComponents, STBI_default);
-	if (!image)
+	static bool IsFileValid(const std::string& aPath)
 	{
-		stbi_image_free(image);
-		return nullptr;
+		return std::filesystem::exists(aPath);
 	}
 
-	return image;
+	unsigned char* LoadImage(const std::string& aFilename, int& aWidth, int& aHeight, int& aNumberOfComponents)
+	{
+		const bool isFileValid = FileLoader::IsFileValid(aFilename);
+		assert(isFileValid);
+		if (!isFileValid)
+			return nullptr;
+
+		unsigned char* image = stbi_load(aFilename.c_str(), &aWidth, &aHeight, &aNumberOfComponents, STBI_default);
+		if (!image)
+		{
+			stbi_image_free(image);
+			return nullptr;
+		}
+
+		return image;
+	}
 }
