@@ -2,13 +2,13 @@
 
 #include <GLFW/glfw3.h>
 
-#include <algorithm>
+#include <map>
 
 InputManager::InputManager()
-	: myCursorXPosition(0.0f)
-	, myCursorYPosition(0.0f)
-	, myScrollXOffset(0.0f)
-	, myScrollYOffset(0.0f)
+	: myCursorXPosition{0.0f}
+	, myCursorYPosition{0.0f}
+	, myScrollXOffset{0.0f}
+	, myScrollYOffset{0.0f}
 {
 }
 
