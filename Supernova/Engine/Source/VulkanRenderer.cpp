@@ -4,6 +4,7 @@
 #include "VulkanDebug.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
+#include "FileLoader.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -876,6 +877,12 @@ void VulkanRenderer::CreateGlfwWindow()
 	if (glfwRawMouseMotionSupported())
 		glfwSetInputMode(mGLFWWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
+	int iconWidth = 0;
+	int iconHeight = 0;
+	int iconNumberOfComponents = 0;
+	unsigned char* iconSource = FileLoader::LoadImage(VulkanTools::gResourcePath + "/Textures/Supernova.png", iconWidth, iconHeight, iconNumberOfComponents);
+	SetWindowIcon(iconSource, iconWidth, iconHeight);
+
 	int major, minor, revision;
 	glfwGetVersion(&major, &minor, &revision);
 
@@ -1117,6 +1124,15 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string aFilename
 	assert(shaderStage.module != VK_NULL_HANDLE);
 	mVkShaderModules.push_back(shaderStage.module);
 	return shaderStage;
+}
+
+void VulkanRenderer::SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const
+{
+	GLFWimage processIcon[1];
+	processIcon[0].pixels = aSource;
+	processIcon[0].width = aWidth;
+	processIcon[0].height = aHeight;
+	glfwSetWindowIcon(mGLFWWindow, 1, processIcon);
 }
 
 void VulkanRenderer::NextFrame()

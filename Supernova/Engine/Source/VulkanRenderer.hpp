@@ -50,6 +50,7 @@ private:
 	void CreateVulkanDevice();
 
 	VkPipelineShaderStageCreateInfo LoadShader(std::string aFilename, VkShaderStageFlagBits aVkShaderStageMask);
+	void SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const;
 
 	void OnResizeWindow();
 
