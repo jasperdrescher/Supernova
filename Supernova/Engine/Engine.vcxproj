@@ -181,7 +181,8 @@
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.4.321.1\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)Resources" "$(TargetDir)Resources\" /s /i /y</Command>
+      <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y</Command>
+      <Message>Copy only specific resources</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_ASAN|x64'">

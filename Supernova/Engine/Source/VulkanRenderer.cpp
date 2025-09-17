@@ -634,14 +634,14 @@ void VulkanRenderer::CreatePipeline()
 	// Vertex shader
 	vkPipelineShaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vkPipelineShaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vkPipelineShaderStages[0].module = LoadSPIRVShader(GetShadersPath() + "triangle/triangle.vert.spv");
+	vkPipelineShaderStages[0].module = LoadSPIRVShader(GetShadersPath() + "triangle/triangle_vert.spv");
 	vkPipelineShaderStages[0].pName = "main";
 	assert(vkPipelineShaderStages[0].module != VK_NULL_HANDLE);
 
 	// Fragment shader
 	vkPipelineShaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vkPipelineShaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	vkPipelineShaderStages[1].module = LoadSPIRVShader(GetShadersPath() + "triangle/triangle.frag.spv");
+	vkPipelineShaderStages[1].module = LoadSPIRVShader(GetShadersPath() + "triangle/triangle_frag.spv");
 	vkPipelineShaderStages[1].pName = "main";
 	assert(vkPipelineShaderStages[1].module != VK_NULL_HANDLE);
 
