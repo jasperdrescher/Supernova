@@ -13,14 +13,14 @@ Camera::Camera()
 	, mViewPosition{0.0f}
 	, mPosition{0.0f}
 	, mRotation{0.0f}
-	, mType(CameraType::LookAt)
-	, mFoV(0.0f)
-	, mZNear(0.0f)
-	, mZFar(0.0f)
-	, mRotationSpeed(1.0f)
-	, mMovementSpeed(1.0f)
-	, mIsUpdated(false)
-	, mFlipY(false)
+	, mType{CameraType::LookAt}
+	, mFoV{0.0f}
+	, mZNear{0.0f}
+	, mZFar{0.0f}
+	, mRotationSpeed{1.0f}
+	, mMovementSpeed{1.0f}
+	, mIsUpdated{false}
+	, mFlipY{false}
 {
 }
 
@@ -40,14 +40,14 @@ void Camera::UpdateViewMatrix()
 	{
 		translation.y *= -1.0f;
 	}
+
 	if (mType == CameraType::FirstPerson)
 	{
 		mMatrices.mView = rotationMatrix * translationMatrix;
 	}
 	else
 	{
-	translationMatrix = glm::translate(glm::mat4(1.0f), translation);
-
+		translationMatrix = glm::translate(glm::mat4(1.0f), translation);
 		mMatrices.mView = translationMatrix * rotationMatrix;
 	}
 
@@ -87,10 +87,12 @@ void Camera::UpdateAspectRatio(float aAspectRatio)
 {
 	const glm::mat4 currentMatrix = mMatrices.mPerspective;
 	mMatrices.mPerspective = glm::perspective(glm::radians(mFoV), aAspectRatio, mZNear, mZFar);
+
 	if (mFlipY)
 	{
 		mMatrices.mPerspective[1][1] *= -1.0f;
 	}
+
 	if (mMatrices.mView != currentMatrix)
 	{
 		mIsUpdated = true;
