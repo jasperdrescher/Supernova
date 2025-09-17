@@ -29,7 +29,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace VulkanExampleLocal
+namespace VulkanRendererLocal
 {
 	static void GLFWErrorCallback(int aError, const char* aDescription)
 	{
@@ -863,7 +863,7 @@ void VulkanRenderer::CreateGlfwWindow()
 		throw std::runtime_error("Failed to init GLFW");
 	}
 
-	glfwSetErrorCallback(VulkanExampleLocal::GLFWErrorCallback);
+	glfwSetErrorCallback(VulkanRendererLocal::GLFWErrorCallback);
 
 	if (!glfwVulkanSupported())
 	{
@@ -996,7 +996,7 @@ void VulkanRenderer::CreateVkInstance()
 	if (mVulkanApplicationProperties.mIsValidationEnabled || std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
 		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-	const std::vector<const char*> glfwRequiredExtensions = VulkanExampleLocal::GetGlfwRequiredExtensions();
+	const std::vector<const char*> glfwRequiredExtensions = VulkanRendererLocal::GetGlfwRequiredExtensions();
 	for (const char* glfwRequiredExtension : glfwRequiredExtensions)
 	{
 		if (std::ranges::find(instanceExtensions, glfwRequiredExtension) == instanceExtensions.end())
