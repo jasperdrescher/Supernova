@@ -96,7 +96,7 @@ private:
 	std::vector<VkShaderModule> mVkShaderModules{}; // List of shader modules created (stored for cleanup)
 	std::vector<VkSemaphore> mVkPresentCompleteSemaphores{};
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
-	std::vector<float> mFrameTimes{};
+	std::vector<float> mFrametimes{};
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VulkanUniformBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers{};
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
@@ -105,16 +105,16 @@ private:
 	std::uint32_t mFramebufferHeight;
 	std::uint32_t mFrameCounter;
 	std::uint32_t mLastFPS;
-	std::uint32_t mMaxFrameTimes;
+	std::uint32_t mMaxFrametimes;
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentFrameIndex;
 	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
 	GLFWwindow* mGLFWWindow;
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
-	float mFrameTime; // Last frame time measured using a high performance timer (if available)
+	float mFrametime; // Last frame time measured using a high performance timer (if available)
 	float mTimer; // Defines a frame rate independent timer value clamped from -1.0...1.0
 	float mTimerSpeed; // Multiplier for speeding up (or slowing down) the global timer
-	float mAverageFrameTime;
+	float mAverageFrametime;
 	bool mShouldClose;
 	bool mIsFramebufferResized;
 	bool mIsPaused;

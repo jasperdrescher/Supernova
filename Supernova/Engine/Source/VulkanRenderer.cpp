@@ -63,12 +63,12 @@ VulkanRenderer::VulkanRenderer()
 	, mIsResized{false}
 	, mFramebufferWidth{0}
 	, mFramebufferHeight{0}
-	, mMaxFrameTimes{10}
-	, mFrameTime{1.0f}
+	, mMaxFrametimes{10}
+	, mFrametime{1.0f}
 	, mVulkanDevice{nullptr}
 	, mFrameCounter{0}
 	, mLastFPS{0}
-	, mAverageFrameTime{0.0f}
+	, mAverageFrametime{0.0f}
 	, mVkInstance{VK_NULL_HANDLE}
 	, mVkQueue{VK_NULL_HANDLE}
 	, mVkDepthFormat{VK_FORMAT_UNDEFINED}
@@ -177,7 +177,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 	mCamera.mKeys.mIsDownDown = InputManager::GetInstance().GetIsKeyDown(Key::Down);
 	mCamera.mKeys.mIsLeftDown = InputManager::GetInstance().GetIsKeyDown(Key::Left);
 
-	mCamera.Update(mFrameTime);
+	mCamera.Update(mFrametime);
 
 	if (mVulkanDevice->mLogicalVkDevice != VK_NULL_HANDLE)
 	{
@@ -1099,7 +1099,7 @@ std::string VulkanRenderer::GetWindowTitle() const
 	return std::format("{} - {} - {:.3f} ms {} fps - {}/{} window - {}/{} framebuffer",
 		mVulkanApplicationProperties.mApplicationName,
 		mVulkanDevice->mVkPhysicalDeviceProperties.deviceName,
-		(mAverageFrameTime * 1000.f),
+		(mAverageFrametime * 1000.f),
 		mLastFPS,
 		mVulkanApplicationProperties.mWindowWidth,
 		mVulkanApplicationProperties.mWindowHeight,
@@ -1145,20 +1145,20 @@ void VulkanRenderer::NextFrame()
 	mFrameCounter++;
 	const std::chrono::steady_clock::time_point frameTimeEnd = std::chrono::high_resolution_clock::now();
 	const float frameTimeDelta = std::chrono::duration<float, std::milli>(frameTimeEnd - frameTimeStart).count();
-	mFrameTime = frameTimeDelta / 1000.0f;
+	mFrametime = frameTimeDelta / 1000.0f;
 
-	mFrameTimes.push_back(mFrameTime);
-	if (mFrameTimes.size() > mMaxFrameTimes)
+	mFrametimes.push_back(mFrametime);
+	if (mFrametimes.size() > mMaxFrametimes)
 	{
-		mFrameTimes.erase(mFrameTimes.begin());
+		mFrametimes.erase(mFrametimes.begin());
 	}
 
 	const float fpsTimer = std::chrono::duration<float, std::milli>(frameTimeEnd - mLastTimestamp).count();
 	if (fpsTimer > 1000.0f)
 	{
 		mLastFPS = static_cast<std::uint32_t>(static_cast<float>(mFrameCounter) * (1000.0f / fpsTimer));
-		const float frameTimeSum = std::accumulate(mFrameTimes.begin(), mFrameTimes.end(), 0.0f);
-		mAverageFrameTime = frameTimeSum / mFrameTimes.size();
+		const float frameTimeSum = std::accumulate(mFrametimes.begin(), mFrametimes.end(), 0.0f);
+		mAverageFrametime = frameTimeSum / mFrametimes.size();
 		mFrameCounter = 0;
 		mLastTimestamp = frameTimeEnd;
 	}
