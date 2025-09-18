@@ -54,8 +54,6 @@ private:
 
 	void OnResizeWindow();
 
-	std::string GetShadersPath() const;
-
 	void CreateGlfwWindow();
 	void SetWindowSize(int aWidth, int aHeight);
 
@@ -100,7 +98,6 @@ private:
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VulkanUniformBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers{};
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
-	std::string shaderDir;
 	std::uint32_t mFramebufferWidth;
 	std::uint32_t mFramebufferHeight;
 	std::uint32_t mFrameCounter;

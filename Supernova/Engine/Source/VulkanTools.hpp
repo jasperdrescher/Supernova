@@ -18,12 +18,14 @@ constexpr long long gDefaultFenceTimeoutNS = 100000000000;
 	} \
 }
 
-const std::string GetShaderBasePath();
-
 namespace VulkanTools
 {
 	/** @brief Setting this path chnanges the place where the samples looks for assets and shaders */
 	extern std::string gResourcePath;
+	extern std::string gShaderDirectory;
+
+	const std::string GetShaderBasePath();
+	const std::string GetShadersPath();
 
 	/** @brief Returns an error code as a string */
 	std::string GetErrorString(VkResult aErrorCode);

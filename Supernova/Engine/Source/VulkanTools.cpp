@@ -9,19 +9,20 @@
 #include <string>
 #include <vector>
 
-const std::string GetShaderBasePath()
+namespace VulkanTools
 {
-	if (VulkanTools::gResourcePath != "")
+	std::string gResourcePath = "Resources";
+	std::string gShaderDirectory = "GLSL";
+	
+	const std::string GetShaderBasePath()
 	{
 		return VulkanTools::gResourcePath + "/Shaders/";
 	}
 
-	return "./../Shaders/";
-}
-
-namespace VulkanTools
-{
-	std::string gResourcePath = "Resources";
+	const std::string GetShadersPath()
+	{
+		return VulkanTools::GetShaderBasePath() + gShaderDirectory + "/";
+	}
 
 	std::string GetErrorString(VkResult aErrorCode)
 	{
