@@ -965,6 +965,7 @@ void VulkanRenderer::CreateVkInstance()
 		}
 		mEnabledDeviceExtensions.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
 		mEnabledDeviceExtensions.push_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+		mEnabledDeviceExtensions.push_back(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
 	}
 
 	VkApplicationInfo vkApplicationInfo{};
