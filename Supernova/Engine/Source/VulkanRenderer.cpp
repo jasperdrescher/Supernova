@@ -1,10 +1,10 @@
 #include "VulkanRenderer.hpp"
 
+#include "FileLoader.h"
 #include "InputManager.hpp"
 #include "VulkanDebug.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
-#include "FileLoader.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -15,19 +15,19 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <chrono>
+#include <cstdint>
+#include <cstddef>
+#include <cstring>
+#include <format>
+#include <fstream>
 #include <stdexcept>
 #include <iostream>
-#include <fstream>
 #include <ratio>
-#include <chrono>
-#include <cassert>
 #include <string>
-#include <cstddef>
-#include <array>
-#include <format>
-#include <algorithm>
-#include <cstring>
-#include <cstdint>
 #include <vector>
 #include <numeric>
 
@@ -83,8 +83,8 @@ VulkanRenderer::VulkanRenderer()
 	, mCurrentFrameIndex{0}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mIconPath{"Textures/Supernova.png"}
-	, mVertexShaderPath{"triangle/triangle_vert.spv"}
-	, mFragmentShaderPath{"triangle/triangle_frag.spv"}
+	, mVertexShaderPath{"Triangle/Triangle_vert.spv"}
+	, mFragmentShaderPath{"Triangle/Triangle_frag.spv"}
 {
 	mVulkanApplicationProperties.mAPIVersion = VK_API_VERSION_1_3;
 	mVulkanApplicationProperties.mIsValidationEnabled = true;
@@ -995,7 +995,12 @@ void VulkanRenderer::CreateVkInstance()
 	const std::vector<const char*> glfwRequiredExtensions = VulkanRendererLocal::GetGlfwRequiredExtensions();
 	for (const char* glfwRequiredExtension : glfwRequiredExtensions)
 	{
-		if (std::ranges::find(instanceExtensions, glfwRequiredExtension) == instanceExtensions.end())
+		auto iterator = std::ranges::find_if(instanceExtensions, [&](const char* aInstanceExtension)
+		{
+			return std::strcmp(aInstanceExtension, glfwRequiredExtension) == 0;
+		});
+
+		if (iterator == instanceExtensions.end())
 		{
 			instanceExtensions.push_back(glfwRequiredExtension);
 		}
