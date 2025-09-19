@@ -11,6 +11,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -41,7 +42,7 @@ private:
 	void CreateCommandBuffers();
 	void CreateVertexBuffer();
 	void CreateDescriptors();
-	VkShaderModule LoadSPIRVShader(const std::string& aFilename) const;
+	VkShaderModule LoadSPIRVShader(const std::filesystem::path& aPath) const;
 	void CreatePipeline();
 	void CreateUniformBuffers();
 
@@ -49,7 +50,7 @@ private:
 	void CreateVkInstance();
 	void CreateVulkanDevice();
 
-	VkPipelineShaderStageCreateInfo LoadShader(std::string aFilename, VkShaderStageFlagBits aVkShaderStageMask);
+	VkPipelineShaderStageCreateInfo LoadShader(const std::filesystem::path& aPath, VkShaderStageFlagBits aVkShaderStageMask);
 	void SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const;
 
 	void OnResizeWindow();
@@ -85,6 +86,9 @@ private:
 	VkPipelineLayout mVkPipelineLayout;
 	VkPipeline mVkPipeline;
 	VkDescriptorSetLayout mVkDescriptionSetLayout;
+	std::filesystem::path mIconPath;
+	std::filesystem::path mVertexShaderPath;
+	std::filesystem::path mFragmentShaderPath;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
 	std::vector<std::string> mSupportedInstanceExtensions{};

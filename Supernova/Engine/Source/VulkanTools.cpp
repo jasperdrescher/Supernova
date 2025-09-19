@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -11,19 +12,6 @@
 
 namespace VulkanTools
 {
-	std::string gResourcePath = "Resources";
-	std::string gShaderDirectory = "GLSL";
-	
-	const std::string GetShaderBasePath()
-	{
-		return VulkanTools::gResourcePath + "/Shaders/";
-	}
-
-	const std::string GetShadersPath()
-	{
-		return VulkanTools::GetShaderBasePath() + gShaderDirectory + "/";
-	}
-
 	std::string GetErrorString(VkResult aErrorCode)
 	{
 		switch (aErrorCode)
@@ -136,9 +124,9 @@ namespace VulkanTools
 			1, &imageMemoryBarrier);
 	}
 
-	VkShaderModule LoadShader(const char* aFilename, VkDevice aVkDevice)
+	VkShaderModule LoadShader(const std::filesystem::path& aPath, VkDevice aVkDevice)
 	{
-		std::ifstream is(aFilename, std::ios::binary | std::ios::in | std::ios::ate);
+		std::ifstream is(aPath, std::ios::binary | std::ios::in | std::ios::ate);
 
 		if (is.is_open())
 		{
@@ -164,7 +152,7 @@ namespace VulkanTools
 		}
 		else
 		{
-			std::cerr << "Error: Could not open shader file \"" << aFilename << "\"" << "\n";
+			std::cerr << "Error: Could not open shader file \"" << aPath << "\"" << "\n";
 			return VK_NULL_HANDLE;
 		}
 	}

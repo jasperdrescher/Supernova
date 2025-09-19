@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
+#include <filesystem>
 
 namespace FileLoader
 {
-	static bool IsFileValid(const std::string& aPath);
-	unsigned char* LoadImage(const std::string& aFilename, int& aWidth, int& aHeight, int& aNumberOfComponents);
+	static bool IsFileValid(const std::filesystem::path& aPath);
+	unsigned char* LoadImage(const std::filesystem::path& aPath, int& aWidth, int& aHeight, int& aNumberOfComponents);
 }

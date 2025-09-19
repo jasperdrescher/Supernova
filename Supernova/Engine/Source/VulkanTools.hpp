@@ -2,6 +2,7 @@
 
 #include "vulkan/vulkan_core.h"
 
+#include <filesystem>
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -20,12 +21,15 @@ constexpr long long gDefaultFenceTimeoutNS = 100000000000;
 
 namespace VulkanTools
 {
-	/** @brief Setting this path chnanges the place where the samples looks for assets and shaders */
-	extern std::string gResourcePath;
-	extern std::string gShaderDirectory;
+	enum class ShaderType
+	{
+		GLSL,
+		Slang
+	};
 
-	const std::string GetShaderBasePath();
-	const std::string GetShadersPath();
+	static ShaderType gShaderType{ShaderType::GLSL};
+	static std::filesystem::path gResourcesPath = "Resources/";
+	static std::filesystem::path gShadersPath = gResourcesPath / "Shaders/GLSL/";
 
 	/** @brief Returns an error code as a string */
 	std::string GetErrorString(VkResult aErrorCode);
@@ -50,5 +54,5 @@ namespace VulkanTools
 		VkImageSubresourceRange aVkImageSubresourceRange);
 
 	// Load a SPIR-V shader (binary)
-	VkShaderModule LoadShader(const char* aFilename, VkDevice aVkDevice);
+	VkShaderModule LoadShader(const std::filesystem::path& aPath, VkDevice aVkDevice);
 }

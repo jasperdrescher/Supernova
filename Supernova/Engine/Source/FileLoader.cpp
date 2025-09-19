@@ -5,23 +5,22 @@
 
 #include <cassert>
 #include <filesystem>
-#include <string>
 
 namespace FileLoader
 {
-	static bool IsFileValid(const std::string& aPath)
+	static bool IsFileValid(const std::filesystem::path& aPath)
 	{
 		return std::filesystem::exists(aPath);
 	}
 
-	unsigned char* LoadImage(const std::string& aFilename, int& aWidth, int& aHeight, int& aNumberOfComponents)
+	unsigned char* LoadImage(const std::filesystem::path& aPath, int& aWidth, int& aHeight, int& aNumberOfComponents)
 	{
-		const bool isFileValid = FileLoader::IsFileValid(aFilename);
+		const bool isFileValid = FileLoader::IsFileValid(aPath);
 		assert(isFileValid);
 		if (!isFileValid)
 			return nullptr;
 
-		unsigned char* image = stbi_load(aFilename.c_str(), &aWidth, &aHeight, &aNumberOfComponents, STBI_default);
+		unsigned char* image = stbi_load(aPath.generic_string().c_str(), &aWidth, &aHeight, &aNumberOfComponents, STBI_default);
 		if (!image)
 		{
 			stbi_image_free(image);
