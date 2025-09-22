@@ -31,19 +31,22 @@
     <ClCompile Include="Source\Engine.cpp" />
     <ClCompile Include="Source\FileLoader.cpp" />
     <ClCompile Include="Source\InputManager.cpp" />
+    <ClCompile Include="Source\VulkanGlTFModel.cpp" />
     <ClCompile Include="Source\VulkanRenderer.cpp" />
     <ClCompile Include="Source\Supernova.cpp" />
     <ClCompile Include="Source\VulkanDebug.cpp" />
     <ClCompile Include="Source\VulkanDevice.cpp" />
     <ClCompile Include="Source\VulkanSwapChain.cpp" />
     <ClCompile Include="Source\VulkanTools.cpp" />
+    <ClCompile Include="Source\VulkanTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Engine.hpp" />
-    <ClInclude Include="Source\FileLoader.h" />
+    <ClInclude Include="Source\FileLoader.hpp" />
     <ClInclude Include="Source\InputKeys.hpp" />
     <ClInclude Include="Source\InputManager.hpp" />
+    <ClInclude Include="Source\VulkanGlTFModel.hpp" />
     <ClInclude Include="Source\VulkanRenderer.hpp" />
     <ClInclude Include="Source\VulkanDebug.hpp" />
     <ClInclude Include="Source\VulkanDevice.hpp" />
@@ -171,7 +174,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -179,14 +182,19 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y
-xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y</Command>
+xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y
+xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy only specific resources</Message>
     </PostBuildEvent>
+    <PreLinkEvent>
+      <Command>xcopy /Y /D "$(SolutionDir)ThirdParty\KTX\Lib\ktx.dll" "$(OutDir)"</Command>
+      <Message>Copy DLLs</Message>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_ASAN|x64'">
     <ClCompile>
@@ -194,7 +202,7 @@ xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\TinyGLTF\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -202,13 +210,21 @@ xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y</Command>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y</Command>
+      <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y
+xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y
+xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy only specific resources</Message>
     </PostBuildEvent>
+    <PreLinkEvent>
+      <Command>xcopy /Y /D "$(SolutionDir)ThirdParty\KTX\Lib\ktx.dll" "$(OutDir)"</Command>
+    </PreLinkEvent>
+    <PreLinkEvent>
+      <Message>Copy DLLs</Message>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -218,20 +234,28 @@ xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\TinyGLTF\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Release;$(SolutionDir)ThirdParty\KTX\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y</Command>
+      <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y
+xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y
+xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy only specific resources</Message>
     </PostBuildEvent>
+    <PreLinkEvent>
+      <Command>xcopy /Y /D "$(SolutionDir)ThirdParty\KTX\Lib\ktx.dll" "$(OutDir)"</Command>
+    </PreLinkEvent>
+    <PreLinkEvent>
+      <Message>Copy DLLs</Message>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "VulkanTypes.hpp"
+
 #include "vulkan/vulkan_core.h"
 
 #include <cstdint>
@@ -28,6 +30,14 @@ struct VulkanDevice
 	void CreateLogicalDevice(std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain = true, VkQueueFlags aRequestedQueueTypes = VK_QUEUE_GRAPHICS_BIT|VK_QUEUE_COMPUTE_BIT);
 	void CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice);
 
+	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, VkCommandPool pool, bool begin = false);
+	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin = false);
+	VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, void* data = nullptr);
+	VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VulkanBuffer* buffer, VkDeviceSize size, void* data = nullptr);
+
+	void            flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free = true);
+	void            flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
+
 	std::uint32_t GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32 * aMemTypeFound = nullptr) const;
 	std::uint32_t GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) const;
 	bool IsExtensionSupported(const std::string& aExtension) const;
@@ -50,6 +60,9 @@ struct VulkanDevice
 
 	/** @brief Memory types and heaps of the physical device */
 	VkPhysicalDeviceMemoryProperties mVkPhysicalDeviceMemoryProperties{};
+
+	/** @brief Default command pool for the graphics queue family index */
+	VkCommandPool mGraphicsVkCommandPool{VK_NULL_HANDLE};
 
 	/** @brief Queue family properties of the physical device */
 	std::vector<VkQueueFamilyProperties> mVkQueueFamilyProperties{};

@@ -4,6 +4,7 @@
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanTypes.hpp"
+#include "VulkanGlTFModel.hpp"
 
 #include <glm/fwd.hpp>
 #include <vulkan/vulkan_core.h>
@@ -34,13 +35,32 @@ public:
 	bool IsPaused() const { return mIsPaused; }
 
 private:
+	struct UniformData
+	{
+		glm::mat4 projection;
+		glm::mat4 modelView;
+		glm::vec4 viewPos;
+	} uniformData;
+	std::array<VulkanBuffer, gMaxConcurrentFrames> uniformBuffers;
+
+	// Synchronization related objects and variables
+	// These are used to have multiple frame buffers "in flight" to get some CPU/GPU parallelism
+	uint32_t currentImageIndex{0};
+	uint32_t currentBuffer{0};
+
+	// Command buffer pool
+	VkCommandPool mVkCommandPoolBuffer{VK_NULL_HANDLE};
+
 	void PrepareVulkanResources();
 	void PrepareFrame();
+	void buildCommandBuffer();
+	void updateUniformBuffers();
+	void submitFrame();
 	void SetupDepthStencil();
 
+	void loadAssets();
 	void CreateSynchronizationPrimitives();
 	void CreateCommandBuffers();
-	void CreateVertexBuffer();
 	void CreateDescriptors();
 	VkShaderModule LoadSPIRVShader(const std::filesystem::path& aPath) const;
 	void CreatePipeline();
@@ -70,45 +90,45 @@ private:
 	static void WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);
 	
+	vkglTF::Model* mGlTFModel;
+
 	Camera mCamera;
 	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
 	VulkanDepthStencil mVulkanDepthStencil;
 	VkClearColorValue mDefaultClearColor;
 	VkInstance mVkInstance; // Vulkan instance, stores all per-application states
 	VkQueue mVkQueue; // Handle to the device graphics queue that command buffers are submitted to
-	VkCommandPool mVkCommandPool; // Command buffer pool
 	VkDescriptorPool mVkDescriptorPool; // Descriptor set pool
 	VkPipelineCache mVkPipelineCache; // Pipeline cache object
 	VulkanSwapChain mVulkanSwapChain; // Wraps the swap chain to present images (framebuffers) to the windowing system
 	VulkanApplicationProperties mVulkanApplicationProperties;
-	VulkanBuffer mVulkanVertexBuffer;
-	VulkanBuffer mVulkanIndexBuffer;
 	VkPipelineLayout mVkPipelineLayout;
 	VkPipeline mVkPipeline;
-	VkDescriptorSetLayout mVkDescriptionSetLayout;
+	VkDescriptorSetLayout mVkDescriptorSetLayout;
 	std::filesystem::path mIconPath;
+	std::filesystem::path mModelPath;
 	std::filesystem::path mVertexShaderPath;
 	std::filesystem::path mFragmentShaderPath;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
 	std::vector<std::string> mSupportedInstanceExtensions{};
-	std::vector<const char*> mEnabledDeviceExtensions{}; // Set of device extensions to be enabled for this example (must be set in the derived constructor)
-	std::vector<const char*> mEnabledInstanceExtensions{}; // Set of instance extensions to be enabled for this example (must be set in the derived constructor)
-	std::vector<VkLayerSettingEXT> mEnabledLayerSettings{}; // Set of layer settings to be enabled for this example (must be set in the derived constructor)
+	std::vector<const char*> mEnabledDeviceExtensions{}; // Set of device extensions to be enabled for this example
+	std::vector<const char*> mRequestedInstanceExtensions{}; // Set of instance extensions to be enabled for this example
+	std::vector<VkLayerSettingEXT> mEnabledLayerSettings{}; // Set of layer settings to be enabled for this example
+	std::vector<const char*> mInstanceExtensions{}; // Set of active instance extensions
 	std::vector<VkShaderModule> mVkShaderModules{}; // List of shader modules created (stored for cleanup)
 	std::vector<VkSemaphore> mVkPresentCompleteSemaphores{};
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
 	std::vector<float> mFrametimes{};
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
-	std::array<VulkanUniformBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers{};
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
+	std::array<VkDescriptorSet, gMaxConcurrentFrames> descriptorSets{};
 	std::uint32_t mFramebufferWidth;
 	std::uint32_t mFramebufferHeight;
 	std::uint32_t mFrameCounter;
 	std::uint32_t mLastFPS;
 	std::uint32_t mMaxFrametimes;
 	std::uint32_t mBufferIndexCount;
-	std::uint32_t mCurrentFrameIndex;
 	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
 	GLFWwindow* mGLFWWindow;
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)

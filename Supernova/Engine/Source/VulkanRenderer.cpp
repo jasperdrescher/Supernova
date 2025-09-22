@@ -1,6 +1,6 @@
 #include "VulkanRenderer.hpp"
 
-#include "FileLoader.h"
+#include "FileLoader.hpp"
 #include "InputManager.hpp"
 #include "VulkanDebug.hpp"
 #include "VulkanInitializers.hpp"
@@ -73,18 +73,17 @@ VulkanRenderer::VulkanRenderer()
 	, mVkInstance{VK_NULL_HANDLE}
 	, mVkQueue{VK_NULL_HANDLE}
 	, mVkDepthFormat{VK_FORMAT_UNDEFINED}
-	, mVkCommandPool{VK_NULL_HANDLE}
 	, mVkDescriptorPool{VK_NULL_HANDLE}
 	, mVkPipelineCache{VK_NULL_HANDLE}
 	, mBufferIndexCount{0}
 	, mVkPipelineLayout{VK_NULL_HANDLE}
 	, mVkPipeline{VK_NULL_HANDLE}
-	, mVkDescriptionSetLayout{VK_NULL_HANDLE}
-	, mCurrentFrameIndex{0}
+	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mIconPath{"Textures/Supernova.png"}
-	, mVertexShaderPath{"Triangle/Triangle_vert.spv"}
-	, mFragmentShaderPath{"Triangle/Triangle_frag.spv"}
+	, mModelPath{"Models/Voyager.gltf"}
+	, mVertexShaderPath{"DynamicRendering/Texture_vert.spv"}
+	, mFragmentShaderPath{"DynamicRendering/Texture_frag.spv"}
 {
 	mVulkanApplicationProperties.mAPIVersion = VK_API_VERSION_1_3;
 	mVulkanApplicationProperties.mIsValidationEnabled = true;
@@ -99,8 +98,8 @@ VulkanRenderer::VulkanRenderer()
 
 	// Setup a default look-at camera
 	mCamera.SetType(CameraType::LookAt);
-	mCamera.SetPosition(glm::vec3(0.0f, 0.0f, -2.5f));
-	mCamera.SetRotation(glm::vec3(0.0f));
+	mCamera.SetPosition(glm::vec3(0.0f, 0.0f, -10.0f));
+	mCamera.SetRotation(glm::vec3(-7.5f, 72.0f, 0.0f));
 	mCamera.SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 1.0f, 256.0f);
 }
 
@@ -113,7 +112,7 @@ VulkanRenderer::~VulkanRenderer()
 		if (mVkDescriptorPool != VK_NULL_HANDLE)
 			vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, mVkDescriptorPool, nullptr);
 
-		vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
+		vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
 
 		for (VkShaderModule& shaderModule : mVkShaderModules)
 			vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, shaderModule, nullptr);
@@ -126,12 +125,8 @@ VulkanRenderer::~VulkanRenderer()
 
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipeline, nullptr);
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptionSetLayout, nullptr);
-		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkBuffer, nullptr);
-		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkDeviceMemory, nullptr);
-		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkBuffer, nullptr);
-		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkDeviceMemory, nullptr);
-		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, nullptr);
+		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptorSetLayout, nullptr);
+		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, nullptr);
 
 		for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
 			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
@@ -142,14 +137,15 @@ VulkanRenderer::~VulkanRenderer()
 		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 		{
 			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, mWaitVkFences[i], nullptr);
-			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, nullptr);
-			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
+			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, uniformBuffers[i].buffer, nullptr);
+			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, uniformBuffers[i].memory, nullptr);
 		}
 	}
 
 	if (mVulkanApplicationProperties.mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
+	delete mGlTFModel;
 	delete mVulkanDevice;
 
 	vkDestroyInstance(mVkInstance, nullptr);
@@ -200,6 +196,13 @@ void VulkanRenderer::DestroyRenderer()
 	glfwTerminate();
 }
 
+void VulkanRenderer::loadAssets()
+{
+	const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+	mGlTFModel = new vkglTF::Model();
+	mGlTFModel->loadFromFile(VulkanTools::gResourcesPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags);
+}
+
 void VulkanRenderer::CreateSynchronizationPrimitives()
 {
 	// Fences are per frame in flight
@@ -235,190 +238,33 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 void VulkanRenderer::CreateCommandBuffers()
 {
 	// Allocate one command buffer per max. concurrent frame from above pool
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
+	VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPoolBuffer, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &cmdBufAllocateInfo, mVkCommandBuffers.data()));
-}
-
-void VulkanRenderer::CreateVertexBuffer()
-{
-	const std::vector<VulkanVertex> vertices{
-		{{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-		{{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-		{{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}}
-	};
-	std::uint32_t vertexBufferSize = static_cast<std::uint32_t>(vertices.size()) * sizeof(VulkanVertex);
-
-	// Setup indices
-	// We do this for demonstration purposes, a triangle doesn't require indices to be rendered (because of the 1:1 mapping), but more complex shapes usually make use of indices
-	std::vector<std::uint32_t> indices{0, 1, 2};
-	mBufferIndexCount = static_cast<std::uint32_t>(indices.size());
-	std::uint32_t indexBufferSize = mBufferIndexCount * sizeof(std::uint32_t);
-
-	VkMemoryAllocateInfo vkMemoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-	VkMemoryRequirements vkMemoryRequirements;
-
-	// Static data like vertex and index buffer should be stored on the device memory for optimal (and fastest) access by the GPU
-	//
-	// To achieve this we use so-called "staging buffers" :
-	// - Create a buffer that's visible to the host (and can be mapped)
-	// - Copy the data to this buffer
-	// - Create another buffer that's local on the device (VRAM) with the same size
-	// - Copy the data from the host to the device using a command buffer
-	// - Delete the host visible (staging) buffer
-	// - Use the device local buffers for rendering
-	//
-	// Note: On unified memory architectures where host (CPU) and GPU share the same memory, staging is not necessary
-	// To keep this sample easy to follow, there is no check for that in place
-
-	// Create the host visible staging buffer that we copy vertices and indices too, and from which we copy to the device
-	VulkanBuffer vulkanStagingBuffer;
-	VkBufferCreateInfo vkBufferCreateInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	vkBufferCreateInfo.size = static_cast<VkDeviceSize>(vertexBufferSize) + indexBufferSize;
-	// Buffer is used as the copy source
-	vkBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	// Create a host-visible buffer to copy the vertex data to (staging buffer)
-	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkBufferCreateInfo, nullptr, &vulkanStagingBuffer.mVkBuffer));
-	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkBuffer, &vkMemoryRequirements);
-	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-	// Request a host visible memory type that can be used to copy our data to
-	// Also request it to be coherent, so that writes are visible to the GPU right after unmapping the buffer
-	vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &vulkanStagingBuffer.mVkDeviceMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkBuffer, vulkanStagingBuffer.mVkDeviceMemory, 0));
-	// Map the buffer and copy vertices and indices into it, this way we can use a single buffer as the source for both vertex and index GPU buffers
-	uint8_t* data{nullptr};
-	VK_CHECK_RESULT(vkMapMemory(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkDeviceMemory, 0, vkMemoryAllocateInfo.allocationSize, 0, (void**)&data));
-	memcpy(data, vertices.data(), vertexBufferSize);
-	memcpy(((char*)data) + vertexBufferSize, indices.data(), indexBufferSize);
-
-	// Create a device local buffer to which the (host local) vertex data will be copied and which will be used for rendering
-	VkBufferCreateInfo vkVertexBufferCreateInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	vkVertexBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	vkVertexBufferCreateInfo.size = vertexBufferSize;
-	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkVertexBufferCreateInfo, nullptr, &mVulkanVertexBuffer.mVkBuffer));
-	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkBuffer, &vkMemoryRequirements);
-	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-	vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanVertexBuffer.mVkDeviceMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, mVulkanVertexBuffer.mVkBuffer, mVulkanVertexBuffer.mVkDeviceMemory, 0));
-
-	// Create a device local buffer to which the (host local) index data will be copied and which will be used for rendering
-	VkBufferCreateInfo vkIndexBufferCreateInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	vkIndexBufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	vkIndexBufferCreateInfo.size = indexBufferSize;
-	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkIndexBufferCreateInfo, nullptr, &mVulkanIndexBuffer.mVkBuffer));
-	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkBuffer, &vkMemoryRequirements);
-	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-	vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanIndexBuffer.mVkDeviceMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, mVulkanIndexBuffer.mVkBuffer, mVulkanIndexBuffer.mVkDeviceMemory, 0));
-
-	// Buffer copies have to be submitted to a queue, so we need a command buffer for them
-	VkCommandBuffer vkCopyCommandBuffer;
-
-	VkCommandBufferAllocateInfo vkCommandBufferAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-	vkCommandBufferAllocateInfo.commandPool = mVkCommandPool;
-	vkCommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	vkCommandBufferAllocateInfo.commandBufferCount = 1;
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &vkCommandBufferAllocateInfo, &vkCopyCommandBuffer));
-
-	VkCommandBufferBeginInfo vkCommandBufferBeginInfo = VulkanInitializers::CommandBufferBeginInfo();
-	VK_CHECK_RESULT(vkBeginCommandBuffer(vkCopyCommandBuffer, &vkCommandBufferBeginInfo));
-	// Copy vertex and index buffers to the device
-	VkBufferCopy vkRegionBufferCopy{};
-	vkRegionBufferCopy.size = vertexBufferSize;
-	vkCmdCopyBuffer(vkCopyCommandBuffer, vulkanStagingBuffer.mVkBuffer, mVulkanVertexBuffer.mVkBuffer, 1, &vkRegionBufferCopy);
-	vkRegionBufferCopy.size = indexBufferSize;
-	// Indices are stored after the vertices in the source buffer, so we need to add an offset
-	vkRegionBufferCopy.srcOffset = vertexBufferSize;
-	vkCmdCopyBuffer(vkCopyCommandBuffer, vulkanStagingBuffer.mVkBuffer, mVulkanIndexBuffer.mVkBuffer, 1, &vkRegionBufferCopy);
-	VK_CHECK_RESULT(vkEndCommandBuffer(vkCopyCommandBuffer));
-
-	// Submit the command buffer to the queue to finish the copy
-	VkSubmitInfo vkSubmitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-	vkSubmitInfo.commandBufferCount = 1;
-	vkSubmitInfo.pCommandBuffers = &vkCopyCommandBuffer;
-
-	// Create fence to ensure that the command buffer has finished executing
-	VkFenceCreateInfo vkFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-	VkFence vkFence;
-	VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &vkFenceCreateInfo, nullptr, &vkFence));
-	// Submit copies to the queue
-	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &vkSubmitInfo, vkFence));
-	// Wait for the fence to signal that command buffer has finished executing
-	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &vkFence, VK_TRUE, gDefaultFenceTimeoutNS));
-	vkDestroyFence(mVulkanDevice->mLogicalVkDevice, vkFence, nullptr);
-	vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mVkCommandPool, 1, &vkCopyCommandBuffer);
-
-	// The fence made sure copies are finished, so we can safely delete the staging buffer
-	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkBuffer, nullptr);
-	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, vulkanStagingBuffer.mVkDeviceMemory, nullptr);
 }
 
 void VulkanRenderer::CreateDescriptors()
 {
-	// Descriptors are allocated from a pool, that tells the implementation how many and what types of descriptors we are going to use (at maximum)
-	VkDescriptorPoolSize vkDescriptorPoolCounts[1]{};
-	// This example only one descriptor type (uniform buffer)
-	vkDescriptorPoolCounts[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	// We have one buffer (and as such descriptor) per frame
-	vkDescriptorPoolCounts[0].descriptorCount = gMaxConcurrentFrames;
-	// For additional types you need to add new entries in the type count list
-	// E.g. for two combined image samplers :
-	// typeCounts[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	// typeCounts[1].descriptorCount = 2;
-
-	// Create the global descriptor pool
-	// All descriptors used in this example are allocated from this pool
-	VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-	vkDescriptorPoolCreateInfo.poolSizeCount = 1;
-	vkDescriptorPoolCreateInfo.pPoolSizes = vkDescriptorPoolCounts;
-	// Set the max. number of descriptor sets that can be requested from this pool (requesting beyond this limit will result in an error)
-	// Our sample will create one set per uniform buffer per frame
-	vkDescriptorPoolCreateInfo.maxSets = gMaxConcurrentFrames;
-	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &vkDescriptorPoolCreateInfo, nullptr, &mVkDescriptorPool));
-
-	// Descriptor set layouts define the interface between our application and the shader
-	// Basically connects the different shader stages to descriptors for binding uniform buffers, image samplers, etc.
-	// So every shader binding should map to one descriptor set layout binding
-	// Binding 0: Uniform buffer (Vertex shader)
-	VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding{};
-	vkDescriptorSetLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	vkDescriptorSetLayoutBinding.descriptorCount = 1;
-	vkDescriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-	vkDescriptorSetLayoutCreateInfo.bindingCount = 1;
-	vkDescriptorSetLayoutCreateInfo.pBindings = &vkDescriptorSetLayoutBinding;
-	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &vkDescriptorSetLayoutCreateInfo, nullptr, &mVkDescriptionSetLayout));
-
-	// Where the descriptor set layout is the interface, the descriptor set points to actual data
-	// Descriptors that are changed per frame need to be multiplied, so we can update descriptor n+1 while n is still used by the GPU, so we create one per max frame in flight
-	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
+	// Pool
+	std::vector<VkDescriptorPoolSize> poolSizes = {
+		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, gMaxConcurrentFrames),
+	};
+	VkDescriptorPoolCreateInfo descriptorPoolInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames);
+	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mVkDescriptorPool));
+	// Layout
+	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+	};
+	VkDescriptorSetLayoutCreateInfo descriptorLayout = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorLayout, nullptr, &mVkDescriptorSetLayout));
+	// Sets per frame, just like the buffers themselves
+	VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
+	for (auto i = 0; i < uniformBuffers.size(); i++)
 	{
-		VkDescriptorSetAllocateInfo vkDescriptorSetAllocateInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-		vkDescriptorSetAllocateInfo.descriptorPool = mVkDescriptorPool;
-		vkDescriptorSetAllocateInfo.descriptorSetCount = 1;
-		vkDescriptorSetAllocateInfo.pSetLayouts = &mVkDescriptionSetLayout;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &vkDescriptorSetAllocateInfo, &mVulkanUniformBuffers[i].mVkDescriptorSet));
-
-		// Update the descriptor set determining the shader binding points
-		// For every binding point used in a shader there needs to be one
-		// descriptor set matching that binding point
-		VkWriteDescriptorSet vkWriteDescriptorSet{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-
-		// The buffer's information is passed using a descriptor info structure
-		VkDescriptorBufferInfo vkDescriptorBufferInfo{};
-		vkDescriptorBufferInfo.buffer = mVulkanUniformBuffers[i].mVkBuffer;
-		vkDescriptorBufferInfo.range = sizeof(VulkanShaderData);
-
-		// Binding 0 : Uniform buffer
-		vkWriteDescriptorSet.dstSet = mVulkanUniformBuffers[i].mVkDescriptorSet;
-		vkWriteDescriptorSet.descriptorCount = 1;
-		vkWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		vkWriteDescriptorSet.pBufferInfo = &vkDescriptorBufferInfo;
-		vkWriteDescriptorSet.dstBinding = 0;
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, 1, &vkWriteDescriptorSet, 0, nullptr);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &descriptorSets[i]));
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			VulkanInitializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+		};
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 }
 
@@ -508,190 +354,63 @@ VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::filesystem::path& aPat
 
 void VulkanRenderer::CreatePipeline()
 {
-	// The pipeline layout is the interface telling the pipeline what type of descriptors will later be bound
-	VkPipelineLayoutCreateInfo vkPipelineLayoutCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-	vkPipelineLayoutCreateInfo.setLayoutCount = 1;
-	vkPipelineLayoutCreateInfo.pSetLayouts = &mVkDescriptionSetLayout;
-	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &vkPipelineLayoutCreateInfo, nullptr, &mVkPipelineLayout));
+	// Layout
+	// Uses set 0 for passing vertex shader ubo and set 1 for fragment shader images (taken from glTF model)
+	const std::vector<VkDescriptorSetLayout> setLayouts = {
+		mVkDescriptorSetLayout,
+		vkglTF::descriptorSetLayoutImage,
+	};
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(setLayouts.data(), 2);
+	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mVkPipelineLayout));
 
-	// Create the graphics pipeline used in this example
-	// Vulkan uses the concept of rendering pipelines to encapsulate fixed states, replacing OpenGL's complex state machine
-	// A pipeline is then stored and hashed on the GPU making pipeline changes very fast
+	// Pipeline
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+	VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+	VkPipelineColorBlendAttachmentState blendAttachmentState = VulkanInitializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+	VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+	VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+	VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::pipelineViewportStateCreateInfo(1, 1, 0);
+	VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+	std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+	VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
-	VkGraphicsPipelineCreateInfo vkGraphicsPipelineCreateInfo{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-	// The layout used for this pipeline (can be shared among multiple pipelines using the same layout)
-	vkGraphicsPipelineCreateInfo.layout = mVkPipelineLayout;
+	// We no longer need to set a renderpass for the pipeline create info
+	VkGraphicsPipelineCreateInfo pipelineCI = VulkanInitializers::pipelineCreateInfo();
+	pipelineCI.layout = mVkPipelineLayout;
+	pipelineCI.pInputAssemblyState = &inputAssemblyState;
+	pipelineCI.pRasterizationState = &rasterizationState;
+	pipelineCI.pColorBlendState = &colorBlendState;
+	pipelineCI.pMultisampleState = &multisampleState;
+	pipelineCI.pViewportState = &viewportState;
+	pipelineCI.pDepthStencilState = &depthStencilState;
+	pipelineCI.pDynamicState = &dynamicState;
+	pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+	pipelineCI.pStages = shaderStages.data();
+	pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV});
 
-	// Construct the different states making up the pipeline
+	// New create info to define color, depth and stencil attachments at pipeline create time
+	VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo{};
+	pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
+	pipelineRenderingCreateInfo.pColorAttachmentFormats = &mVulkanSwapChain.mColorVkFormat;
+	pipelineRenderingCreateInfo.depthAttachmentFormat = mVkDepthFormat;
+	pipelineRenderingCreateInfo.stencilAttachmentFormat = mVkDepthFormat;
+	// Chain into the pipeline creat einfo
+	pipelineCI.pNext = &pipelineRenderingCreateInfo;
 
-	// Input assembly state describes how primitives are assembled
-	// This pipeline will assemble vertex data as a triangle lists (though we only use one triangle)
-	VkPipelineInputAssemblyStateCreateInfo vkPipelineInputAssemblyStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
-	vkPipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-	// Rasterization state
-	VkPipelineRasterizationStateCreateInfo rasterizationStateCI{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
-	rasterizationStateCI.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizationStateCI.cullMode = VK_CULL_MODE_NONE;
-	rasterizationStateCI.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-	rasterizationStateCI.depthClampEnable = VK_FALSE;
-	rasterizationStateCI.rasterizerDiscardEnable = VK_FALSE;
-	rasterizationStateCI.depthBiasEnable = VK_FALSE;
-	rasterizationStateCI.lineWidth = 1.0f;
-
-	// Color blend state describes how blend factors are calculated (if used)
-	// We need one blend attachment state per color attachment (even if blending is not used)
-	VkPipelineColorBlendAttachmentState vkPipelineColorBlendAttachmentState{};
-	vkPipelineColorBlendAttachmentState.colorWriteMask = 0xf;
-	vkPipelineColorBlendAttachmentState.blendEnable = VK_FALSE;
-	VkPipelineColorBlendStateCreateInfo vkPipelineColorBlendStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
-	vkPipelineColorBlendStateCreateInfo.attachmentCount = 1;
-	vkPipelineColorBlendStateCreateInfo.pAttachments = &vkPipelineColorBlendAttachmentState;
-
-	// Viewport state sets the number of viewports and scissor used in this pipeline
-	// Note: This is actually overridden by the dynamic states (see below)
-	VkPipelineViewportStateCreateInfo vkPipelineViewportStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
-	vkPipelineViewportStateCreateInfo.viewportCount = 1;
-	vkPipelineViewportStateCreateInfo.scissorCount = 1;
-
-	// Enable dynamic states
-	// Most states are baked into the pipeline, but there is somee state that can be dynamically changed within the command buffer to mak e things easuer
-	// To be able to change these we need do specify which dynamic states will be changed using this pipeline. Their actual states are set later on in the command buffer
-	std::vector<VkDynamicState> vkDynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-	VkPipelineDynamicStateCreateInfo vkPipelineDynamicStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-	vkPipelineDynamicStateCreateInfo.pDynamicStates = vkDynamicStateEnables.data();
-	vkPipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<std::uint32_t>(vkDynamicStateEnables.size());
-
-	// Depth and stencil state containing depth and stencil compare and test operations
-	// We only use depth tests and want depth tests and writes to be enabled and compare with less or equal
-	VkPipelineDepthStencilStateCreateInfo vkPipelineDepthStencilStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-	vkPipelineDepthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
-	vkPipelineDepthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
-	vkPipelineDepthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-	vkPipelineDepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
-	vkPipelineDepthStencilStateCreateInfo.back.failOp = VK_STENCIL_OP_KEEP;
-	vkPipelineDepthStencilStateCreateInfo.back.passOp = VK_STENCIL_OP_KEEP;
-	vkPipelineDepthStencilStateCreateInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
-	vkPipelineDepthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
-	vkPipelineDepthStencilStateCreateInfo.front = vkPipelineDepthStencilStateCreateInfo.back;
-
-	// This example does not make use of multi sampling (for anti-aliasing), the state must still be set and passed to the pipeline
-	VkPipelineMultisampleStateCreateInfo vkPipelineMultisampleStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
-	vkPipelineMultisampleStateCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-	// Vertex input descriptions
-	// Specifies the vertex input parameters for a pipeline
-
-	// Vertex input binding
-	// This example uses a single vertex input binding at binding point 0 (see vkCmdBindVertexBuffers)
-	VkVertexInputBindingDescription vkVertexInputBindingDescription{};
-	vkVertexInputBindingDescription.binding = 0;
-	vkVertexInputBindingDescription.stride = sizeof(VulkanVertex);
-	vkVertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-	// Input attribute bindings describe shader attribute locations and memory layouts
-	std::array<VkVertexInputAttributeDescription, 2> vkVertexInputAttributeDescriptions{};
-	// These match the following shader layout (see triangle.vert):
-	//	layout (location = 0) in vec3 inPos;
-	//	layout (location = 1) in vec3 inColor;
-	// Attribute location 0: Position
-	vkVertexInputAttributeDescriptions[0].binding = 0;
-	vkVertexInputAttributeDescriptions[0].location = 0;
-	// Position attribute is three 32 bit signed (SFLOAT) floats (R32 G32 B32)
-	vkVertexInputAttributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	vkVertexInputAttributeDescriptions[0].offset = offsetof(VulkanVertex, mVertexPosition);
-	// Attribute location 1: Color
-	vkVertexInputAttributeDescriptions[1].binding = 0;
-	vkVertexInputAttributeDescriptions[1].location = 1;
-	// Color attribute is three 32 bit signed (SFLOAT) floats (R32 G32 B32)
-	vkVertexInputAttributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	vkVertexInputAttributeDescriptions[1].offset = offsetof(VulkanVertex, mVertexColor);
-
-	// Vertex input state used for pipeline creation
-	VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-	vkPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
-	vkPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = &vkVertexInputBindingDescription;
-	vkPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = 2;
-	vkPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vkVertexInputAttributeDescriptions.data();
-
-	// Shaders
-	std::array<VkPipelineShaderStageCreateInfo, 2> vkPipelineShaderStages{};
-
-	// Vertex shader
-	vkPipelineShaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vkPipelineShaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vkPipelineShaderStages[0].module = LoadSPIRVShader(VulkanTools::gShadersPath / mVertexShaderPath);
-	vkPipelineShaderStages[0].pName = "main";
-	assert(vkPipelineShaderStages[0].module != VK_NULL_HANDLE);
-
-	// Fragment shader
-	vkPipelineShaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vkPipelineShaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	vkPipelineShaderStages[1].module = LoadSPIRVShader(VulkanTools::gShadersPath / mFragmentShaderPath);
-	vkPipelineShaderStages[1].pName = "main";
-	assert(vkPipelineShaderStages[1].module != VK_NULL_HANDLE);
-
-	// Set pipeline shader stage info
-	vkGraphicsPipelineCreateInfo.stageCount = static_cast<std::uint32_t>(vkPipelineShaderStages.size());
-	vkGraphicsPipelineCreateInfo.pStages = vkPipelineShaderStages.data();
-
-	// Attachment information for dynamic rendering
-	VkPipelineRenderingCreateInfoKHR vkPipelineRenderingCreateInfoKHR{VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR};
-	vkPipelineRenderingCreateInfoKHR.colorAttachmentCount = 1;
-	vkPipelineRenderingCreateInfoKHR.pColorAttachmentFormats = &mVulkanSwapChain.mColorVkFormat;
-	vkPipelineRenderingCreateInfoKHR.depthAttachmentFormat = mVkDepthFormat;
-	vkPipelineRenderingCreateInfoKHR.stencilAttachmentFormat = mVkDepthFormat;
-
-	// Assign the pipeline states to the pipeline creation info structure
-	vkGraphicsPipelineCreateInfo.pVertexInputState = &vkPipelineVertexInputStateCreateInfo;
-	vkGraphicsPipelineCreateInfo.pInputAssemblyState = &vkPipelineInputAssemblyStateCreateInfo;
-	vkGraphicsPipelineCreateInfo.pRasterizationState = &rasterizationStateCI;
-	vkGraphicsPipelineCreateInfo.pColorBlendState = &vkPipelineColorBlendStateCreateInfo;
-	vkGraphicsPipelineCreateInfo.pMultisampleState = &vkPipelineMultisampleStateCreateInfo;
-	vkGraphicsPipelineCreateInfo.pViewportState = &vkPipelineViewportStateCreateInfo;
-	vkGraphicsPipelineCreateInfo.pDepthStencilState = &vkPipelineDepthStencilStateCreateInfo;
-	vkGraphicsPipelineCreateInfo.pDynamicState = &vkPipelineDynamicStateCreateInfo;
-	vkGraphicsPipelineCreateInfo.pNext = &vkPipelineRenderingCreateInfoKHR;
-
-	// Create rendering pipeline using the specified states
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &vkGraphicsPipelineCreateInfo, nullptr, &mVkPipeline));
-
-	// Shader modules can safely be destroyed when the pipeline has been created
-	vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, vkPipelineShaderStages[0].module, nullptr);
-	vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, vkPipelineShaderStages[1].module, nullptr);
+	shaderStages[0] = LoadShader(VulkanTools::gShadersPath / mVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(VulkanTools::gShadersPath / mFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipeline));
 }
 
 void VulkanRenderer::CreateUniformBuffers()
 {
-	// Prepare and initialize the per-frame uniform buffer blocks containing shader uniforms
-	// Single uniforms like in OpenGL are no longer present in Vulkan. All shader uniforms are passed via uniform buffer blocks
-	VkBufferCreateInfo vkBufferCreateInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	vkBufferCreateInfo.size = sizeof(VulkanShaderData);
-	// This buffer will be used as a uniform buffer
-	vkBufferCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-	// Create the buffers
-	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
+	for (auto& buffer : uniformBuffers)
 	{
-		VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &vkBufferCreateInfo, nullptr, &mVulkanUniformBuffers[i].mVkBuffer));
-		// Get memory requirements including size, alignment and memory type based on the buffer type we request (uniform buffer)
-		VkMemoryRequirements vkMemoryRequirements;
-		vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, &vkMemoryRequirements);
-		VkMemoryAllocateInfo vkMemoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-		// Note that we use the size we got from the memory requirements and not the actual buffer size, as the former may be larger due to alignment requirements of the device
-		vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-		// Get the memory type index that supports host visible memory access
-		// Most implementations offer multiple memory types and selecting the correct one to allocate memory from is crucial
-		// We also want the buffer to be host coherent so we don't have to flush (or sync after every update).
-		vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		// Allocate memory for the uniform buffer
-		VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &(mVulkanUniformBuffers[i].mVkDeviceMemory)));
-		// Bind memory to buffer
-		VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, mVulkanUniformBuffers[i].mVkDeviceMemory, 0));
-		// We map the buffer once, so we can update it without having to map it again
-		VK_CHECK_RESULT(vkMapMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, 0, sizeof(VulkanShaderData), 0, (void**)&mVulkanUniformBuffers[i].mMappedData));
+		VK_CHECK_RESULT(mVulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
+		VK_CHECK_RESULT(buffer.map());
 	}
-
 }
 
 void VulkanRenderer::PrepareVulkanResources()
@@ -703,7 +422,9 @@ void VulkanRenderer::PrepareVulkanResources()
 	CreatePipelineCache();
 	CreateSynchronizationPrimitives();
 	CreateCommandBuffers();
-	CreateVertexBuffer();
+
+	//CreateVertexBuffer();
+	loadAssets();
 	CreateUniformBuffers();
 	CreateDescriptors();
 	CreatePipeline();
@@ -714,13 +435,12 @@ void VulkanRenderer::PrepareVulkanResources()
 void VulkanRenderer::PrepareFrame()
 {
 	// Use a fence to wait until the command buffer has finished execution before using it again
-	vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentFrameIndex], VK_TRUE, UINT64_MAX);
-	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentFrameIndex]));
+	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[currentBuffer], VK_TRUE, UINT64_MAX));
+	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[currentBuffer]));
 
-	// Get the next swap chain image from the implementation
-	// Note that the implementation is free to return the images in any order, so we must use the acquire function and can't just cycle through the images/imageIndex on our own
-	std::uint32_t imageIndex{0};
-	VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[mCurrentFrameIndex], VK_NULL_HANDLE, &imageIndex);
+	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
+	// With that we don't have to handle VK_NOT_READY
+	VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[currentBuffer], VK_NULL_HANDLE, &currentImageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		OnResizeWindow();
@@ -730,42 +450,59 @@ void VulkanRenderer::PrepareFrame()
 	{
 		throw std::runtime_error("Could not acquire the next swap chain image!");
 	}
+}
 
-	// Update the uniform buffer for the next frame
-	VulkanShaderData shaderData{};
-	shaderData.mProjectionMatrix = mCamera.mMatrices.mPerspective;
-	shaderData.mViewMatrix = mCamera.mMatrices.mView;
-	shaderData.mModelMatrix = glm::mat4(1.0f);
-	// Copy the current matrices to the current frame's uniform buffer. As we requested a host coherent memory type for the uniform buffer, the write is instantly visible to the GPU.
-	memcpy(mVulkanUniformBuffers[mCurrentFrameIndex].mMappedData, &shaderData, sizeof(VulkanShaderData));
+void VulkanRenderer::buildCommandBuffer()
+{
+	VkCommandBuffer cmdBuffer = mVkCommandBuffers[currentBuffer];
 
-	// Build the command buffer for the next frame to render
-	vkResetCommandBuffer(mVkCommandBuffers[mCurrentFrameIndex], 0);
-	VkCommandBufferBeginInfo cmdBufInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-	const VkCommandBuffer commandBuffer = mVkCommandBuffers[mCurrentFrameIndex];
-	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
+	VkCommandBufferBeginInfo cmdBufInfo = VulkanInitializers::commandBufferBeginInfo();
+	VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
 
-	// With dynamic rendering we need to explicitly add layout transitions by using barriers, this set of barriers prepares the color and depth images for output
-	VulkanTools::InsertImageMemoryBarrier(commandBuffer, mVulkanSwapChain.mVkImages[imageIndex], 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
-	VulkanTools::InsertImageMemoryBarrier(commandBuffer, mVulkanDepthStencil.mVkImage, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1});
+	// With dynamic rendering there are no subpass dependencies, so we need to take care of proper layout transitions by using barriers
+	// This set of barriers prepares the color and depth images for output
+	VulkanTools::InsertImageMemoryBarrier(
+		cmdBuffer,
+		mVulkanSwapChain.mVkImages[currentImageIndex],
+		0,
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+	VulkanTools::InsertImageMemoryBarrier(
+		cmdBuffer,
+		mVulkanDepthStencil.mVkImage,
+		0,
+		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+		VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1});
 
 	// New structures are used to define the attachments used in dynamic rendering
-	// Color attachment
-	VkRenderingAttachmentInfo colorAttachment{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-	colorAttachment.imageView = mVulkanSwapChain.mVkImageViews[imageIndex];
+	VkRenderingAttachmentInfoKHR colorAttachment{};
+	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+	colorAttachment.imageView = mVulkanSwapChain.mVkImageViews[currentImageIndex];
 	colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.clearValue.color = {0.0f, 0.0f, 0.2f, 0.0f};
-	// Depth/stencil attachment
-	VkRenderingAttachmentInfo depthStencilAttachment{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+	colorAttachment.clearValue.color = {0.0f,0.0f,0.0f,0.0f};
+
+	// A single depth stencil attachment info can be used, but they can also be specified separately.
+	// When both are specified separately, the only requirement is that the image view is identical.			
+	VkRenderingAttachmentInfoKHR depthStencilAttachment{};
+	depthStencilAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
 	depthStencilAttachment.imageView = mVulkanDepthStencil.mVkImageView;
 	depthStencilAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthStencilAttachment.clearValue.depthStencil = {1.0f, 0};
+	depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	depthStencilAttachment.clearValue.depthStencil = {1.0f,  0};
 
-	VkRenderingInfo renderingInfo{VK_STRUCTURE_TYPE_RENDERING_INFO_KHR};
+	VkRenderingInfoKHR renderingInfo{};
+	renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
 	renderingInfo.renderArea = {0, 0, mFramebufferWidth, mFramebufferHeight};
 	renderingInfo.layerCount = 1;
 	renderingInfo.colorAttachmentCount = 1;
@@ -773,76 +510,82 @@ void VulkanRenderer::PrepareFrame()
 	renderingInfo.pDepthAttachment = &depthStencilAttachment;
 	renderingInfo.pStencilAttachment = &depthStencilAttachment;
 
-	// Start a dynamic rendering section
-	vkCmdBeginRendering(commandBuffer, &renderingInfo);
-	// Update dynamic viewport state
-	VkViewport viewport{0.0f, 0.0f, static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f};
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-	// Update dynamic scissor state
-	VkRect2D scissor{0, 0, mFramebufferWidth, mFramebufferHeight};
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-	// Bind descriptor set for the current frame's uniform buffer, so the shader uses the data from that buffer for this draw
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVulkanUniformBuffers[mCurrentFrameIndex].mVkDescriptorSet, 0, nullptr);
-	// The pipeline (state object) contains all states of the rendering pipeline, binding it will set all the states specified at pipeline creation time
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
-	// Bind triangle vertex buffer (contains position and colors)
-	VkDeviceSize offsets[1]{0};
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mVulkanVertexBuffer.mVkBuffer, offsets);
-	// Bind triangle index buffer
-	vkCmdBindIndexBuffer(commandBuffer, mVulkanIndexBuffer.mVkBuffer, 0, VK_INDEX_TYPE_UINT32);
-	// Draw indexed triangle
-	vkCmdDrawIndexed(commandBuffer, mBufferIndexCount, 1, 0, 0, 0);
-	// Finish the current dynamic rendering section
-	vkCmdEndRendering(commandBuffer);
+	// Begin dynamic rendering
+	vkCmdBeginRendering(cmdBuffer, &renderingInfo);
 
-	// This barrier prepares the color image for presentation, we don't need to care for the depth image
-	VulkanTools::InsertImageMemoryBarrier(commandBuffer, mVulkanSwapChain.mVkImages[imageIndex], VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE, VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
-	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+	VkViewport viewport = VulkanInitializers::viewport((float)mFramebufferWidth, (float)mFramebufferHeight, 0.0f, 1.0f);
+	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 
-	// Submit the command buffer to the graphics queue
+	VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
+	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-	// Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
-	VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	// The submit info structure specifies a command buffer queue submission batch
-	VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-	submitInfo.pWaitDstStageMask = &waitStageMask;      // Pointer to the list of pipeline stages that the semaphore waits will occur at
-	submitInfo.pCommandBuffers = &commandBuffer;		// Command buffers(s) to execute in this batch (submission)
-	submitInfo.commandBufferCount = 1;                  // We submit a single command buffer
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
 
-	// Semaphore to wait upon before the submitted command buffer starts executing
-	submitInfo.pWaitSemaphores = &mVkPresentCompleteSemaphores[mCurrentFrameIndex];
-	submitInfo.waitSemaphoreCount = 1;
-	// Semaphore to be signaled when command buffers have completed
-	submitInfo.pSignalSemaphores = &mVkRenderCompleteSemaphores[imageIndex];
-	submitInfo.signalSemaphoreCount = 1;
+	mGlTFModel->draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
 
-	// Submit to the graphics queue passing a wait fence
-	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &submitInfo, mWaitVkFences[mCurrentFrameIndex]));
+	// End dynamic rendering
+	vkCmdEndRendering(cmdBuffer);
 
-	// Present the current frame buffer to the swap chain
-	// Pass the semaphore signaled by the command buffer submission from the submit info as the wait semaphore for swap chain presentation
-	// This ensures that the image is not presented to the windowing system until all commands have been submitted
-	VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &mVkRenderCompleteSemaphores[imageIndex];
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &mVulkanSwapChain.mVkSwapchainKHR;
-	presentInfo.pImageIndices = &imageIndex;
-	result = vkQueuePresentKHR(mVkQueue, &presentInfo);
-	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR) || mIsFramebufferResized)
+	// This set of barriers prepares the color image for presentation, we don't need to care for the depth image
+	VulkanTools::InsertImageMemoryBarrier(
+		cmdBuffer,
+		mVulkanSwapChain.mVkImages[currentImageIndex],
+		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		0,
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+
+	VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+}
+
+void VulkanRenderer::updateUniformBuffers()
+{
+	uniformData.projection = mCamera.mMatrices.mPerspective;
+	uniformData.modelView = mCamera.mMatrices.mView;
+	uniformData.viewPos = mCamera.getViewPosition();
+	memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(uniformData));
+}
+
+void VulkanRenderer::submitFrame()
+{
+	const VkPipelineStageFlags waitPipelineStage{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &mVkPresentCompleteSemaphores[currentBuffer],
+		.pWaitDstStageMask = &waitPipelineStage,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &mVkCommandBuffers[currentBuffer],
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &mVkRenderCompleteSemaphores[currentImageIndex]
+	};
+	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &submitInfo, mWaitVkFences[currentBuffer]));
+
+	VkPresentInfoKHR presentInfo{
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &mVkRenderCompleteSemaphores[currentImageIndex],
+		.swapchainCount = 1,
+		.pSwapchains = &mVulkanSwapChain.mVkSwapchainKHR,
+		.pImageIndices = &currentImageIndex
+	};
+	VkResult result = vkQueuePresentKHR(mVkQueue, &presentInfo);
+	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		mIsFramebufferResized = false;
-
-		if (!mVulkanApplicationProperties.mIsMinimized)
-			OnResizeWindow();
+		OnResizeWindow();
+		return;
 	}
-	else if (result != VK_SUCCESS)
+	else if ((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR))
 	{
-		throw std::runtime_error("Could not present the image to the swap chain!");
+		throw std::runtime_error("Could not acquire the next swap chain image!");
 	}
-
 	// Select the next frame to render to, based on the max. no. of concurrent frames
-	mCurrentFrameIndex = (mCurrentFrameIndex + 1) % gMaxConcurrentFrames;
+	currentBuffer = (currentBuffer + 1) % gMaxConcurrentFrames;
 }
 
 void VulkanRenderer::CreateGlfwWindow()
@@ -932,7 +675,8 @@ void VulkanRenderer::WindowMinimizedCallback(GLFWwindow* aWindow, int aValue)
 
 void VulkanRenderer::CreateVkInstance()
 {
-	std::vector<const char*> instanceExtensions = {VK_KHR_SURFACE_EXTENSION_NAME};
+	mRequestedInstanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+	mRequestedInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
 	std::uint32_t extensionCount = 0;
 	VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr));
@@ -948,14 +692,17 @@ void VulkanRenderer::CreateVkInstance()
 		}
 	}
 
-	if (!mEnabledInstanceExtensions.empty())
+	if (!mRequestedInstanceExtensions.empty())
 	{
-		for (const char* enabledExtension : mEnabledInstanceExtensions)
+		for (const char* requestedExtension : mRequestedInstanceExtensions)
 		{
-			if (std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), enabledExtension) == mSupportedInstanceExtensions.end())
-				std::cerr << "Enabled instance extension \"" << enabledExtension << "\" is not present at instance level" << std::endl;
+			if (std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), requestedExtension) == mSupportedInstanceExtensions.end())
+			{
+				std::cerr << "Requested instance extension \"" << requestedExtension << "\" is not present at instance level" << std::endl;
+				continue;
+			}
 
-			instanceExtensions.push_back(enabledExtension);
+			mInstanceExtensions.push_back(requestedExtension);
 		}
 	}
 
@@ -990,29 +737,29 @@ void VulkanRenderer::CreateVkInstance()
 	}
 
 	if (mVulkanApplicationProperties.mIsValidationEnabled || std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
-		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		mInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
 	const std::vector<const char*> glfwRequiredExtensions = VulkanRendererLocal::GetGlfwRequiredExtensions();
 	for (const char* glfwRequiredExtension : glfwRequiredExtensions)
 	{
-		auto iterator = std::ranges::find_if(instanceExtensions, [&](const char* aInstanceExtension)
+		auto iterator = std::ranges::find_if(mInstanceExtensions, [&](const char* aInstanceExtension)
 		{
 			return std::strcmp(aInstanceExtension, glfwRequiredExtension) == 0;
 		});
 
-		if (iterator == instanceExtensions.end())
+		if (iterator == mInstanceExtensions.end())
 		{
-			instanceExtensions.push_back(glfwRequiredExtension);
+			mInstanceExtensions.push_back(glfwRequiredExtension);
 		}
 	}
 
-	if (!instanceExtensions.empty())
+	if (!mInstanceExtensions.empty())
 	{
-		vkInstanceCreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(instanceExtensions.size());
-		vkInstanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
+		vkInstanceCreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(mInstanceExtensions.size());
+		vkInstanceCreateInfo.ppEnabledExtensionNames = mInstanceExtensions.data();
 
 #ifndef NDEBUG
-		for (const char* instanceExtension : instanceExtensions)
+		for (const char* instanceExtension : mInstanceExtensions)
 		{
 			std::cout << "Enabling instance extension " << instanceExtension << std::endl;
 		}
@@ -1143,6 +890,9 @@ void VulkanRenderer::NextFrame()
 	const std::chrono::steady_clock::time_point frameTimeStart = std::chrono::high_resolution_clock::now();
 	
 	PrepareFrame();
+	updateUniformBuffers();
+	buildCommandBuffer();
+	submitFrame();
 
 	mFrameCounter++;
 	const std::chrono::steady_clock::time_point frameTimeEnd = std::chrono::high_resolution_clock::now();
@@ -1199,7 +949,7 @@ void VulkanRenderer::CreateCommandPool()
 	vkCommandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	vkCommandPoolCreateInfo.queueFamilyIndex = mVulkanSwapChain.mQueueNodeIndex;
 	vkCommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPool));
+	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPoolBuffer));
 }
 
 void VulkanRenderer::OnResizeWindow()

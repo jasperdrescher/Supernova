@@ -3,6 +3,8 @@
 #include <glm/fwd.hpp>
 #include <vulkan/vulkan_core.h>
 
+#include <glm/mat4x4.hpp>
+#include <string>
 #include <cstdint>
 #include <string>
 
@@ -30,20 +32,26 @@ struct VulkanVertex
 
 struct VulkanBuffer
 {
-	VulkanBuffer() : mVkBuffer{VK_NULL_HANDLE}, mVkDeviceMemory{VK_NULL_HANDLE} {}
-
-	VkBuffer mVkBuffer;
-	VkDeviceMemory mVkDeviceMemory;
-};
-
-struct VulkanUniformBuffer : VulkanBuffer
-{
-	VulkanUniformBuffer() : VulkanBuffer(), mVkDescriptorSet{VK_NULL_HANDLE}, mMappedData(nullptr) {}
-
-	// The descriptor set stores the resources bound to the binding points in a shader
-	// It connects the binding points of the different shaders with the buffers and images used for those bindings
-	VkDescriptorSet mVkDescriptorSet;
-	std::uint8_t* mMappedData; // We keep a pointer to the mapped buffer, so we can easily update it's contents via a memcpy
+	VkDevice device;
+	VkBuffer buffer = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
+	VkDescriptorBufferInfo descriptor;
+	VkDeviceSize size = 0;
+	VkDeviceSize alignment = 0;
+	void* mapped = nullptr;
+	/** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */
+	VkBufferUsageFlags usageFlags;
+	/** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
+	VkMemoryPropertyFlags memoryPropertyFlags;
+	uint64_t deviceAddress;
+	VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	void unmap();
+	VkResult bind(VkDeviceSize offset = 0);
+	void setupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	void copyTo(void* data, VkDeviceSize size);
+	VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	void destroy();
 };
 
 struct VulkanShaderData

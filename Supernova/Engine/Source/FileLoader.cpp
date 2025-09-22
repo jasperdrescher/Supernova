@@ -1,4 +1,4 @@
-#include "FileLoader.h"
+#include "FileLoader.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -8,7 +8,7 @@
 
 namespace FileLoader
 {
-	static bool IsFileValid(const std::filesystem::path& aPath)
+	bool IsFileValid(const std::filesystem::path& aPath)
 	{
 		return std::filesystem::exists(aPath);
 	}

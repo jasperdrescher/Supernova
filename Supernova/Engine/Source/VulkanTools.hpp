@@ -2,12 +2,15 @@
 
 #include "vulkan/vulkan_core.h"
 
+#include "VulkanInitializers.hpp"
+
 #include <filesystem>
 #include <format>
 #include <stdexcept>
 #include <string>
 
 constexpr long long gDefaultFenceTimeoutNS = 100000000000;
+constexpr int gVkFlagsNone = 0;
 
 // Macro to check and display Vulkan return results
 #define VK_CHECK_RESULT(aFunction)	\
@@ -55,4 +58,24 @@ namespace VulkanTools
 
 	// Load a SPIR-V shader (binary)
 	VkShaderModule LoadShader(const std::filesystem::path& aPath, VkDevice aVkDevice);
+
+	// Put an image memory barrier for setting an image layout on the sub resource into the given command buffer
+	void setImageLayout(
+		VkCommandBuffer cmdbuffer,
+		VkImage image,
+		VkImageLayout oldImageLayout,
+		VkImageLayout newImageLayout,
+		VkImageSubresourceRange subresourceRange,
+		VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+	// Uses a fixed sub resource layout with first mip level and layer
+	void setImageLayout(
+		VkCommandBuffer cmdbuffer,
+		VkImage image,
+		VkImageAspectFlags aspectMask,
+		VkImageLayout oldImageLayout,
+		VkImageLayout newImageLayout,
+		VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 }

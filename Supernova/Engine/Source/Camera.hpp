@@ -42,6 +42,7 @@ public:
 	void SetMovementSpeed(float aMovementSpeed);
 	void Update(float aDeltaTime);
 
+	const glm::vec4& getViewPosition() const { return mViewPosition; }
 	bool IsMoving() const;
 	float GetNearClip() const;
 	float GetFarClip() const;
