@@ -32,6 +32,7 @@
     <ClCompile Include="Source\FileLoader.cpp" />
     <ClCompile Include="Source\InputManager.cpp" />
     <ClCompile Include="Source\VulkanGlTFModel.cpp" />
+    <ClCompile Include="Source\VulkanGlTFTypes.cpp" />
     <ClCompile Include="Source\VulkanRenderer.cpp" />
     <ClCompile Include="Source\Supernova.cpp" />
     <ClCompile Include="Source\VulkanDebug.cpp" />
@@ -47,6 +48,7 @@
     <ClInclude Include="Source\InputKeys.hpp" />
     <ClInclude Include="Source\InputManager.hpp" />
     <ClInclude Include="Source\VulkanGlTFModel.hpp" />
+    <ClInclude Include="Source\VulkanGlTFTypes.hpp" />
     <ClInclude Include="Source\VulkanRenderer.hpp" />
     <ClInclude Include="Source\VulkanDebug.hpp" />
     <ClInclude Include="Source\VulkanDevice.hpp" />

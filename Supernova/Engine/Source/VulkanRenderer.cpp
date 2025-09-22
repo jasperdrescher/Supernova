@@ -3,6 +3,7 @@
 #include "FileLoader.hpp"
 #include "InputManager.hpp"
 #include "VulkanDebug.hpp"
+#include "VulkanGlTFModel.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
 
@@ -522,7 +523,7 @@ void VulkanRenderer::BuildCommandBuffer()
 	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[currentBuffer], 0, nullptr);
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
 
-	mGlTFModel->draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
+	mGlTFModel->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout, 1);
 
 	// End dynamic rendering
 	vkCmdEndRendering(cmdBuffer);

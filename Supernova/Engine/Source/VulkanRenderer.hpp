@@ -4,7 +4,6 @@
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanTypes.hpp"
-#include "VulkanGlTFModel.hpp"
 
 #include <glm/fwd.hpp>
 #include <vulkan/vulkan_core.h>
@@ -19,6 +18,11 @@
 constexpr std::uint32_t gMaxConcurrentFrames = 2;
 
 typedef struct GLFWwindow GLFWwindow;
+
+namespace vkglTF
+{
+	class Model;
+}
 
 class VulkanRenderer
 {
