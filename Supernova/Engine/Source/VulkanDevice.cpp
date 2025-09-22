@@ -123,7 +123,7 @@ std::uint32_t VulkanDevice::GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) cons
 *
 * @return VkResult of the device creation call
 */
-void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures aEnabledFeatures, std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain, VkQueueFlags aRequestedQueueTypes)
+void VulkanDevice::CreateLogicalDevice(std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain, VkQueueFlags aRequestedQueueTypes)
 {
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
@@ -202,14 +202,14 @@ void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures aEnabledFeatures
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceCreateInfo.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size());;
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-	deviceCreateInfo.pEnabledFeatures = &aEnabledFeatures;
+	deviceCreateInfo.pEnabledFeatures = &mEnabledVkPhysicalDeviceFeatures;
 
 	// If a pNext(Chain) has been passed, we need to add it to the device creation info
 	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 	if (aNextChain)
 	{
 		physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		physicalDeviceFeatures2.features = aEnabledFeatures;
+		physicalDeviceFeatures2.features = mEnabledVkPhysicalDeviceFeatures;
 		physicalDeviceFeatures2.pNext = aNextChain;
 		deviceCreateInfo.pEnabledFeatures = nullptr;
 		deviceCreateInfo.pNext = &physicalDeviceFeatures2;
@@ -229,8 +229,6 @@ void VulkanDevice::CreateLogicalDevice(VkPhysicalDeviceFeatures aEnabledFeatures
 		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	}
 
-	mEnabledVkPhysicalDeviceFeatures = aEnabledFeatures;
-
 	VkResult result = vkCreateDevice(mVkPhysicalDevice, &deviceCreateInfo, nullptr, &mLogicalVkDevice);
 	if (result != VK_SUCCESS)
 	{
@@ -248,6 +246,11 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 
 	// Features should be checked by the examples before using them
 	vkGetPhysicalDeviceFeatures(aVkPhysicalDevice, &mVkPhysicalDeviceFeatures);
+
+	if (mVkPhysicalDeviceFeatures.samplerAnisotropy)
+	{
+		mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
+	}
 
 	// Memory properties are used regularly for creating all kinds of buffers
 	vkGetPhysicalDeviceMemoryProperties(aVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);

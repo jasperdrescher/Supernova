@@ -25,7 +25,7 @@ struct VulkanDevice
 	VulkanDevice();
 	~VulkanDevice();
 
-	void CreateLogicalDevice(VkPhysicalDeviceFeatures aEnabledFeatures, std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain = true, VkQueueFlags aRequestedQueueTypes = VK_QUEUE_GRAPHICS_BIT|VK_QUEUE_COMPUTE_BIT);
+	void CreateLogicalDevice(std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain = true, VkQueueFlags aRequestedQueueTypes = VK_QUEUE_GRAPHICS_BIT|VK_QUEUE_COMPUTE_BIT);
 	void CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice);
 
 	std::uint32_t GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32 * aMemTypeFound = nullptr) const;

@@ -1089,7 +1089,7 @@ void VulkanRenderer::CreateVulkanDevice()
 	VkPhysicalDevice vkPhysicalDevice = vkPhysicalDevices[selectedDevice];
 	mVulkanDevice = new VulkanDevice();
 	mVulkanDevice->CreatePhysicalDevice(vkPhysicalDevice);
-	mVulkanDevice->CreateLogicalDevice(mVulkanDevice->mEnabledVkPhysicalDeviceFeatures, mEnabledDeviceExtensions, &mVkPhysicalDevice13Features, true, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+	mVulkanDevice->CreateLogicalDevice(mEnabledDeviceExtensions, &mVkPhysicalDevice13Features, true, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 }
 
 std::string VulkanRenderer::GetWindowTitle() const
