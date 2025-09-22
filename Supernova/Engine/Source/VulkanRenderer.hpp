@@ -47,9 +47,9 @@ private:
 
 	void PrepareVulkanResources();
 	void PrepareFrame();
-	void buildCommandBuffer();
-	void updateUniformBuffers();
-	void submitFrame();
+	void BuildCommandBuffer();
+	void UpdateUniformBuffers();
+	void SubmitFrame();
 	void SetupDepthStencil();
 
 	void loadAssets();

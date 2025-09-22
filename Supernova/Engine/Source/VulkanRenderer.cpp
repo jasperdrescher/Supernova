@@ -451,7 +451,7 @@ void VulkanRenderer::PrepareFrame()
 	}
 }
 
-void VulkanRenderer::buildCommandBuffer()
+void VulkanRenderer::BuildCommandBuffer()
 {
 	VkCommandBuffer cmdBuffer = mVkCommandBuffers[currentBuffer];
 
@@ -470,6 +470,7 @@ void VulkanRenderer::buildCommandBuffer()
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+
 	VulkanTools::InsertImageMemoryBarrier(
 		cmdBuffer,
 		mVulkanDepthStencil.mVkImage,
@@ -541,7 +542,7 @@ void VulkanRenderer::buildCommandBuffer()
 	VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
 }
 
-void VulkanRenderer::updateUniformBuffers()
+void VulkanRenderer::UpdateUniformBuffers()
 {
 	mVulkanUniformData.mProjectionMatrix = mCamera.mMatrices.mPerspective;
 	mVulkanUniformData.mModelViewMatrix = mCamera.mMatrices.mView;
@@ -549,7 +550,7 @@ void VulkanRenderer::updateUniformBuffers()
 	memcpy(uniformBuffers[currentBuffer].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 
-void VulkanRenderer::submitFrame()
+void VulkanRenderer::SubmitFrame()
 {
 	const VkPipelineStageFlags waitPipelineStage{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	VkSubmitInfo submitInfo{
@@ -572,6 +573,7 @@ void VulkanRenderer::submitFrame()
 		.pSwapchains = &mVulkanSwapChain.mVkSwapchainKHR,
 		.pImageIndices = &currentImageIndex
 	};
+
 	VkResult result = vkQueuePresentKHR(mVkQueue, &presentInfo);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -583,6 +585,7 @@ void VulkanRenderer::submitFrame()
 	{
 		throw std::runtime_error("Could not acquire the next swap chain image!");
 	}
+
 	// Select the next frame to render to, based on the max. no. of concurrent frames
 	currentBuffer = (currentBuffer + 1) % gMaxConcurrentFrames;
 }
@@ -889,9 +892,9 @@ void VulkanRenderer::NextFrame()
 	const std::chrono::steady_clock::time_point frameTimeStart = std::chrono::high_resolution_clock::now();
 	
 	PrepareFrame();
-	updateUniformBuffers();
-	buildCommandBuffer();
-	submitFrame();
+	UpdateUniformBuffers();
+	BuildCommandBuffer();
+	SubmitFrame();
 
 	mFrameCounter++;
 	const std::chrono::steady_clock::time_point frameTimeEnd = std::chrono::high_resolution_clock::now();
