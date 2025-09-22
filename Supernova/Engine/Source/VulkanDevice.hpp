@@ -61,7 +61,7 @@ struct VulkanDevice
 	VkPhysicalDeviceMemoryProperties mVkPhysicalDeviceMemoryProperties{};
 
 	/** @brief Default command pool for the graphics queue family index */
-	VkCommandPool mGraphicsVkCommandPool{VK_NULL_HANDLE};
+	VkCommandPool mGraphicsVkCommandPool;
 
 	/** @brief Queue family properties of the physical device */
 	std::vector<VkQueueFamilyProperties> mVkQueueFamilyProperties{};

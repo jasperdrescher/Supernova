@@ -14,6 +14,7 @@
 VulkanDevice::VulkanDevice()
 	: mVkPhysicalDevice{VK_NULL_HANDLE}
 	, mLogicalVkDevice{VK_NULL_HANDLE}
+	, mGraphicsVkCommandPool{VK_NULL_HANDLE}
 {
 }
 

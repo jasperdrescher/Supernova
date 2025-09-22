@@ -199,7 +199,7 @@ void VulkanRenderer::loadAssets()
 {
 	const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 	mGlTFModel = new vkglTF::Model();
-	mGlTFModel->loadFromFile(VulkanTools::gResourcesPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	mGlTFModel->LoadFromFile(VulkanTools::gResourcesPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()

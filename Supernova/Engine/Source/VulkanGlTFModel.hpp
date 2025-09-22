@@ -29,7 +29,6 @@ namespace vkglTF
 
 	struct Node;
 
-	// glTF texture loading class
 	struct Texture
 	{
 		Texture() : mVulkanDevice{nullptr}, image{VK_NULL_HANDLE}, deviceMemory{VK_NULL_HANDLE}, view{VK_NULL_HANDLE}, width{0}, height{0}, mipLevels{0}, layerCount{0}, sampler{VK_NULL_HANDLE}, index{0} {}
@@ -52,13 +51,11 @@ namespace vkglTF
 		std::uint32_t index;
 	};
 
-	/*
-		glTF material class
-	*/
 	struct Material
 	{
-		VulkanDevice* device = nullptr;
 		enum AlphaMode { ALPHAMODE_OPAQUE, ALPHAMODE_MASK, ALPHAMODE_BLEND };
+
+		VulkanDevice* device;
 		AlphaMode alphaMode = ALPHAMODE_OPAQUE;
 		float alphaCutoff = 1.0f;
 		float metallicFactor = 1.0f;
@@ -70,8 +67,8 @@ namespace vkglTF
 		vkglTF::Texture* occlusionTexture = nullptr;
 		vkglTF::Texture* emissiveTexture = nullptr;
 
-		vkglTF::Texture* specularGlossinessTexture;
-		vkglTF::Texture* diffuseTexture;
+		vkglTF::Texture* specularGlossinessTexture = nullptr;
+		vkglTF::Texture* diffuseTexture = nullptr;
 
 		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
@@ -79,9 +76,6 @@ namespace vkglTF
 		void CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, std::uint32_t aDescriptorBindingFlags);
 	};
 
-	/*
-		glTF primitive
-	*/
 	struct Primitive
 	{
 		std::uint32_t firstIndex;
@@ -96,16 +90,13 @@ namespace vkglTF
 			glm::vec3 max = glm::vec3(-FLT_MAX);
 			glm::vec3 size;
 			glm::vec3 center;
-			float radius;
+			float radius = 0.0f;
 		} dimensions;
 
 		void setDimensions(glm::vec3 min, glm::vec3 max);
-		Primitive(std::uint32_t firstIndex, std::uint32_t indexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), material(material) {};
+		Primitive(std::uint32_t firstIndex, std::uint32_t indexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), firstVertex{0}, vertexCount{0}, material(material) {};
 	};
 
-	/*
-		glTF mesh
-	*/
 	struct Mesh
 	{
 		VulkanDevice* mVulkanDevice;
@@ -133,9 +124,6 @@ namespace vkglTF
 		~Mesh();
 	};
 
-	/*
-		glTF skin
-	*/
 	struct Skin
 	{
 		std::string name;
@@ -144,9 +132,6 @@ namespace vkglTF
 		std::vector<Node*> joints;
 	};
 
-	/*
-		glTF node
-	*/
 	struct Node
 	{
 		Node* parent;
@@ -166,9 +151,6 @@ namespace vkglTF
 		~Node();
 	};
 
-	/*
-		glTF animation channel
-	*/
 	struct AnimationChannel
 	{
 		enum PathType { TRANSLATION, ROTATION, SCALE };
@@ -177,9 +159,6 @@ namespace vkglTF
 		std::uint32_t samplerIndex;
 	};
 
-	/*
-		glTF animation sampler
-	*/
 	struct AnimationSampler
 	{
 		enum InterpolationType { LINEAR, STEP, CUBICSPLINE };
@@ -188,9 +167,6 @@ namespace vkglTF
 		std::vector<glm::vec4> outputsVec4;
 	};
 
-	/*
-		glTF animation
-	*/
 	struct Animation
 	{
 		std::string name;
@@ -200,9 +176,6 @@ namespace vkglTF
 		float end = std::numeric_limits<float>::min();
 	};
 
-	/*
-		glTF default vertex layout with easy Vulkan mapping functions
-	*/
 	enum class VertexComponent { Position, Normal, UV, Color, Tangent, Joint0, Weight0 };
 
 	struct Vertex
@@ -220,8 +193,7 @@ namespace vkglTF
 		static VkVertexInputBindingDescription inputBindingDescription(std::uint32_t binding);
 		static VkVertexInputAttributeDescription inputAttributeDescription(std::uint32_t binding, std::uint32_t location, VertexComponent component);
 		static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(std::uint32_t binding, const std::vector<VertexComponent> components);
-		/** @brief Returns the default pipeline vertex input state create info structure for the requested vertex components */
-		static VkPipelineVertexInputStateCreateInfo* getPipelineVertexInputState(const std::vector<VertexComponent> components);
+		static VkPipelineVertexInputStateCreateInfo* getPipelineVertexInputState(const std::vector<VertexComponent> components); // Returns the default pipeline vertex input state create info structure for the requested vertex components
 	};
 
 	enum FileLoadingFlags
@@ -241,62 +213,18 @@ namespace vkglTF
 		RenderAlphaBlendedNodes = 0x00000008
 	};
 
-	/*
-		glTF model loading and rendering class
-	*/
 	class Model
 	{
-	private:
-		vkglTF::Texture* getTexture(std::uint32_t index);
-		vkglTF::Texture emptyTexture;
-		void createEmptyTexture(VkQueue transferQueue);
 	public:
-		VulkanDevice* device;
-		VkDescriptorPool descriptorPool;
-
-		struct Vertices
-		{
-			int count;
-			VkBuffer buffer;
-			VkDeviceMemory memory;
-		} vertices;
-		struct Indices
-		{
-			int count;
-			VkBuffer buffer;
-			VkDeviceMemory memory;
-		} indices;
-
-		std::vector<Node*> nodes;
-		std::vector<Node*> linearNodes;
-
-		std::vector<Skin*> skins;
-
-		std::vector<Texture> textures;
-		std::vector<Material> materials;
-		std::vector<Animation> animations;
-
-		struct Dimensions
-		{
-			glm::vec3 min = glm::vec3(FLT_MAX);
-			glm::vec3 max = glm::vec3(-FLT_MAX);
-			glm::vec3 size;
-			glm::vec3 center;
-			float radius;
-		} dimensions;
-
-		bool metallicRoughnessWorkflow = true;
-		bool buffersBound = false;
-		std::string path;
-
 		Model() {};
 		~Model();
+
 		void loadNode(vkglTF::Node* parent, const tinygltf::Node& node, std::uint32_t nodeIndex, const tinygltf::Model& model, std::vector<std::uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
 		void loadSkins(tinygltf::Model& gltfModel);
 		void LoadImages(tinygltf::Model& aGlTFModel, VulkanDevice* aDevice, VkQueue aTransferQueue);
 		void loadMaterials(tinygltf::Model& gltfModel);
 		void loadAnimations(tinygltf::Model& gltfModel);
-		void loadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags = vkglTF::FileLoadingFlags::None, float aScale = 1.0f);
+		void LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags = vkglTF::FileLoadingFlags::None, float aScale = 1.0f);
 		void bindBuffers(VkCommandBuffer commandBuffer);
 		void drawNode(Node* node, VkCommandBuffer commandBuffer, std::uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, std::uint32_t bindImageSet = 1);
 		void draw(VkCommandBuffer commandBuffer, std::uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, std::uint32_t bindImageSet = 1);
@@ -306,5 +234,50 @@ namespace vkglTF
 		Node* findNode(Node* parent, std::uint32_t index);
 		Node* nodeFromIndex(std::uint32_t index);
 		void prepareNodeDescriptor(vkglTF::Node* node, VkDescriptorSetLayout descriptorSetLayout);
+
+	private:
+		vkglTF::Texture* getTexture(std::uint32_t index);
+		vkglTF::Texture emptyTexture;
+		void createEmptyTexture(VkQueue transferQueue);
+
+	public:
+		VulkanDevice* mVulkanDevice = nullptr;
+		VkDescriptorPool descriptorPool{VK_NULL_HANDLE};
+
+		struct Vertices
+		{
+			int count = 0;
+			VkBuffer buffer{VK_NULL_HANDLE};
+			VkDeviceMemory memory{VK_NULL_HANDLE};
+		} vertices{};
+
+		struct Indices
+		{
+			int count = 0;
+			VkBuffer buffer{VK_NULL_HANDLE};
+			VkDeviceMemory memory{VK_NULL_HANDLE};
+		} indices{};
+
+		std::vector<Node*> nodes;
+		std::vector<Node*> linearNodes;
+
+		std::vector<Skin*> skins;
+
+		std::vector<Texture> textures{};
+		std::vector<Material> materials{};
+		std::vector<Animation> animations{};
+
+		struct Dimensions
+		{
+			glm::vec3 min = glm::vec3(FLT_MAX);
+			glm::vec3 max = glm::vec3(-FLT_MAX);
+			glm::vec3 size;
+			glm::vec3 center;
+			float radius = 0.0f;
+		} dimensions;
+
+		bool metallicRoughnessWorkflow = true;
+		bool buffersBound = false;
+		std::string path;
 	};
 }
