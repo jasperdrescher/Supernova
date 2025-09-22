@@ -35,12 +35,6 @@ public:
 	bool IsPaused() const { return mIsPaused; }
 
 private:
-	struct UniformData
-	{
-		glm::mat4 projection;
-		glm::mat4 modelView;
-		glm::vec4 viewPos;
-	} uniformData;
 	std::array<VulkanBuffer, gMaxConcurrentFrames> uniformBuffers;
 
 	// Synchronization related objects and variables
@@ -89,13 +83,11 @@ private:
 	static void FramebufferResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);
-	
-	vkglTF::Model* mGlTFModel;
 
 	Camera mCamera;
+	VulkanUniformData mVulkanUniformData;
 	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
 	VulkanDepthStencil mVulkanDepthStencil;
-	VkClearColorValue mDefaultClearColor;
 	VkInstance mVkInstance; // Vulkan instance, stores all per-application states
 	VkQueue mVkQueue; // Handle to the device graphics queue that command buffers are submitted to
 	VkDescriptorPool mVkDescriptorPool; // Descriptor set pool
@@ -122,13 +114,14 @@ private:
 	std::vector<float> mFrametimes{};
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
-	std::array<VkDescriptorSet, gMaxConcurrentFrames> descriptorSets{};
+	std::array<VkDescriptorSet, gMaxConcurrentFrames> mVkDescriptorSets{};
 	std::uint32_t mFramebufferWidth;
 	std::uint32_t mFramebufferHeight;
 	std::uint32_t mFrameCounter;
 	std::uint32_t mLastFPS;
 	std::uint32_t mMaxFrametimes;
 	std::uint32_t mBufferIndexCount;
+	vkglTF::Model* mGlTFModel;
 	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
 	GLFWwindow* mGLFWWindow;
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)

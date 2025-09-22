@@ -20,7 +20,6 @@
 #include <cassert>
 #include <chrono>
 #include <cstdint>
-#include <cstddef>
 #include <cstring>
 #include <format>
 #include <fstream>
@@ -56,7 +55,6 @@ VulkanRenderer::VulkanRenderer()
 	, mShouldClose{false}
 	, mIsFramebufferResized{false}
 	, mVkCommandBuffers{VK_NULL_HANDLE}
-	, mDefaultClearColor{{0.025f, 0.025f, 0.025f, 1.0f}}
 	, mTimer{0.0f}
 	, mTimerSpeed{0.25f}
 	, mIsPaused{false}
@@ -66,6 +64,7 @@ VulkanRenderer::VulkanRenderer()
 	, mFramebufferHeight{0}
 	, mMaxFrametimes{10}
 	, mFrametime{1.0f}
+	, mGlTFModel{nullptr}
 	, mVulkanDevice{nullptr}
 	, mFrameCounter{0}
 	, mLastFPS{0}
@@ -137,8 +136,8 @@ VulkanRenderer::~VulkanRenderer()
 		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 		{
 			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, mWaitVkFences[i], nullptr);
-			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, uniformBuffers[i].buffer, nullptr);
-			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, uniformBuffers[i].memory, nullptr);
+			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, uniformBuffers[i].mVkBuffer, nullptr);
+			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, uniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
 	}
 
@@ -200,7 +199,7 @@ void VulkanRenderer::loadAssets()
 {
 	const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 	mGlTFModel = new vkglTF::Model();
-	mGlTFModel->loadFromFile(VulkanTools::gResourcesPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags);
+	mGlTFModel->loadFromFile(VulkanTools::gResourcesPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
@@ -260,9 +259,9 @@ void VulkanRenderer::CreateDescriptors()
 	VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
 	for (auto i = 0; i < uniformBuffers.size(); i++)
 	{
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &descriptorSets[i]));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mVkDescriptorSets[i]));
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			VulkanInitializers::writeDescriptorSet(descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].descriptor),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].mVkDescriptorBufferInfo),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
@@ -408,8 +407,8 @@ void VulkanRenderer::CreateUniformBuffers()
 {
 	for (auto& buffer : uniformBuffers)
 	{
-		VK_CHECK_RESULT(mVulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(UniformData), &uniformData));
-		VK_CHECK_RESULT(buffer.map());
+		VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(VulkanUniformData), &mVulkanUniformData));
+		VK_CHECK_RESULT(buffer.Map(VK_WHOLE_SIZE, 0));
 	}
 }
 
@@ -519,7 +518,7 @@ void VulkanRenderer::buildCommandBuffer()
 	VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &descriptorSets[currentBuffer], 0, nullptr);
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[currentBuffer], 0, nullptr);
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
 
 	mGlTFModel->draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
@@ -544,10 +543,10 @@ void VulkanRenderer::buildCommandBuffer()
 
 void VulkanRenderer::updateUniformBuffers()
 {
-	uniformData.projection = mCamera.mMatrices.mPerspective;
-	uniformData.modelView = mCamera.mMatrices.mView;
-	uniformData.viewPos = mCamera.getViewPosition();
-	memcpy(uniformBuffers[currentBuffer].mapped, &uniformData, sizeof(uniformData));
+	mVulkanUniformData.mProjectionMatrix = mCamera.mMatrices.mPerspective;
+	mVulkanUniformData.mModelViewMatrix = mCamera.mMatrices.mView;
+	mVulkanUniformData.mViewPosition = mCamera.getViewPosition();
+	memcpy(uniformBuffers[currentBuffer].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 
 void VulkanRenderer::submitFrame()

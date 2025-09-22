@@ -29,14 +29,13 @@ struct VulkanDevice
 
 	void CreateLogicalDevice(std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain = true, VkQueueFlags aRequestedQueueTypes = VK_QUEUE_GRAPHICS_BIT|VK_QUEUE_COMPUTE_BIT);
 	void CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice);
+	void FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, VkCommandPool aPool, bool aIsFree = true) const;
+	void flushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, bool aIsFree= true) const;
 
-	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, VkCommandPool pool, bool begin = false);
-	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin = false);
-	VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, void* data = nullptr);
-	VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VulkanBuffer* buffer, VkDeviceSize size, void* data = nullptr);
-
-	void            flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free = true);
-	void            flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
+	VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel aLevel, VkCommandPool aPool, bool aIsBeginBuffer = false) const;
+	VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel aLevel, bool aIsBeginBuffer = false) const;
+	VkResult CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VkDeviceSize aSize, VkBuffer* aBuffer, VkDeviceMemory* aMemory, void* aData = nullptr);
+	VkResult CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VulkanBuffer* aBuffer, VkDeviceSize aSize, void* aData = nullptr) const;
 
 	std::uint32_t GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32 * aMemTypeFound = nullptr) const;
 	std::uint32_t GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) const;
