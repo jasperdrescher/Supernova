@@ -108,7 +108,7 @@ namespace vkglTF
 	*/
 	struct Mesh
 	{
-		VulkanDevice* device;
+		VulkanDevice* mVulkanDevice;
 
 		std::vector<Primitive*> primitives;
 		std::string name;
@@ -129,7 +129,7 @@ namespace vkglTF
 			float jointcount{0};
 		} uniformBlock;
 
-		Mesh(VulkanDevice* device, glm::mat4 matrix);
+		Mesh(VulkanDevice* aDevice, glm::mat4 aMatrix);
 		~Mesh();
 	};
 

@@ -495,25 +495,25 @@ void vkglTF::Primitive::setDimensions(glm::vec3 min, glm::vec3 max)
 /*
 	glTF mesh
 */
-vkglTF::Mesh::Mesh(VulkanDevice* device, glm::mat4 matrix)
+vkglTF::Mesh::Mesh(VulkanDevice* aDevice, glm::mat4 aMatrix)
 {
-	this->device = device;
-	this->uniformBlock.matrix = matrix;
-	VK_CHECK_RESULT(device->CreateBuffer(
+	mVulkanDevice = aDevice;
+	uniformBlock.matrix = aMatrix;
+	VK_CHECK_RESULT(aDevice->CreateBuffer(
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		sizeof(uniformBlock),
 		&uniformBuffer.buffer,
 		&uniformBuffer.memory,
 		&uniformBlock));
-	VK_CHECK_RESULT(vkMapMemory(device->mLogicalVkDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
+	VK_CHECK_RESULT(vkMapMemory(aDevice->mLogicalVkDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
 	uniformBuffer.descriptor = {uniformBuffer.buffer, 0, sizeof(uniformBlock)};
 };
 
 vkglTF::Mesh::~Mesh()
 {
-	vkDestroyBuffer(device->mLogicalVkDevice, uniformBuffer.buffer, nullptr);
-	vkFreeMemory(device->mLogicalVkDevice, uniformBuffer.memory, nullptr);
+	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, uniformBuffer.buffer, nullptr);
+	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, uniformBuffer.memory, nullptr);
 	for (auto primitive : primitives)
 	{
 		delete primitive;
