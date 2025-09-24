@@ -14,6 +14,7 @@
 #include <vector>
 #include <cstdint>
 #include <filesystem>
+#include <cfloat>
 
 namespace vkglTF
 {
@@ -27,11 +28,11 @@ namespace vkglTF
 		void Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags = 0, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, std::uint32_t aBindImageSet = 1);
 
 	private:
-		void loadNode(vkglTF::Node* parent, const tinygltf::Node& node, std::uint32_t nodeIndex, const tinygltf::Model& model, std::vector<std::uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
-		void loadSkins(tinygltf::Model& gltfModel);
+		void LoadNode(vkglTF::Node* aParent, const tinygltf::Node& aNode, std::uint32_t aNodeIndex, const tinygltf::Model& aModel, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale);
+		void LoadSkins(tinygltf::Model& aGlTFModel);
 		void LoadImages(tinygltf::Model& aGlTFModel, VulkanDevice* aDevice, VkQueue aTransferQueue);
-		void loadMaterials(tinygltf::Model& gltfModel);
-		void loadAnimations(tinygltf::Model& gltfModel);
+		void LoadMaterials(tinygltf::Model& aGlTFModel);
+		void LoadAnimations(tinygltf::Model& aGlTFModel);
 		void BindBuffers(VkCommandBuffer aCommandBuffer);
 		void GetNodeDimensions(Node* aNode, glm::vec3& aMin, glm::vec3& aMax);
 		void GetSceneDimensions();

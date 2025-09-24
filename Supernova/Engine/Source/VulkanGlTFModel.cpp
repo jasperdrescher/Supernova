@@ -86,56 +86,56 @@ vkglTF::Model::~Model()
 	mEmptyTexture.Destroy();
 }
 
-void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, std::uint32_t nodeIndex, const tinygltf::Model& model, std::vector<std::uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale)
+void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node& aNode, std::uint32_t aNodeIndex, const tinygltf::Model& aModel, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale)
 {
 	vkglTF::Node* newNode = new Node{};
-	newNode->index = nodeIndex;
-	newNode->parent = parent;
-	newNode->name = node.name;
-	newNode->skinIndex = node.skin;
+    newNode->index = aNodeIndex;
+    newNode->parent = aParent;
+    newNode->name = aNode.name;
+    newNode->skinIndex = aNode.skin;
 	newNode->matrix = glm::mat4(1.0f);
 
 	// Generate local node matrix
 	glm::vec3 translation = glm::vec3(0.0f);
-	if (node.translation.size() == 3)
+    if (aNode.translation.size() == 3)
 	{
-		translation = glm::make_vec3(node.translation.data());
+        translation = glm::make_vec3(aNode.translation.data());
 		newNode->translation = translation;
 	}
 	glm::mat4 rotation = glm::mat4(1.0f);
-	if (node.rotation.size() == 4)
+    if (aNode.rotation.size() == 4)
 	{
-		glm::quat q = glm::make_quat(node.rotation.data());
+        glm::quat q = glm::make_quat(aNode.rotation.data());
 		newNode->rotation = glm::mat4(q);
 	}
 	glm::vec3 scale = glm::vec3(1.0f);
-	if (node.scale.size() == 3)
+    if (aNode.scale.size() == 3)
 	{
-		scale = glm::make_vec3(node.scale.data());
+        scale = glm::make_vec3(aNode.scale.data());
 		newNode->scale = scale;
 	}
-	if (node.matrix.size() == 16)
+    if (aNode.matrix.size() == 16)
 	{
-		newNode->matrix = glm::make_mat4x4(node.matrix.data());
-		if (globalscale != 1.0f)
+        newNode->matrix = glm::make_mat4x4(aNode.matrix.data());
+        if (aGlobalscale != 1.0f)
 		{
 			//newNode->matrix = glm::scale(newNode->matrix, glm::vec3(globalscale));
 		}
 	};
 
 	// Node with children
-	if (node.children.size() > 0)
+    if (aNode.children.size() > 0)
 	{
-		for (auto i = 0; i < node.children.size(); i++)
+        for (auto i = 0; i < aNode.children.size(); i++)
 		{
-			loadNode(newNode, model.nodes[node.children[i]], node.children[i], model, indexBuffer, vertexBuffer, globalscale);
+            LoadNode(newNode, aModel.nodes[aNode.children[i]], aNode.children[i], aModel, aIndexBuffer, aVertexBuffer, aGlobalscale);
 		}
 	}
 
 	// Node contains mesh data
-	if (node.mesh > -1)
+    if (aNode.mesh > -1)
 	{
-		const tinygltf::Mesh mesh = model.meshes[node.mesh];
+        const tinygltf::Mesh mesh = aModel.meshes[aNode.mesh];
 		Mesh* newMesh = new Mesh(mVulkanDevice, newNode->matrix);
 		newMesh->name = mesh.name;
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
@@ -145,8 +145,8 @@ void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, s
 			{
 				continue;
 			}
-			std::uint32_t indexStart = static_cast<std::uint32_t>(indexBuffer.size());
-			std::uint32_t vertexStart = static_cast<std::uint32_t>(vertexBuffer.size());
+            std::uint32_t indexStart = static_cast<std::uint32_t>(aIndexBuffer.size());
+            std::uint32_t vertexStart = static_cast<std::uint32_t>(aVertexBuffer.size());
 			std::uint32_t indexCount = 0;
 			std::uint32_t vertexCount = 0;
 			glm::vec3 posMin{};
@@ -166,56 +166,56 @@ void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, s
 				// Position attribute is required
 				assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
 
-				const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
-				const tinygltf::BufferView& posView = model.bufferViews[posAccessor.bufferView];
-				bufferPos = reinterpret_cast<const float*>(&(model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+                const tinygltf::Accessor& posAccessor = aModel.accessors[primitive.attributes.find("POSITION")->second];
+                const tinygltf::BufferView& posView = aModel.bufferViews[posAccessor.bufferView];
+                bufferPos = reinterpret_cast<const float*>(&(aModel.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
 				posMin = glm::vec3(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
 				posMax = glm::vec3(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
 
 				if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
 				{
-					const tinygltf::Accessor& normAccessor = model.accessors[primitive.attributes.find("NORMAL")->second];
-					const tinygltf::BufferView& normView = model.bufferViews[normAccessor.bufferView];
-					bufferNormals = reinterpret_cast<const float*>(&(model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
+                    const tinygltf::Accessor& normAccessor = aModel.accessors[primitive.attributes.find("NORMAL")->second];
+                    const tinygltf::BufferView& normView = aModel.bufferViews[normAccessor.bufferView];
+                    bufferNormals = reinterpret_cast<const float*>(&(aModel.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
 				{
-					const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
-					const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
-					bufferTexCoords = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    const tinygltf::Accessor& uvAccessor = aModel.accessors[primitive.attributes.find("TEXCOORD_0")->second];
+                    const tinygltf::BufferView& uvView = aModel.bufferViews[uvAccessor.bufferView];
+                    bufferTexCoords = reinterpret_cast<const float*>(&(aModel.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("COLOR_0") != primitive.attributes.end())
 				{
-					const tinygltf::Accessor& colorAccessor = model.accessors[primitive.attributes.find("COLOR_0")->second];
-					const tinygltf::BufferView& colorView = model.bufferViews[colorAccessor.bufferView];
+                    const tinygltf::Accessor& colorAccessor = aModel.accessors[primitive.attributes.find("COLOR_0")->second];
+                    const tinygltf::BufferView& colorView = aModel.bufferViews[colorAccessor.bufferView];
 					// Color buffer are either of type vec3 or vec4
 					numColorComponents = colorAccessor.type == TINYGLTF_PARAMETER_TYPE_FLOAT_VEC3 ? 3 : 4;
-					bufferColors = reinterpret_cast<const float*>(&(model.buffers[colorView.buffer].data[colorAccessor.byteOffset + colorView.byteOffset]));
+                    bufferColors = reinterpret_cast<const float*>(&(aModel.buffers[colorView.buffer].data[colorAccessor.byteOffset + colorView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
 				{
-					const tinygltf::Accessor& tangentAccessor = model.accessors[primitive.attributes.find("TANGENT")->second];
-					const tinygltf::BufferView& tangentView = model.bufferViews[tangentAccessor.bufferView];
-					bufferTangents = reinterpret_cast<const float*>(&(model.buffers[tangentView.buffer].data[tangentAccessor.byteOffset + tangentView.byteOffset]));
+                    const tinygltf::Accessor& tangentAccessor = aModel.accessors[primitive.attributes.find("TANGENT")->second];
+                    const tinygltf::BufferView& tangentView = aModel.bufferViews[tangentAccessor.bufferView];
+                    bufferTangents = reinterpret_cast<const float*>(&(aModel.buffers[tangentView.buffer].data[tangentAccessor.byteOffset + tangentView.byteOffset]));
 				}
 
 				// Skinning
 				// Joints
 				if (primitive.attributes.find("JOINTS_0") != primitive.attributes.end())
 				{
-					const tinygltf::Accessor& jointAccessor = model.accessors[primitive.attributes.find("JOINTS_0")->second];
-					const tinygltf::BufferView& jointView = model.bufferViews[jointAccessor.bufferView];
-					bufferJoints = reinterpret_cast<const uint16_t*>(&(model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
+                    const tinygltf::Accessor& jointAccessor = aModel.accessors[primitive.attributes.find("JOINTS_0")->second];
+                    const tinygltf::BufferView& jointView = aModel.bufferViews[jointAccessor.bufferView];
+                    bufferJoints = reinterpret_cast<const uint16_t*>(&(aModel.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end())
 				{
-					const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
-					const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
-					bufferWeights = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    const tinygltf::Accessor& uvAccessor = aModel.accessors[primitive.attributes.find("WEIGHTS_0")->second];
+                    const tinygltf::BufferView& uvView = aModel.bufferViews[uvAccessor.bufferView];
+                    bufferWeights = reinterpret_cast<const float*>(&(aModel.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
 				}
 
 				hasSkin = (bufferJoints && bufferWeights);
@@ -247,14 +247,14 @@ void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, s
 					vert.tangent = bufferTangents ? glm::vec4(glm::make_vec4(&bufferTangents[v * 4])) : glm::vec4(0.0f);
 					vert.joint0 = hasSkin ? glm::vec4(glm::make_vec4(&bufferJoints[v * 4])) : glm::vec4(0.0f);
 					vert.weight0 = hasSkin ? glm::make_vec4(&bufferWeights[v * 4]) : glm::vec4(0.0f);
-					vertexBuffer.push_back(vert);
+                    aVertexBuffer.push_back(vert);
 				}
 			}
 			// Indices
 			{
-				const tinygltf::Accessor& accessor = model.accessors[primitive.indices];
-				const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-				const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+                const tinygltf::Accessor& accessor = aModel.accessors[primitive.indices];
+                const tinygltf::BufferView& bufferView = aModel.bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = aModel.buffers[bufferView.buffer];
 
 				indexCount = static_cast<std::uint32_t>(accessor.count);
 
@@ -266,7 +266,7 @@ void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, s
 						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(std::uint32_t));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
-							indexBuffer.push_back(buf[index] + vertexStart);
+                            aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
 						delete[] buf;
 						break;
@@ -277,7 +277,7 @@ void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, s
 						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint16_t));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
-							indexBuffer.push_back(buf[index] + vertexStart);
+                            aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
 						delete[] buf;
 						break;
@@ -288,7 +288,7 @@ void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, s
 						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint8_t));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
-							indexBuffer.push_back(buf[index] + vertexStart);
+                            aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
 						delete[] buf;
 						break;
@@ -306,9 +306,9 @@ void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, s
 		}
 		newNode->mesh = newMesh;
 	}
-	if (parent)
+    if (aParent)
 	{
-		parent->children.push_back(newNode);
+        aParent->children.push_back(newNode);
 	}
 	else
 	{
@@ -317,9 +317,9 @@ void vkglTF::Model::loadNode(vkglTF::Node* parent, const tinygltf::Node& node, s
 	linearNodes.push_back(newNode);
 }
 
-void vkglTF::Model::loadSkins(tinygltf::Model& gltfModel)
+void vkglTF::Model::LoadSkins(tinygltf::Model& aGlTFModel)
 {
-	for (tinygltf::Skin& source : gltfModel.skins)
+    for (tinygltf::Skin& source : aGlTFModel.skins)
 	{
 		Skin* newSkin = new Skin{};
 		newSkin->name = source.name;
@@ -343,9 +343,9 @@ void vkglTF::Model::loadSkins(tinygltf::Model& gltfModel)
 		// Get inverse bind matrices from buffer
 		if (source.inverseBindMatrices > -1)
 		{
-			const tinygltf::Accessor& accessor = gltfModel.accessors[source.inverseBindMatrices];
-			const tinygltf::BufferView& bufferView = gltfModel.bufferViews[accessor.bufferView];
-			const tinygltf::Buffer& buffer = gltfModel.buffers[bufferView.buffer];
+            const tinygltf::Accessor& accessor = aGlTFModel.accessors[source.inverseBindMatrices];
+            const tinygltf::BufferView& bufferView = aGlTFModel.bufferViews[accessor.bufferView];
+            const tinygltf::Buffer& buffer = aGlTFModel.buffers[bufferView.buffer];
 			newSkin->inverseBindMatrices.resize(accessor.count);
 			memcpy(newSkin->inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
 		}
@@ -367,19 +367,19 @@ void vkglTF::Model::LoadImages(tinygltf::Model& aGlTFModel, VulkanDevice* aDevic
 	CreateEmptyTexture(aTransferQueue);
 }
 
-void vkglTF::Model::loadMaterials(tinygltf::Model& gltfModel)
+void vkglTF::Model::LoadMaterials(tinygltf::Model& aGlTFModel)
 {
-	for (tinygltf::Material& mat : gltfModel.materials)
+    for (tinygltf::Material& mat : aGlTFModel.materials)
 	{
 		vkglTF::Material material(mVulkanDevice);
 		if (mat.values.find("baseColorTexture") != mat.values.end())
 		{
-			material.baseColorTexture = GetTexture(gltfModel.textures[mat.values["baseColorTexture"].TextureIndex()].source);
+            material.baseColorTexture = GetTexture(aGlTFModel.textures[mat.values["baseColorTexture"].TextureIndex()].source);
 		}
 		// Metallic roughness workflow
 		if (mat.values.find("metallicRoughnessTexture") != mat.values.end())
 		{
-			material.metallicRoughnessTexture = GetTexture(gltfModel.textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source);
+            material.metallicRoughnessTexture = GetTexture(aGlTFModel.textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source);
 		}
 		if (mat.values.find("roughnessFactor") != mat.values.end())
 		{
@@ -395,7 +395,7 @@ void vkglTF::Model::loadMaterials(tinygltf::Model& gltfModel)
 		}
 		if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end())
 		{
-			material.normalTexture = GetTexture(gltfModel.textures[mat.additionalValues["normalTexture"].TextureIndex()].source);
+            material.normalTexture = GetTexture(aGlTFModel.textures[mat.additionalValues["normalTexture"].TextureIndex()].source);
 		}
 		else
 		{
@@ -403,11 +403,11 @@ void vkglTF::Model::loadMaterials(tinygltf::Model& gltfModel)
 		}
 		if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end())
 		{
-			material.emissiveTexture = GetTexture(gltfModel.textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source);
+            material.emissiveTexture = GetTexture(aGlTFModel.textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source);
 		}
 		if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end())
 		{
-			material.occlusionTexture = GetTexture(gltfModel.textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source);
+            material.occlusionTexture = GetTexture(aGlTFModel.textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source);
 		}
 		if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end())
 		{
@@ -432,9 +432,9 @@ void vkglTF::Model::loadMaterials(tinygltf::Model& gltfModel)
 	materials.push_back(Material(mVulkanDevice));
 }
 
-void vkglTF::Model::loadAnimations(tinygltf::Model& gltfModel)
+void vkglTF::Model::LoadAnimations(tinygltf::Model& aGlTFModel)
 {
-	for (tinygltf::Animation& anim : gltfModel.animations)
+    for (tinygltf::Animation& anim : aGlTFModel.animations)
 	{
 		vkglTF::Animation animation{};
 		animation.name = anim.name;
@@ -463,9 +463,9 @@ void vkglTF::Model::loadAnimations(tinygltf::Model& gltfModel)
 
 			// Read sampler input time values
 			{
-				const tinygltf::Accessor& accessor = gltfModel.accessors[samp.input];
-				const tinygltf::BufferView& bufferView = gltfModel.bufferViews[accessor.bufferView];
-				const tinygltf::Buffer& buffer = gltfModel.buffers[bufferView.buffer];
+                const tinygltf::Accessor& accessor = aGlTFModel.accessors[samp.input];
+                const tinygltf::BufferView& bufferView = aGlTFModel.bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = aGlTFModel.buffers[bufferView.buffer];
 
 				assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
@@ -491,9 +491,9 @@ void vkglTF::Model::loadAnimations(tinygltf::Model& gltfModel)
 
 			// Read sampler output T/R/S values 
 			{
-				const tinygltf::Accessor& accessor = gltfModel.accessors[samp.output];
-				const tinygltf::BufferView& bufferView = gltfModel.bufferViews[accessor.bufferView];
-				const tinygltf::Buffer& buffer = gltfModel.buffers[bufferView.buffer];
+                const tinygltf::Accessor& accessor = aGlTFModel.accessors[samp.output];
+                const tinygltf::BufferView& bufferView = aGlTFModel.bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = aGlTFModel.buffers[bufferView.buffer];
 
 				assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
@@ -600,18 +600,18 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		{
 			LoadImages(gltfModel, aDevice, aTransferQueue);
 		}
-		loadMaterials(gltfModel);
+        LoadMaterials(gltfModel);
 		const tinygltf::Scene& scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
 		for (size_t i = 0; i < scene.nodes.size(); i++)
 		{
 			const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
-			loadNode(nullptr, node, scene.nodes[i], gltfModel, indexBuffer, vertexBuffer, aScale);
+            LoadNode(nullptr, node, scene.nodes[i], gltfModel, indexBuffer, vertexBuffer, aScale);
 		}
 		if (gltfModel.animations.size() > 0)
 		{
-			loadAnimations(gltfModel);
+            LoadAnimations(gltfModel);
 		}
-		loadSkins(gltfModel);
+        LoadSkins(gltfModel);
 
 		for (auto node : linearNodes)
 		{
