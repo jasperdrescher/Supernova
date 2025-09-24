@@ -1,13 +1,10 @@
 #pragma once
 
-#include "vulkan/vulkan_core.h"
-
-#include "VulkanInitializers.hpp"
-
 #include <filesystem>
 #include <format>
 #include <stdexcept>
 #include <string>
+#include <vulkan/vulkan_core.h>
 
 constexpr long long gDefaultFenceTimeoutNS = 100000000000;
 constexpr int gVkFlagsNone = 0;

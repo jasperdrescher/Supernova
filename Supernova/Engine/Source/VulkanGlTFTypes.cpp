@@ -4,6 +4,8 @@
 #include "VulkanDevice.hpp"
 #include "VulkanTools.hpp"
 
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#include <tiny_gltf.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -65,15 +67,15 @@ namespace vkglTF
 		}
 	}
 
-	void vkglTF::Texture::FromGlTfImage(tinygltf::Image& aGlTFimage, const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aCopyQueue)
+	void vkglTF::Texture::FromGlTfImage(tinygltf::Image* aGlTFimage, const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aCopyQueue)
 	{
 		mVulkanDevice = aDevice;
 
 		bool isKtx = false;
 		// Image points to an external ktx file
-		if (aGlTFimage.uri.find_last_of(".") != std::string::npos)
+		if (aGlTFimage->uri.find_last_of(".") != std::string::npos)
 		{
-			if (aGlTFimage.uri.substr(aGlTFimage.uri.find_last_of(".") + 1) == "ktx")
+			if (aGlTFimage->uri.substr(aGlTFimage->uri.find_last_of(".") + 1) == "ktx")
 			{
 				isKtx = true;
 			}
@@ -88,15 +90,15 @@ namespace vkglTF
 			unsigned char* buffer = nullptr;
 			VkDeviceSize bufferSize = 0;
 			bool deleteBuffer = false;
-			if (aGlTFimage.component == 3)
+			if (aGlTFimage->component == 3)
 			{
 				// Most devices don't support RGB only on Vulkan so convert if necessary
 				// TODO: Check actual format support and transform only if required
-				bufferSize = aGlTFimage.width * aGlTFimage.height * 4;
+				bufferSize = aGlTFimage->width * aGlTFimage->height * 4;
 				buffer = new unsigned char[bufferSize];
 				unsigned char* rgba = buffer;
-				unsigned char* rgb = &aGlTFimage.image[0];
-				for (size_t i = 0; i < aGlTFimage.width * aGlTFimage.height; ++i)
+				unsigned char* rgb = &aGlTFimage->image[0];
+				for (size_t i = 0; i < aGlTFimage->width * aGlTFimage->height; ++i)
 				{
 					for (int32_t j = 0; j < 3; ++j)
 					{
@@ -109,15 +111,15 @@ namespace vkglTF
 			}
 			else
 			{
-				buffer = &aGlTFimage.image[0];
-				bufferSize = aGlTFimage.image.size();
+				buffer = &aGlTFimage->image[0];
+				bufferSize = aGlTFimage->image.size();
 			}
 			assert(buffer);
 
 			format = VK_FORMAT_R8G8B8A8_UNORM;
 
-			mWidth = aGlTFimage.width;
-			mHeight = aGlTFimage.height;
+			mWidth = aGlTFimage->width;
+			mHeight = aGlTFimage->height;
 			mMipLevels = static_cast<std::uint32_t>(std::floor(std::log2(std::max(mWidth, mHeight))) + 1.0);
 
 			VkFormatProperties formatProperties;
@@ -292,7 +294,7 @@ namespace vkglTF
 		else
 		{
 			// Texture is stored in an external ktx file
-			const std::filesystem::path externalPath = aPath / aGlTFimage.uri;
+			const std::filesystem::path externalPath = aPath / aGlTFimage->uri;
 
 			ktxTexture* ktxTexture;
 

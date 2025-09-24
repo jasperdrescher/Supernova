@@ -13,7 +13,7 @@
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 
-#define GLFW_INCLUDE_VULKAN
+#define GLFW_EXCLUDE_API
 #include <GLFW/glfw3.h>
 
 #include <algorithm>

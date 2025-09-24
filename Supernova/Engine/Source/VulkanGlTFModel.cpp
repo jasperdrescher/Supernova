@@ -54,6 +54,11 @@ namespace VulkanGlTFModelLocal
 	}
 }
 
+vkglTF::Model::Model()
+	: mCurrentModel{nullptr}
+{
+}
+
 vkglTF::Model::~Model()
 {
 	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, vertices.buffer, nullptr);
@@ -86,37 +91,37 @@ vkglTF::Model::~Model()
 	mEmptyTexture.Destroy();
 }
 
-void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node& aNode, std::uint32_t aNodeIndex, const tinygltf::Model& aModel, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale)
+void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale)
 {
 	vkglTF::Node* newNode = new Node{};
     newNode->index = aNodeIndex;
     newNode->parent = aParent;
-    newNode->name = aNode.name;
-    newNode->skinIndex = aNode.skin;
+    newNode->name = aNode->name;
+    newNode->skinIndex = aNode->skin;
 	newNode->matrix = glm::mat4(1.0f);
 
 	// Generate local node matrix
 	glm::vec3 translation = glm::vec3(0.0f);
-    if (aNode.translation.size() == 3)
+    if (aNode->translation.size() == 3)
 	{
-        translation = glm::make_vec3(aNode.translation.data());
+        translation = glm::make_vec3(aNode->translation.data());
 		newNode->translation = translation;
 	}
 	glm::mat4 rotation = glm::mat4(1.0f);
-    if (aNode.rotation.size() == 4)
+    if (aNode->rotation.size() == 4)
 	{
-        glm::quat q = glm::make_quat(aNode.rotation.data());
+        glm::quat q = glm::make_quat(aNode->rotation.data());
 		newNode->rotation = glm::mat4(q);
 	}
 	glm::vec3 scale = glm::vec3(1.0f);
-    if (aNode.scale.size() == 3)
+    if (aNode->scale.size() == 3)
 	{
-        scale = glm::make_vec3(aNode.scale.data());
+        scale = glm::make_vec3(aNode->scale.data());
 		newNode->scale = scale;
 	}
-    if (aNode.matrix.size() == 16)
+    if (aNode->matrix.size() == 16)
 	{
-        newNode->matrix = glm::make_mat4x4(aNode.matrix.data());
+        newNode->matrix = glm::make_mat4x4(aNode->matrix.data());
         if (aGlobalscale != 1.0f)
 		{
 			//newNode->matrix = glm::scale(newNode->matrix, glm::vec3(globalscale));
@@ -124,18 +129,18 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node& aNode,
 	};
 
 	// Node with children
-    if (aNode.children.size() > 0)
+    if (aNode->children.size() > 0)
 	{
-        for (auto i = 0; i < aNode.children.size(); i++)
+        for (auto i = 0; i < aNode->children.size(); i++)
 		{
-            LoadNode(newNode, aModel.nodes[aNode.children[i]], aNode.children[i], aModel, aIndexBuffer, aVertexBuffer, aGlobalscale);
+            LoadNode(newNode, &mCurrentModel->nodes[aNode->children[i]], aNode->children[i], aIndexBuffer, aVertexBuffer, aGlobalscale);
 		}
 	}
 
 	// Node contains mesh data
-    if (aNode.mesh > -1)
+    if (aNode->mesh > -1)
 	{
-        const tinygltf::Mesh mesh = aModel.meshes[aNode.mesh];
+        const tinygltf::Mesh mesh = mCurrentModel->meshes[aNode->mesh];
 		Mesh* newMesh = new Mesh(mVulkanDevice, newNode->matrix);
 		newMesh->name = mesh.name;
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
@@ -166,56 +171,56 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node& aNode,
 				// Position attribute is required
 				assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
 
-                const tinygltf::Accessor& posAccessor = aModel.accessors[primitive.attributes.find("POSITION")->second];
-                const tinygltf::BufferView& posView = aModel.bufferViews[posAccessor.bufferView];
-                bufferPos = reinterpret_cast<const float*>(&(aModel.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+                const tinygltf::Accessor& posAccessor = mCurrentModel->accessors[primitive.attributes.find("POSITION")->second];
+                const tinygltf::BufferView& posView = mCurrentModel->bufferViews[posAccessor.bufferView];
+                bufferPos = reinterpret_cast<const float*>(&(mCurrentModel->buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
 				posMin = glm::vec3(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
 				posMax = glm::vec3(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
 
 				if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
 				{
-                    const tinygltf::Accessor& normAccessor = aModel.accessors[primitive.attributes.find("NORMAL")->second];
-                    const tinygltf::BufferView& normView = aModel.bufferViews[normAccessor.bufferView];
-                    bufferNormals = reinterpret_cast<const float*>(&(aModel.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
+                    const tinygltf::Accessor& normAccessor = mCurrentModel->accessors[primitive.attributes.find("NORMAL")->second];
+                    const tinygltf::BufferView& normView = mCurrentModel->bufferViews[normAccessor.bufferView];
+                    bufferNormals = reinterpret_cast<const float*>(&(mCurrentModel->buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
 				{
-                    const tinygltf::Accessor& uvAccessor = aModel.accessors[primitive.attributes.find("TEXCOORD_0")->second];
-                    const tinygltf::BufferView& uvView = aModel.bufferViews[uvAccessor.bufferView];
-                    bufferTexCoords = reinterpret_cast<const float*>(&(aModel.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    const tinygltf::Accessor& uvAccessor = mCurrentModel->accessors[primitive.attributes.find("TEXCOORD_0")->second];
+                    const tinygltf::BufferView& uvView = mCurrentModel->bufferViews[uvAccessor.bufferView];
+                    bufferTexCoords = reinterpret_cast<const float*>(&(mCurrentModel->buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("COLOR_0") != primitive.attributes.end())
 				{
-                    const tinygltf::Accessor& colorAccessor = aModel.accessors[primitive.attributes.find("COLOR_0")->second];
-                    const tinygltf::BufferView& colorView = aModel.bufferViews[colorAccessor.bufferView];
+                    const tinygltf::Accessor& colorAccessor = mCurrentModel->accessors[primitive.attributes.find("COLOR_0")->second];
+                    const tinygltf::BufferView& colorView = mCurrentModel->bufferViews[colorAccessor.bufferView];
 					// Color buffer are either of type vec3 or vec4
 					numColorComponents = colorAccessor.type == TINYGLTF_PARAMETER_TYPE_FLOAT_VEC3 ? 3 : 4;
-                    bufferColors = reinterpret_cast<const float*>(&(aModel.buffers[colorView.buffer].data[colorAccessor.byteOffset + colorView.byteOffset]));
+                    bufferColors = reinterpret_cast<const float*>(&(mCurrentModel->buffers[colorView.buffer].data[colorAccessor.byteOffset + colorView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
 				{
-                    const tinygltf::Accessor& tangentAccessor = aModel.accessors[primitive.attributes.find("TANGENT")->second];
-                    const tinygltf::BufferView& tangentView = aModel.bufferViews[tangentAccessor.bufferView];
-                    bufferTangents = reinterpret_cast<const float*>(&(aModel.buffers[tangentView.buffer].data[tangentAccessor.byteOffset + tangentView.byteOffset]));
+                    const tinygltf::Accessor& tangentAccessor = mCurrentModel->accessors[primitive.attributes.find("TANGENT")->second];
+                    const tinygltf::BufferView& tangentView = mCurrentModel->bufferViews[tangentAccessor.bufferView];
+                    bufferTangents = reinterpret_cast<const float*>(&(mCurrentModel->buffers[tangentView.buffer].data[tangentAccessor.byteOffset + tangentView.byteOffset]));
 				}
 
 				// Skinning
 				// Joints
 				if (primitive.attributes.find("JOINTS_0") != primitive.attributes.end())
 				{
-                    const tinygltf::Accessor& jointAccessor = aModel.accessors[primitive.attributes.find("JOINTS_0")->second];
-                    const tinygltf::BufferView& jointView = aModel.bufferViews[jointAccessor.bufferView];
-                    bufferJoints = reinterpret_cast<const uint16_t*>(&(aModel.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
+                    const tinygltf::Accessor& jointAccessor = mCurrentModel->accessors[primitive.attributes.find("JOINTS_0")->second];
+                    const tinygltf::BufferView& jointView = mCurrentModel->bufferViews[jointAccessor.bufferView];
+                    bufferJoints = reinterpret_cast<const uint16_t*>(&(mCurrentModel->buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end())
 				{
-                    const tinygltf::Accessor& uvAccessor = aModel.accessors[primitive.attributes.find("WEIGHTS_0")->second];
-                    const tinygltf::BufferView& uvView = aModel.bufferViews[uvAccessor.bufferView];
-                    bufferWeights = reinterpret_cast<const float*>(&(aModel.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    const tinygltf::Accessor& uvAccessor = mCurrentModel->accessors[primitive.attributes.find("WEIGHTS_0")->second];
+                    const tinygltf::BufferView& uvView = mCurrentModel->bufferViews[uvAccessor.bufferView];
+                    bufferWeights = reinterpret_cast<const float*>(&(mCurrentModel->buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
 				}
 
 				hasSkin = (bufferJoints && bufferWeights);
@@ -252,9 +257,9 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node& aNode,
 			}
 			// Indices
 			{
-                const tinygltf::Accessor& accessor = aModel.accessors[primitive.indices];
-                const tinygltf::BufferView& bufferView = aModel.bufferViews[accessor.bufferView];
-                const tinygltf::Buffer& buffer = aModel.buffers[bufferView.buffer];
+                const tinygltf::Accessor& accessor = mCurrentModel->accessors[primitive.indices];
+                const tinygltf::BufferView& bufferView = mCurrentModel->bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = mCurrentModel->buffers[bufferView.buffer];
 
 				indexCount = static_cast<std::uint32_t>(accessor.count);
 
@@ -317,9 +322,9 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node& aNode,
 	linearNodes.push_back(newNode);
 }
 
-void vkglTF::Model::LoadSkins(tinygltf::Model& aGlTFModel)
+void vkglTF::Model::LoadSkins()
 {
-    for (tinygltf::Skin& source : aGlTFModel.skins)
+    for (tinygltf::Skin& source : mCurrentModel->skins)
 	{
 		Skin* newSkin = new Skin{};
 		newSkin->name = source.name;
@@ -343,9 +348,9 @@ void vkglTF::Model::LoadSkins(tinygltf::Model& aGlTFModel)
 		// Get inverse bind matrices from buffer
 		if (source.inverseBindMatrices > -1)
 		{
-            const tinygltf::Accessor& accessor = aGlTFModel.accessors[source.inverseBindMatrices];
-            const tinygltf::BufferView& bufferView = aGlTFModel.bufferViews[accessor.bufferView];
-            const tinygltf::Buffer& buffer = aGlTFModel.buffers[bufferView.buffer];
+            const tinygltf::Accessor& accessor = mCurrentModel->accessors[source.inverseBindMatrices];
+            const tinygltf::BufferView& bufferView = mCurrentModel->bufferViews[accessor.bufferView];
+            const tinygltf::Buffer& buffer = mCurrentModel->buffers[bufferView.buffer];
 			newSkin->inverseBindMatrices.resize(accessor.count);
 			memcpy(newSkin->inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
 		}
@@ -354,12 +359,12 @@ void vkglTF::Model::LoadSkins(tinygltf::Model& aGlTFModel)
 	}
 }
 
-void vkglTF::Model::LoadImages(tinygltf::Model& aGlTFModel, VulkanDevice* aDevice, VkQueue aTransferQueue)
+void vkglTF::Model::LoadImages(VulkanDevice* aDevice, VkQueue aTransferQueue)
 {
-	for (tinygltf::Image& image : aGlTFModel.images)
+	for (tinygltf::Image& image : mCurrentModel->images)
 	{
 		vkglTF::Texture texture;
-		texture.FromGlTfImage(image, path, aDevice, aTransferQueue);
+		texture.FromGlTfImage(&image, path, aDevice, aTransferQueue);
 		texture.mIndex = static_cast<std::uint32_t>(textures.size());
 		textures.push_back(texture);
 	}
@@ -367,19 +372,19 @@ void vkglTF::Model::LoadImages(tinygltf::Model& aGlTFModel, VulkanDevice* aDevic
 	CreateEmptyTexture(aTransferQueue);
 }
 
-void vkglTF::Model::LoadMaterials(tinygltf::Model& aGlTFModel)
+void vkglTF::Model::LoadMaterials()
 {
-    for (tinygltf::Material& mat : aGlTFModel.materials)
+    for (tinygltf::Material& mat : mCurrentModel->materials)
 	{
 		vkglTF::Material material(mVulkanDevice);
 		if (mat.values.find("baseColorTexture") != mat.values.end())
 		{
-            material.baseColorTexture = GetTexture(aGlTFModel.textures[mat.values["baseColorTexture"].TextureIndex()].source);
+            material.baseColorTexture = GetTexture(mCurrentModel->textures[mat.values["baseColorTexture"].TextureIndex()].source);
 		}
 		// Metallic roughness workflow
 		if (mat.values.find("metallicRoughnessTexture") != mat.values.end())
 		{
-            material.metallicRoughnessTexture = GetTexture(aGlTFModel.textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source);
+            material.metallicRoughnessTexture = GetTexture(mCurrentModel->textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source);
 		}
 		if (mat.values.find("roughnessFactor") != mat.values.end())
 		{
@@ -395,7 +400,7 @@ void vkglTF::Model::LoadMaterials(tinygltf::Model& aGlTFModel)
 		}
 		if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end())
 		{
-            material.normalTexture = GetTexture(aGlTFModel.textures[mat.additionalValues["normalTexture"].TextureIndex()].source);
+            material.normalTexture = GetTexture(mCurrentModel->textures[mat.additionalValues["normalTexture"].TextureIndex()].source);
 		}
 		else
 		{
@@ -403,11 +408,11 @@ void vkglTF::Model::LoadMaterials(tinygltf::Model& aGlTFModel)
 		}
 		if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end())
 		{
-            material.emissiveTexture = GetTexture(aGlTFModel.textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source);
+            material.emissiveTexture = GetTexture(mCurrentModel->textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source);
 		}
 		if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end())
 		{
-            material.occlusionTexture = GetTexture(aGlTFModel.textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source);
+            material.occlusionTexture = GetTexture(mCurrentModel->textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source);
 		}
 		if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end())
 		{
@@ -432,9 +437,9 @@ void vkglTF::Model::LoadMaterials(tinygltf::Model& aGlTFModel)
 	materials.push_back(Material(mVulkanDevice));
 }
 
-void vkglTF::Model::LoadAnimations(tinygltf::Model& aGlTFModel)
+void vkglTF::Model::LoadAnimations()
 {
-    for (tinygltf::Animation& anim : aGlTFModel.animations)
+    for (tinygltf::Animation& anim : mCurrentModel->animations)
 	{
 		vkglTF::Animation animation{};
 		animation.name = anim.name;
@@ -463,9 +468,9 @@ void vkglTF::Model::LoadAnimations(tinygltf::Model& aGlTFModel)
 
 			// Read sampler input time values
 			{
-                const tinygltf::Accessor& accessor = aGlTFModel.accessors[samp.input];
-                const tinygltf::BufferView& bufferView = aGlTFModel.bufferViews[accessor.bufferView];
-                const tinygltf::Buffer& buffer = aGlTFModel.buffers[bufferView.buffer];
+                const tinygltf::Accessor& accessor = mCurrentModel->accessors[samp.input];
+                const tinygltf::BufferView& bufferView = mCurrentModel->bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = mCurrentModel->buffers[bufferView.buffer];
 
 				assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
@@ -491,9 +496,9 @@ void vkglTF::Model::LoadAnimations(tinygltf::Model& aGlTFModel)
 
 			// Read sampler output T/R/S values 
 			{
-                const tinygltf::Accessor& accessor = aGlTFModel.accessors[samp.output];
-                const tinygltf::BufferView& bufferView = aGlTFModel.bufferViews[accessor.bufferView];
-                const tinygltf::Buffer& buffer = aGlTFModel.buffers[bufferView.buffer];
+                const tinygltf::Accessor& accessor = mCurrentModel->accessors[samp.output];
+                const tinygltf::BufferView& bufferView = mCurrentModel->bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = mCurrentModel->buffers[bufferView.buffer];
 
 				assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
@@ -570,7 +575,6 @@ void vkglTF::Model::LoadAnimations(tinygltf::Model& aGlTFModel)
 
 void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags, float aScale)
 {
-	tinygltf::Model gltfModel;
 	tinygltf::TinyGLTF gltfContext;
 	if (aFileLoadingFlags & FileLoadingFlags::DontLoadImages)
 	{
@@ -585,51 +589,54 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 	size_t pos = pathString.find_last_of('/');
 	path = pathString.substr(0, pos);
 
-	std::string error, warning;
+	std::string error;
+	std::string warning;
 
 	mVulkanDevice = aDevice;
 
-	bool fileLoaded = gltfContext.LoadASCIIFromFile(&gltfModel, &error, &warning, pathString);
+	mCurrentModel = new tinygltf::Model();
+	const bool isFileLoaded = gltfContext.LoadASCIIFromFile(mCurrentModel, &error, &warning, pathString);
+	if (!isFileLoaded)
+	{
+		throw std::runtime_error(std::format("Could not load glTF file: {} {}", aPath.generic_string(), error));
+	}
 
 	std::vector<std::uint32_t> indexBuffer;
 	std::vector<Vertex> vertexBuffer;
 
-	if (fileLoaded)
+	if (!(aFileLoadingFlags & FileLoadingFlags::DontLoadImages))
 	{
-		if (!(aFileLoadingFlags & FileLoadingFlags::DontLoadImages))
-		{
-			LoadImages(gltfModel, aDevice, aTransferQueue);
-		}
-        LoadMaterials(gltfModel);
-		const tinygltf::Scene& scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
-		for (size_t i = 0; i < scene.nodes.size(); i++)
-		{
-			const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
-            LoadNode(nullptr, node, scene.nodes[i], gltfModel, indexBuffer, vertexBuffer, aScale);
-		}
-		if (gltfModel.animations.size() > 0)
-		{
-            LoadAnimations(gltfModel);
-		}
-        LoadSkins(gltfModel);
-
-		for (auto node : linearNodes)
-		{
-			// Assign skins
-			if (node->skinIndex > -1)
-			{
-				node->skin = skins[node->skinIndex];
-			}
-			// Initial pose
-			if (node->mesh)
-			{
-				node->update();
-			}
-		}
+		LoadImages(aDevice, aTransferQueue);
 	}
-	else
+
+    LoadMaterials();
+
+	const tinygltf::Scene& scene = mCurrentModel->scenes[mCurrentModel->defaultScene > -1 ? mCurrentModel->defaultScene : 0];
+	for (size_t i = 0; i < scene.nodes.size(); i++)
 	{
-		throw std::runtime_error(std::format("Could not load glTF file: {} {}", aPath.generic_string(), error));
+		const tinygltf::Node node = mCurrentModel->nodes[scene.nodes[i]];
+        LoadNode(nullptr, &node, scene.nodes[i], indexBuffer, vertexBuffer, aScale);
+	}
+
+	if (!mCurrentModel->animations.empty())
+	{
+        LoadAnimations();
+	}
+
+    LoadSkins();
+
+	for (auto node : linearNodes)
+	{
+		// Assign skins
+		if (node->skinIndex > -1)
+		{
+			node->skin = skins[node->skinIndex];
+		}
+		// Initial pose
+		if (node->mesh)
+		{
+			node->update();
+		}
 	}
 
 	// Pre-Calculations for requested features
@@ -671,7 +678,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		}
 	}
 
-	for (auto& extension : gltfModel.extensionsUsed)
+	for (auto& extension : mCurrentModel->extensionsUsed)
 	{
 		if (extension == "KHR_materials_pbrSpecularGlossiness")
 		{
@@ -702,6 +709,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		&vertexStaging.buffer,
 		&vertexStaging.memory,
 		vertexBuffer.data()));
+
 	// Index data
 	VK_CHECK_RESULT(aDevice->CreateBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -719,6 +727,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		vertexBufferSize,
 		&vertices.buffer,
 		&vertices.memory, nullptr));
+
 	// Index buffer
 	VK_CHECK_RESULT(aDevice->CreateBuffer(
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | memoryPropertyFlags,
@@ -757,6 +766,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 			uboCount++;
 		}
 	}
+
 	for (auto& material : materials)
 	{
 		if (material.baseColorTexture != nullptr)
@@ -764,20 +774,24 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 			imageCount++;
 		}
 	}
+
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uboCount },
 	};
+
 	if (imageCount > 0)
 	{
 		if (descriptorBindingFlags & DescriptorBindingFlags::ImageBaseColor)
 		{
 			poolSizes.push_back({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount});
 		}
+
 		if (descriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap)
 		{
 			poolSizes.push_back({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount});
 		}
 	}
+
 	VkDescriptorPoolCreateInfo descriptorPoolCI{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 		.maxSets = uboCount + imageCount,
@@ -795,6 +809,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = 1, .pBindings = &setLayoutBinding};
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorLayoutCI, nullptr, &descriptorSetLayoutUbo));
 		}
+
 		for (auto node : nodes)
 		{
 			PrepareNodeDescriptor(node, descriptorSetLayoutUbo);
@@ -811,10 +826,12 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 			{
 				setLayoutBindings.push_back({.binding = static_cast<std::uint32_t>(setLayoutBindings.size()), .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT});
 			}
+
 			if (descriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap)
 			{
 				setLayoutBindings.push_back({.binding = static_cast<std::uint32_t>(setLayoutBindings.size()), .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT});
 			}
+
 			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 				.bindingCount = static_cast<std::uint32_t>(setLayoutBindings.size()),
@@ -822,6 +839,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 			};
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorLayoutCI, nullptr, &descriptorSetLayoutImage));
 		}
+
 		for (auto& material : materials)
 		{
 			if (material.baseColorTexture != nullptr)
@@ -830,6 +848,8 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 			}
 		}
 	}
+
+	delete mCurrentModel;
 }
 
 vkglTF::Texture* vkglTF::Model::GetTexture(std::uint32_t aIndex)
@@ -962,24 +982,29 @@ void vkglTF::Model::DrawNode(Node* aNode, VkCommandBuffer aCommandBuffer, std::u
 			{
 				skip = (material.alphaMode != Material::AlphaMode::ALPHAMODE_OPAQUE);
 			}
+
 			if (aRenderFlags & RenderFlags::RenderAlphaMaskedNodes)
 			{
 				skip = (material.alphaMode != Material::AlphaMode::ALPHAMODE_MASK);
 			}
+
 			if (aRenderFlags & RenderFlags::RenderAlphaBlendedNodes)
 			{
 				skip = (material.alphaMode != Material::AlphaMode::ALPHAMODE_BLEND);
 			}
+
 			if (!skip)
 			{
 				if (aRenderFlags & RenderFlags::BindImages)
 				{
 					vkCmdBindDescriptorSets(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, aPipelineLayout, aBindImageSet, 1, &material.descriptorSet, 0, nullptr);
 				}
+
 				vkCmdDrawIndexed(aCommandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
 			}
 		}
 	}
+
 	for (auto& child : aNode->children)
 	{
 		DrawNode(child, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
@@ -994,6 +1019,7 @@ void vkglTF::Model::Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFl
 		vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &vertices.buffer, offsets);
 		vkCmdBindIndexBuffer(aCommandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 	}
+
 	for (auto& node : nodes)
 	{
 		DrawNode(node, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
@@ -1016,6 +1042,7 @@ void vkglTF::Model::GetNodeDimensions(Node* aNode, glm::vec3& aMin, glm::vec3& a
 			if (locMax.z > aMax.z) { aMax.z = locMax.z; }
 		}
 	}
+
 	for (auto child : aNode->children)
 	{
 		GetNodeDimensions(child, aMin, aMax);
@@ -1042,6 +1069,7 @@ void vkglTF::Model::UpdateAnimation(std::uint32_t aIndex, float aTime)
 		std::cout << "No animation with index " << aIndex << std::endl;
 		return;
 	}
+
 	Animation& animation = animations[aIndex];
 
 	bool updated = false;
@@ -1095,6 +1123,7 @@ void vkglTF::Model::UpdateAnimation(std::uint32_t aIndex, float aTime)
 			}
 		}
 	}
+
 	if (updated)
 	{
 		for (auto& node : nodes)
@@ -1114,6 +1143,7 @@ vkglTF::Node* vkglTF::Model::FindNode(Node* aParent, std::uint32_t aIndex)
 	{
 		return aParent;
 	}
+
 	for (auto& child : aParent->children)
 	{
 		nodeFound = FindNode(child, aIndex);
@@ -1122,6 +1152,7 @@ vkglTF::Node* vkglTF::Model::FindNode(Node* aParent, std::uint32_t aIndex)
 			break;
 		}
 	}
+
 	return nodeFound;
 }
 
@@ -1136,6 +1167,7 @@ vkglTF::Node* vkglTF::Model::NodeFromIndex(std::uint32_t aIndex)
 			break;
 		}
 	}
+
 	return nodeFound;
 }
 
@@ -1150,6 +1182,7 @@ void vkglTF::Model::PrepareNodeDescriptor(vkglTF::Node* aNode, VkDescriptorSetLa
 			.pSetLayouts = &aDescriptorSetLayout
 		};
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocInfo, &aNode->mesh->uniformBuffer.descriptorSet));
+
 		VkWriteDescriptorSet writeDescriptorSet{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstSet = aNode->mesh->uniformBuffer.descriptorSet,

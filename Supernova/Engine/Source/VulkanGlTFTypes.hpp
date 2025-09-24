@@ -1,20 +1,23 @@
 #pragma once
 
 #include <cstdint>
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-#include <tiny_gltf.h>
-#include <vulkan/vulkan_core.h>
 #include <filesystem>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <limits>
-#include <vector>
 #include <string>
+#include <vector>
+#include <vulkan/vulkan_core.h>
 
 struct VulkanDevice;
+
+namespace tinygltf
+{
+	struct Image;
+}
 
 namespace vkglTF
 {
@@ -37,7 +40,7 @@ namespace vkglTF
 
 		void UpdateDescriptor();
 		void Destroy();
-		void FromGlTfImage(tinygltf::Image& aGlTFimage, const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aCopyQueue);
+		void FromGlTfImage(tinygltf::Image* aGlTFimage, const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aCopyQueue);
 
 		VulkanDevice* mVulkanDevice;
 		VkDescriptorImageInfo mDescriptorImageInfo{};
