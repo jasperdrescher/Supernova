@@ -869,6 +869,8 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		}
 	}
 
+	std::cout << std::format("Loaded GlTF model: {}", aPath.generic_string()) << std::endl;
+
 	delete mCurrentModel;
 }
 

@@ -1,11 +1,9 @@
 #pragma once
 
-#include <vulkan/vulkan_core.h>
-
 #include <cstdint>
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
-#include <string>
+#include <vulkan/vulkan_core.h>
 
 struct VulkanVertex
 {
