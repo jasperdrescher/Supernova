@@ -7,22 +7,6 @@
 #include <glm/vec4.hpp>
 #include <string>
 
-struct VulkanApplicationProperties
-{
-	VulkanApplicationProperties() : mAPIVersion(VK_API_VERSION_1_0), mWindowWidth(1280), mWindowHeight(720), mIsMinimized(false), mIsFocused(false), mIsVSyncEnabled(false), mIsValidationEnabled(false) {}
-
-	std::string mWindowTitle;
-	std::string mApplicationName;
-	std::string mEngineName;
-	std::uint32_t mAPIVersion;
-	int mWindowWidth;
-	int mWindowHeight;
-	bool mIsMinimized;
-	bool mIsFocused;
-	bool mIsVSyncEnabled;
-	bool mIsValidationEnabled;
-};
-
 struct VulkanVertex
 {
 	float mVertexPosition[3];

@@ -11,7 +11,6 @@ int main(const int /*argc*/, const char* /*argv*/[])
 	{
 		engine.Start();
 		engine.Run();
-		engine.Shutdown();
 	}
 	catch (const std::exception& exception)
 	{

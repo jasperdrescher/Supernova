@@ -1,5 +1,7 @@
 #pragma once
 
+struct EngineProperties;
+class Window;
 class VulkanRenderer;
 
 class Engine
@@ -10,9 +12,10 @@ public:
 
 	void Start();
 	void Run();
-	void Shutdown();
 
 private:
+	EngineProperties* mEngineProperties;
+	Window* mVulkanWindow;
 	VulkanRenderer* mVulkanRenderer;
 	float mDeltaTime;
 	float mFixedDeltaTime;

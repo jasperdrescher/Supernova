@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Engine.cpp" />
+    <ClCompile Include="Source\EngineProperties.cpp" />
     <ClCompile Include="Source\FileLoader.cpp" />
     <ClCompile Include="Source\InputManager.cpp" />
     <ClCompile Include="Source\VulkanGlTFModel.cpp" />
@@ -40,10 +41,12 @@
     <ClCompile Include="Source\VulkanSwapChain.cpp" />
     <ClCompile Include="Source\VulkanTools.cpp" />
     <ClCompile Include="Source\VulkanTypes.cpp" />
+    <ClCompile Include="Source\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Engine.hpp" />
+    <ClInclude Include="Source\EngineProperties.hpp" />
     <ClInclude Include="Source\FileLoader.hpp" />
     <ClInclude Include="Source\InputKeys.hpp" />
     <ClInclude Include="Source\InputManager.hpp" />
@@ -56,6 +59,7 @@
     <ClInclude Include="Source\VulkanSwapChain.hpp" />
     <ClInclude Include="Source\VulkanTools.hpp" />
     <ClInclude Include="Source\VulkanTypes.hpp" />
+    <ClInclude Include="Source\Window.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
