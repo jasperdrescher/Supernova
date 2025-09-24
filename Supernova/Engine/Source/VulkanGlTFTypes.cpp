@@ -14,7 +14,6 @@
 #include <glm/geometric.hpp>
 #include <glm/mat4x4.hpp>
 #include <vulkan/vulkan_core.h>
-#include <cassert>
 #include <cstdint>
 #include <format>
 #include <ktx.h>
@@ -49,14 +48,14 @@ namespace vkglTF
 	}
 
 
-	void vkglTF::Texture::UpdateDescriptor()
+	void Texture::UpdateDescriptor()
 	{
 		mDescriptorImageInfo.sampler = mSampler;
 		mDescriptorImageInfo.imageView = mImageView;
 		mDescriptorImageInfo.imageLayout = imageLayout;
 	}
 
-	void vkglTF::Texture::Destroy()
+	void Texture::Destroy()
 	{
 		if (mVulkanDevice)
 		{
@@ -67,7 +66,7 @@ namespace vkglTF
 		}
 	}
 
-	void vkglTF::Texture::FromGlTfImage(tinygltf::Image* aGlTFimage, const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aCopyQueue)
+	void Texture::FromGlTfImage(tinygltf::Image* aGlTFimage, const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aCopyQueue)
 	{
 		mVulkanDevice = aDevice;
 
@@ -114,7 +113,11 @@ namespace vkglTF
 				buffer = &aGlTFimage->image[0];
 				bufferSize = aGlTFimage->image.size();
 			}
-			assert(buffer);
+			
+			if (!buffer)
+			{
+				throw std::runtime_error("Buffer is invalid");
+			}
 
 			format = VK_FORMAT_R8G8B8A8_UNORM;
 
@@ -124,8 +127,20 @@ namespace vkglTF
 
 			VkFormatProperties formatProperties;
 			vkGetPhysicalDeviceFormatProperties(aDevice->mVkPhysicalDevice, format, &formatProperties);
-			assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT);
-			assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT);
+			if (!buffer)
+			{
+				throw std::runtime_error("Buffer is invalid");
+			}
+
+			if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
+			{
+				throw std::runtime_error("optimalTilingFeatures is invalid");
+			}
+
+			if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT))
+			{
+				throw std::runtime_error("optimalTilingFeatures is invalid");
+			}
 
 			VkBuffer stagingBuffer;
 			VkDeviceMemory stagingMemory;
@@ -148,7 +163,7 @@ namespace vkglTF
 
 			std::uint8_t* data{nullptr};
 			VK_CHECK_RESULT(vkMapMemory(aDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
-			memcpy(data, buffer, bufferSize);
+			std::memcpy(data, buffer, bufferSize);
 			vkUnmapMemory(aDevice->mLogicalVkDevice, stagingMemory);
 
 			VkImageCreateInfo imageCreateInfo{
@@ -304,7 +319,10 @@ namespace vkglTF
 			}
 
 			const ktxResult createFromNamedFileResult = ktxTexture_CreateFromNamedFile(externalPath.generic_string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
-			assert(createFromNamedFileResult == KTX_SUCCESS);
+			if (createFromNamedFileResult != KTX_SUCCESS)
+			{
+				throw std::runtime_error(std::format("Could not create named file: {}", externalPath.generic_string()));
+			}
 
 			mVulkanDevice = aDevice;
 			mWidth = ktxTexture->baseWidth;
@@ -343,7 +361,7 @@ namespace vkglTF
 
 			uint8_t* data{nullptr};
 			VK_CHECK_RESULT(vkMapMemory(aDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
-			memcpy(data, ktxTextureData, ktxTextureSize);
+			std::memcpy(data, ktxTextureData, ktxTextureSize);
 			vkUnmapMemory(aDevice->mLogicalVkDevice, stagingMemory);
 
 			std::vector<VkBufferImageCopy> bufferCopyRegions;
@@ -351,7 +369,11 @@ namespace vkglTF
 			{
 				ktx_size_t offset;
 				const KTX_error_code getImageOffsetResult = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
-				assert(getImageOffsetResult == KTX_SUCCESS);
+				if (!getImageOffsetResult != KTX_SUCCESS)
+				{
+					throw std::runtime_error("Could not get image offset");
+				}
+
 				VkBufferImageCopy bufferCopyRegion{
 					.bufferOffset = offset,
 					.imageSubresource = {
@@ -434,7 +456,7 @@ namespace vkglTF
 		mDescriptorImageInfo.imageLayout = imageLayout;
 	}
 
-	void vkglTF::Material::CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, std::uint32_t aDescriptorBindingFlags)
+	void Material::CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, std::uint32_t aDescriptorBindingFlags)
 	{
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -474,7 +496,7 @@ namespace vkglTF
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
-	void vkglTF::Primitive::setDimensions(glm::vec3 min, glm::vec3 max)
+	void Primitive::setDimensions(glm::vec3 min, glm::vec3 max)
 	{
 		dimensions.min = min;
 		dimensions.max = max;
@@ -483,7 +505,7 @@ namespace vkglTF
 		dimensions.radius = glm::distance(min, max) / 2.0f;
 	}
 
-	vkglTF::Mesh::Mesh(VulkanDevice* aDevice, glm::mat4 aMatrix)
+	Mesh::Mesh(VulkanDevice* aDevice, glm::mat4 aMatrix)
 	{
 		mVulkanDevice = aDevice;
 		uniformBlock.matrix = aMatrix;
@@ -498,22 +520,22 @@ namespace vkglTF
 		uniformBuffer.descriptor = {uniformBuffer.buffer, 0, sizeof(uniformBlock)};
 	};
 
-	vkglTF::Mesh::~Mesh()
+	Mesh::~Mesh()
 	{
 		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, uniformBuffer.buffer, nullptr);
 		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, uniformBuffer.memory, nullptr);
-		for (auto primitive : primitives)
+		for (vkglTF::Primitive* primitive : primitives)
 		{
 			delete primitive;
 		}
 	}
 
-	glm::mat4 vkglTF::Node::GetLocalMatrix()
+	glm::mat4 Node::GetLocalMatrix() const
 	{
 		return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) * matrix;
 	}
 
-	glm::mat4 vkglTF::Node::GetMatrix()
+	glm::mat4 Node::GetMatrix() const
 	{
 		glm::mat4 m = GetLocalMatrix();
 		vkglTF::Node* p = parent;
@@ -525,7 +547,7 @@ namespace vkglTF
 		return m;
 	}
 
-	void vkglTF::Node::update()
+	void Node::update()
 	{
 		if (mesh)
 		{
@@ -543,42 +565,43 @@ namespace vkglTF
 					mesh->uniformBlock.jointMatrix[i] = jointMat;
 				}
 				mesh->uniformBlock.jointcount = (float)skin->joints.size();
-				memcpy(mesh->uniformBuffer.mapped, &mesh->uniformBlock, sizeof(mesh->uniformBlock));
+				std::memcpy(mesh->uniformBuffer.mapped, &mesh->uniformBlock, sizeof(mesh->uniformBlock));
 			}
 			else
 			{
-				memcpy(mesh->uniformBuffer.mapped, &m, sizeof(glm::mat4));
+				std::memcpy(mesh->uniformBuffer.mapped, &m, sizeof(glm::mat4));
 			}
 		}
 
-		for (auto& child : children)
+		for (vkglTF::Node* child : children)
 		{
 			child->update();
 		}
 	}
 
-	vkglTF::Node::~Node()
+	Node::~Node()
 	{
 		if (mesh)
 		{
 			delete mesh;
 		}
-		for (auto& child : children)
+
+		for (vkglTF::Node* child : children)
 		{
 			delete child;
 		}
 	}
 
-	VkVertexInputBindingDescription vkglTF::Vertex::vertexInputBindingDescription;
-	std::vector<VkVertexInputAttributeDescription> vkglTF::Vertex::vertexInputAttributeDescriptions;
-	VkPipelineVertexInputStateCreateInfo vkglTF::Vertex::pipelineVertexInputStateCreateInfo;
+	VkVertexInputBindingDescription Vertex::vertexInputBindingDescription;
+	std::vector<VkVertexInputAttributeDescription> Vertex::vertexInputAttributeDescriptions;
+	VkPipelineVertexInputStateCreateInfo Vertex::pipelineVertexInputStateCreateInfo;
 
-	VkVertexInputBindingDescription vkglTF::Vertex::inputBindingDescription(std::uint32_t binding)
+	VkVertexInputBindingDescription Vertex::inputBindingDescription(std::uint32_t binding)
 	{
 		return VkVertexInputBindingDescription({binding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX});
 	}
 
-	VkVertexInputAttributeDescription vkglTF::Vertex::inputAttributeDescription(std::uint32_t binding, std::uint32_t location, VertexComponent component)
+	VkVertexInputAttributeDescription Vertex::inputAttributeDescription(std::uint32_t binding, std::uint32_t location, VertexComponent component)
 	{
 		switch (component)
 		{
@@ -601,7 +624,7 @@ namespace vkglTF
 		}
 	}
 
-	std::vector<VkVertexInputAttributeDescription> vkglTF::Vertex::inputAttributeDescriptions(std::uint32_t binding, const std::vector<VertexComponent> components)
+	std::vector<VkVertexInputAttributeDescription> Vertex::inputAttributeDescriptions(std::uint32_t binding, const std::vector<VertexComponent> components)
 	{
 		std::vector<VkVertexInputAttributeDescription> result;
 		std::uint32_t location = 0;
@@ -614,7 +637,7 @@ namespace vkglTF
 	}
 
 	/** @brief Returns the default pipeline vertex input state create info structure for the requested vertex components */
-	VkPipelineVertexInputStateCreateInfo* vkglTF::Vertex::getPipelineVertexInputState(const std::vector<VertexComponent> components)
+	VkPipelineVertexInputStateCreateInfo* Vertex::getPipelineVertexInputState(const std::vector<VertexComponent> components)
 	{
 		vertexInputBindingDescription = Vertex::inputBindingDescription(0);
 		Vertex::vertexInputAttributeDescriptions = Vertex::inputAttributeDescriptions(0, components);

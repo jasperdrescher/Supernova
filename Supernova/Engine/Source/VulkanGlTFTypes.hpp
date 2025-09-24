@@ -145,8 +145,8 @@ namespace vkglTF
 
 		void update();
 
-		glm::mat4 GetLocalMatrix();
-		glm::mat4 GetMatrix();
+		glm::mat4 GetLocalMatrix() const;
+		glm::mat4 GetMatrix() const;
 
 		Node* parent;
 		std::uint32_t index;

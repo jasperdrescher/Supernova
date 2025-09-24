@@ -2,7 +2,6 @@
 
 #include "VulkanGlTFTypes.hpp"
 
-#include <cfloat>
 #include <cstdint>
 #include <filesystem>
 #include <glm/fwd.hpp>
@@ -37,11 +36,11 @@ namespace vkglTF
 		void LoadMaterials();
 		void LoadAnimations();
 		void BindBuffers(VkCommandBuffer aCommandBuffer);
-		void GetNodeDimensions(Node* aNode, glm::vec3& aMin, glm::vec3& aMax);
+		void GetNodeDimensions(const Node* aNode, glm::vec3& aMin, glm::vec3& aMax);
 		void GetSceneDimensions();
 		void UpdateAnimation(std::uint32_t aIndex, float aTime);
 		void PrepareNodeDescriptor(vkglTF::Node* aNode, VkDescriptorSetLayout aDescriptorSetLayout);
-		void DrawNode(Node* aNode, VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags = 0, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, std::uint32_t aBindImageSet = 1);
+		void DrawNode(const Node* aNode, VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags = 0, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, std::uint32_t aBindImageSet = 1);
 		void CreateEmptyTexture(VkQueue aTransferQueue);
 
 		Node* FindNode(Node* aParent, std::uint32_t aIndex);
@@ -52,6 +51,17 @@ namespace vkglTF
 	public:
 		VulkanDevice* mVulkanDevice = nullptr;
 		VkDescriptorPool descriptorPool{VK_NULL_HANDLE};
+
+		struct Dimensions
+		{
+			Dimensions();
+
+			glm::vec3 mMin;
+			glm::vec3 mMax;
+			glm::vec3 mSize;
+			glm::vec3 mCenter;
+			float mRadius;
+		};
 
 		struct Vertices
 		{
@@ -76,15 +86,7 @@ namespace vkglTF
 		std::vector<Material> materials{};
 		std::vector<Animation> animations{};
 
-		struct Dimensions
-		{
-			glm::vec3 min = glm::vec3(FLT_MAX);
-			glm::vec3 max = glm::vec3(-FLT_MAX);
-			glm::vec3 size;
-			glm::vec3 center;
-			float radius = 0.0f;
-		} dimensions;
-
+		Dimensions dimensions;
 		bool metallicRoughnessWorkflow = true;
 		bool buffersBound = false;
 		std::string path;

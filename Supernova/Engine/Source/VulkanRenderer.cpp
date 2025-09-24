@@ -258,7 +258,7 @@ void VulkanRenderer::CreateDescriptors()
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorLayout, nullptr, &mVkDescriptorSetLayout));
 	// Sets per frame, just like the buffers themselves
 	VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
-	for (auto i = 0; i < uniformBuffers.size(); i++)
+	for (size_t i = 0; i < uniformBuffers.size(); i++)
 	{
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mVkDescriptorSets[i]));
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -406,7 +406,7 @@ void VulkanRenderer::CreatePipeline()
 
 void VulkanRenderer::CreateUniformBuffers()
 {
-	for (auto& buffer : uniformBuffers)
+	for (VulkanBuffer& buffer : uniformBuffers)
 	{
 		VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(VulkanUniformData), &mVulkanUniformData));
 		VK_CHECK_RESULT(buffer.Map(VK_WHOLE_SIZE, 0));
@@ -548,7 +548,7 @@ void VulkanRenderer::UpdateUniformBuffers()
 	mVulkanUniformData.mProjectionMatrix = mCamera.mMatrices.mPerspective;
 	mVulkanUniformData.mModelViewMatrix = mCamera.mMatrices.mView;
 	mVulkanUniformData.mViewPosition = mCamera.getViewPosition();
-	memcpy(uniformBuffers[currentBuffer].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
+	std::memcpy(uniformBuffers[currentBuffer].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 
 void VulkanRenderer::SubmitFrame()

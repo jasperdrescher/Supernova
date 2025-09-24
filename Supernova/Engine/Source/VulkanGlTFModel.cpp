@@ -10,9 +10,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/geometric.hpp>
 #include <glm/mat4x4.hpp>
+
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #include <tiny_gltf.h>
+
 #include <cassert>
 #include <cstdint>
 #include <format>
@@ -24,6 +26,7 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
+#include <limits>
 
 VkDescriptorSetLayout vkglTF::descriptorSetLayoutImage = VK_NULL_HANDLE;
 VkDescriptorSetLayout vkglTF::descriptorSetLayoutUbo = VK_NULL_HANDLE;
@@ -65,28 +68,33 @@ vkglTF::Model::~Model()
 	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, vertices.memory, nullptr);
 	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, indices.buffer, nullptr);
 	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, indices.memory, nullptr);
-	for (auto& texture : textures)
+	for (vkglTF::Texture& texture : textures)
 	{
 		texture.Destroy();
 	}
-	for (auto& node : nodes)
+
+	for (vkglTF::Node*& node : nodes)
 	{
 		delete node;
 	}
-	for (auto& skin : skins)
+
+	for (vkglTF::Skin*& skin : skins)
 	{
 		delete skin;
 	}
+
 	if (descriptorSetLayoutUbo != VK_NULL_HANDLE)
 	{
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, descriptorSetLayoutUbo, nullptr);
 		descriptorSetLayoutUbo = VK_NULL_HANDLE;
 	}
+
 	if (descriptorSetLayoutImage != VK_NULL_HANDLE)
 	{
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, descriptorSetLayoutImage, nullptr);
 		descriptorSetLayoutImage = VK_NULL_HANDLE;
 	}
+
 	vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, descriptorPool, nullptr);
 	mEmptyTexture.Destroy();
 }
@@ -131,7 +139,7 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode,
 	// Node with children
     if (aNode->children.size() > 0)
 	{
-        for (auto i = 0; i < aNode->children.size(); i++)
+        for (size_t i = 0; i < aNode->children.size(); i++)
 		{
             LoadNode(newNode, &mCurrentModel->nodes[aNode->children[i]], aNode->children[i], aIndexBuffer, aVertexBuffer, aGlobalscale);
 		}
@@ -268,34 +276,40 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode,
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
 					{
 						std::uint32_t* buf = new std::uint32_t[accessor.count];
-						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(std::uint32_t));
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(std::uint32_t));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
                             aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
+
 						delete[] buf;
+
 						break;
 					}
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
 					{
 						uint16_t* buf = new uint16_t[accessor.count];
-						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint16_t));
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint16_t));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
                             aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
+
 						delete[] buf;
+
 						break;
 					}
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
 					{
 						uint8_t* buf = new uint8_t[accessor.count];
-						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint8_t));
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint8_t));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
                             aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
+
 						delete[] buf;
+
 						break;
 					}
 					default:
@@ -324,7 +338,7 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode,
 
 void vkglTF::Model::LoadSkins()
 {
-    for (tinygltf::Skin& source : mCurrentModel->skins)
+    for (const tinygltf::Skin& source : mCurrentModel->skins)
 	{
 		Skin* newSkin = new Skin{};
 		newSkin->name = source.name;
@@ -352,7 +366,7 @@ void vkglTF::Model::LoadSkins()
             const tinygltf::BufferView& bufferView = mCurrentModel->bufferViews[accessor.bufferView];
             const tinygltf::Buffer& buffer = mCurrentModel->buffers[bufferView.buffer];
 			newSkin->inverseBindMatrices.resize(accessor.count);
-			memcpy(newSkin->inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
+			std::memcpy(newSkin->inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
 		}
 
 		skins.push_back(newSkin);
@@ -439,7 +453,7 @@ void vkglTF::Model::LoadMaterials()
 
 void vkglTF::Model::LoadAnimations()
 {
-    for (tinygltf::Animation& anim : mCurrentModel->animations)
+    for (const tinygltf::Animation& anim : mCurrentModel->animations)
 	{
 		vkglTF::Animation animation{};
 		animation.name = anim.name;
@@ -449,7 +463,7 @@ void vkglTF::Model::LoadAnimations()
 		}
 
 		// Samplers
-		for (auto& samp : anim.samplers)
+		for (const tinygltf::AnimationSampler& samp : anim.samplers)
 		{
 			vkglTF::AnimationSampler sampler{};
 
@@ -475,18 +489,21 @@ void vkglTF::Model::LoadAnimations()
 				assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
 				float* buf = new float[accessor.count];
-				memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(float));
+				std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(float));
 				for (size_t index = 0; index < accessor.count; index++)
 				{
 					sampler.inputs.push_back(buf[index]);
 				}
+
 				delete[] buf;
-				for (auto input : sampler.inputs)
+
+				for (float input : sampler.inputs)
 				{
 					if (input < animation.start)
 					{
 						animation.start = input;
-					};
+					}
+
 					if (input > animation.end)
 					{
 						animation.end = input;
@@ -507,7 +524,7 @@ void vkglTF::Model::LoadAnimations()
 					case TINYGLTF_TYPE_VEC3:
 					{
 						glm::vec3* buf = new glm::vec3[accessor.count];
-						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::vec3));
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::vec3));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
 							sampler.outputsVec4.push_back(glm::vec4(buf[index], 0.0f));
@@ -518,7 +535,7 @@ void vkglTF::Model::LoadAnimations()
 					case TINYGLTF_TYPE_VEC4:
 					{
 						glm::vec4* buf = new glm::vec4[accessor.count];
-						memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::vec4));
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::vec4));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
 							sampler.outputsVec4.push_back(buf[index]);
@@ -538,7 +555,7 @@ void vkglTF::Model::LoadAnimations()
 		}
 
 		// Channels
-		for (auto& source : anim.channels)
+		for (const tinygltf::AnimationChannel& source : anim.channels)
 		{
 			vkglTF::AnimationChannel channel{};
 
@@ -625,13 +642,14 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 
     LoadSkins();
 
-	for (auto node : linearNodes)
+	for (vkglTF::Node*& node : linearNodes)
 	{
 		// Assign skins
 		if (node->skinIndex > -1)
 		{
 			node->skin = skins[node->skinIndex];
 		}
+
 		// Initial pose
 		if (node->mesh)
 		{
@@ -645,12 +663,12 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		const bool preTransform = aFileLoadingFlags & FileLoadingFlags::PreTransformVertices;
 		const bool preMultiplyColor = aFileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors;
 		const bool flipY = aFileLoadingFlags & FileLoadingFlags::FlipY;
-		for (Node* node : linearNodes)
+		for (const Node* node : linearNodes)
 		{
 			if (node->mesh)
 			{
 				const glm::mat4 localMatrix = node->GetMatrix();
-				for (Primitive* primitive : node->mesh->primitives)
+				for (const Primitive* primitive : node->mesh->primitives)
 				{
 					for (std::uint32_t i = 0; i < primitive->vertexCount; i++)
 					{
@@ -661,12 +679,14 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 							vertex.pos = glm::vec3(localMatrix * glm::vec4(vertex.pos, 1.0f));
 							vertex.normal = glm::normalize(glm::mat3(localMatrix) * vertex.normal);
 						}
+
 						// Flip Y-Axis of vertex positions
 						if (flipY)
 						{
 							vertex.pos.y *= -1.0f;
 							vertex.normal.y *= -1.0f;
 						}
+
 						// Pre-Multiply vertex colors with material base color
 						if (preMultiplyColor)
 						{
@@ -678,7 +698,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		}
 	}
 
-	for (auto& extension : mCurrentModel->extensionsUsed)
+	for (const std::string& extension : mCurrentModel->extensionsUsed)
 	{
 		if (extension == "KHR_materials_pbrSpecularGlossiness")
 		{
@@ -759,7 +779,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 	// Setup descriptors
 	std::uint32_t uboCount{0};
 	std::uint32_t imageCount{0};
-	for (auto& node : linearNodes)
+	for (const vkglTF::Node* node : linearNodes)
 	{
 		if (node->mesh)
 		{
@@ -767,7 +787,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		}
 	}
 
-	for (auto& material : materials)
+	for (const vkglTF::Material& material : materials)
 	{
 		if (material.baseColorTexture != nullptr)
 		{
@@ -810,7 +830,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorLayoutCI, nullptr, &descriptorSetLayoutUbo));
 		}
 
-		for (auto node : nodes)
+		for (vkglTF::Node*& node : nodes)
 		{
 			PrepareNodeDescriptor(node, descriptorSetLayoutUbo);
 		}
@@ -840,7 +860,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorLayoutCI, nullptr, &descriptorSetLayoutImage));
 		}
 
-		for (auto& material : materials)
+		for (vkglTF::Material& material : materials)
 		{
 			if (material.baseColorTexture != nullptr)
 			{
@@ -894,7 +914,7 @@ void vkglTF::Model::CreateEmptyTexture(VkQueue aTransferQueue)
 	// Copy texture data into staging buffer
 	uint8_t* data{nullptr};
 	VK_CHECK_RESULT(vkMapMemory(mVulkanDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
-	memcpy(data, buffer, bufferSize);
+	std::memcpy(data, buffer, bufferSize);
 	vkUnmapMemory(mVulkanDevice->mLogicalVkDevice, stagingMemory);
 
 	// Create optimal tiled target image
@@ -970,11 +990,11 @@ void vkglTF::Model::BindBuffers(VkCommandBuffer aCommandBuffer)
 	buffersBound = true;
 }
 
-void vkglTF::Model::DrawNode(Node* aNode, VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags, VkPipelineLayout aPipelineLayout, std::uint32_t aBindImageSet)
+void vkglTF::Model::DrawNode(const Node* aNode, VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags, VkPipelineLayout aPipelineLayout, std::uint32_t aBindImageSet)
 {
 	if (aNode->mesh)
 	{
-		for (Primitive* primitive : aNode->mesh->primitives)
+		for (const Primitive* primitive : aNode->mesh->primitives)
 		{
 			bool skip = false;
 			const vkglTF::Material& material = primitive->material;
@@ -1005,7 +1025,7 @@ void vkglTF::Model::DrawNode(Node* aNode, VkCommandBuffer aCommandBuffer, std::u
 		}
 	}
 
-	for (auto& child : aNode->children)
+	for (const vkglTF::Node* child : aNode->children)
 	{
 		DrawNode(child, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
 	}
@@ -1020,20 +1040,20 @@ void vkglTF::Model::Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFl
 		vkCmdBindIndexBuffer(aCommandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 	}
 
-	for (auto& node : nodes)
+	for (const vkglTF::Node* node : nodes)
 	{
 		DrawNode(node, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
 	}
 }
 
-void vkglTF::Model::GetNodeDimensions(Node* aNode, glm::vec3& aMin, glm::vec3& aMax)
+void vkglTF::Model::GetNodeDimensions(const Node* aNode, glm::vec3& aMin, glm::vec3& aMax)
 {
 	if (aNode->mesh)
 	{
-		for (Primitive* primitive : aNode->mesh->primitives)
+		for (const Primitive* primitive : aNode->mesh->primitives)
 		{
-			glm::vec4 locMin = glm::vec4(primitive->dimensions.min, 1.0f) * aNode->GetMatrix();
-			glm::vec4 locMax = glm::vec4(primitive->dimensions.max, 1.0f) * aNode->GetMatrix();
+			const glm::vec4 locMin = glm::vec4(primitive->dimensions.min, 1.0f) * aNode->GetMatrix();
+			const glm::vec4 locMax = glm::vec4(primitive->dimensions.max, 1.0f) * aNode->GetMatrix();
 			if (locMin.x < aMin.x) { aMin.x = locMin.x; }
 			if (locMin.y < aMin.y) { aMin.y = locMin.y; }
 			if (locMin.z < aMin.z) { aMin.z = locMin.z; }
@@ -1043,7 +1063,7 @@ void vkglTF::Model::GetNodeDimensions(Node* aNode, glm::vec3& aMin, glm::vec3& a
 		}
 	}
 
-	for (auto child : aNode->children)
+	for (const vkglTF::Node* child : aNode->children)
 	{
 		GetNodeDimensions(child, aMin, aMax);
 	}
@@ -1051,16 +1071,17 @@ void vkglTF::Model::GetNodeDimensions(Node* aNode, glm::vec3& aMin, glm::vec3& a
 
 void vkglTF::Model::GetSceneDimensions()
 {
-	dimensions.min = glm::vec3(FLT_MAX);
-	dimensions.max = glm::vec3(-FLT_MAX);
-	for (auto node : nodes)
+	dimensions.mMin = glm::vec3(std::numeric_limits<float>::max());
+	dimensions.mMax = glm::vec3(std::numeric_limits<float>::lowest());
+	for (vkglTF::Node*& node : nodes)
 	{
-		GetNodeDimensions(node, dimensions.min, dimensions.max);
+		GetNodeDimensions(node, dimensions.mMin, dimensions.mMax);
 	}
-	dimensions.size = dimensions.max - dimensions.min;
-	dimensions.center = (dimensions.min + dimensions.max) / 2.0f;
-	dimensions.radius = glm::distance(dimensions.min, dimensions.max) / 2.0f;
+	dimensions.mSize = dimensions.mMax - dimensions.mMin;
+	dimensions.mCenter = (dimensions.mMin + dimensions.mMax) / 2.0f;
+	dimensions.mRadius = glm::distance(dimensions.mMin, dimensions.mMax) / 2.0f;
 }
+
 void vkglTF::Model::UpdateAnimation(std::uint32_t aIndex, float aTime)
 
 {
@@ -1073,7 +1094,7 @@ void vkglTF::Model::UpdateAnimation(std::uint32_t aIndex, float aTime)
 	Animation& animation = animations[aIndex];
 
 	bool updated = false;
-	for (auto& channel : animation.channels)
+	for (vkglTF::AnimationChannel& channel : animation.channels)
 	{
 		vkglTF::AnimationSampler& sampler = animation.samplers[channel.samplerIndex];
 		if (sampler.inputs.size() > sampler.outputsVec4.size())
@@ -1081,7 +1102,7 @@ void vkglTF::Model::UpdateAnimation(std::uint32_t aIndex, float aTime)
 			continue;
 		}
 
-		for (auto i = 0; i < sampler.inputs.size() - 1; i++)
+		for (size_t i = 0; i < sampler.inputs.size() - 1; i++)
 		{
 			if ((aTime >= sampler.inputs[i]) && (aTime <= sampler.inputs[i + 1]))
 			{
@@ -1126,7 +1147,7 @@ void vkglTF::Model::UpdateAnimation(std::uint32_t aIndex, float aTime)
 
 	if (updated)
 	{
-		for (auto& node : nodes)
+		for (vkglTF::Node*& node : nodes)
 		{
 			node->update();
 		}
@@ -1144,7 +1165,7 @@ vkglTF::Node* vkglTF::Model::FindNode(Node* aParent, std::uint32_t aIndex)
 		return aParent;
 	}
 
-	for (auto& child : aParent->children)
+	for (vkglTF::Node*& child : aParent->children)
 	{
 		nodeFound = FindNode(child, aIndex);
 		if (nodeFound)
@@ -1159,7 +1180,7 @@ vkglTF::Node* vkglTF::Model::FindNode(Node* aParent, std::uint32_t aIndex)
 vkglTF::Node* vkglTF::Model::NodeFromIndex(std::uint32_t aIndex)
 {
 	Node* nodeFound = nullptr;
-	for (auto& node : nodes)
+	for (vkglTF::Node*& node : nodes)
 	{
 		nodeFound = FindNode(node, aIndex);
 		if (nodeFound)
@@ -1194,8 +1215,17 @@ void vkglTF::Model::PrepareNodeDescriptor(vkglTF::Node* aNode, VkDescriptorSetLa
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, 1, &writeDescriptorSet, 0, nullptr);
 	}
 
-	for (auto& child : aNode->children)
+	for (vkglTF::Node*& child : aNode->children)
 	{
 		PrepareNodeDescriptor(child, aDescriptorSetLayout);
 	}
+}
+
+vkglTF::Model::Dimensions::Dimensions()
+	: mMin{std::numeric_limits<float>::max()}
+	, mMax{std::numeric_limits<float>::lowest()}
+	, mSize{0.0f}
+	, mCenter{0.0f}
+	, mRadius{0.0f}
+{
 }

@@ -428,7 +428,7 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 	{
 		void* mapped;
 		VK_CHECK_RESULT(vkMapMemory(mLogicalVkDevice, *aMemory, 0, aSize, 0, &mapped));
-		memcpy(mapped, aData, aSize);
+		std::memcpy(mapped, aData, aSize);
 		// If host coherency hasn't been requested, do a manual flush to make writes visible
 		if ((aMemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
 		{
@@ -482,7 +482,7 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 	if (aData != nullptr)
 	{
 		VK_CHECK_RESULT(aBuffer->Map(VK_WHOLE_SIZE, 0));
-		memcpy(aBuffer->mMappedData, aData, aSize);
+		std::memcpy(aBuffer->mMappedData, aData, aSize);
 		if ((aMemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
 			aBuffer->Flush(VK_WHOLE_SIZE, 0);
 

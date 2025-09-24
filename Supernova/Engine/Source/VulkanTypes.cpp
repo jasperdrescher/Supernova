@@ -66,7 +66,7 @@ void VulkanBuffer::SetupDescriptor(VkDeviceSize aSize, VkDeviceSize aOffset)
 void VulkanBuffer::CopyTo(void* aData, VkDeviceSize aSize) const
 {
 	assert(mMappedData);
-	memcpy(mMappedData, aData, aSize);
+	std::memcpy(mMappedData, aData, aSize);
 }
 
 /**
