@@ -2,8 +2,9 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include <cassert>
 #include <filesystem>
+#include <format>
+#include <stdexcept>
 
 namespace FileLoader
 {
@@ -15,9 +16,10 @@ namespace FileLoader
 	unsigned char* LoadImage(const std::filesystem::path& aPath, int& aWidth, int& aHeight, int& aNumberOfComponents)
 	{
 		const bool isFileValid = FileLoader::IsFileValid(aPath);
-		assert(isFileValid);
 		if (!isFileValid)
-			return nullptr;
+		{
+			throw std::runtime_error(std::format("Could not find file: {}", aPath.generic_string()));
+		}
 
 		unsigned char* image = stbi_load(aPath.generic_string().c_str(), &aWidth, &aHeight, &aNumberOfComponents, STBI_default);
 		if (!image)
