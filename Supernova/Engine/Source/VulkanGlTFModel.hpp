@@ -1,6 +1,5 @@
 #pragma once
 
-#include "VulkanDevice.hpp"
 #include "VulkanGlTFTypes.hpp"
 
 #include <cfloat>
@@ -11,6 +10,8 @@
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
+
+struct VulkanDevice;
 
 namespace tinygltf
 {
