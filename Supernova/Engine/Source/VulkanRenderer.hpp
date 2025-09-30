@@ -17,11 +17,6 @@
 
 constexpr std::uint32_t gMaxConcurrentFrames = 2;
 
-namespace vks
-{
-	class UIOverlay;
-}
-
 namespace vkglTF
 {
 	class Model;
@@ -29,6 +24,7 @@ namespace vkglTF
 
 struct EngineProperties;
 class Window;
+class ImGuiOverlay;
 
 class VulkanRenderer
 {
@@ -115,7 +111,7 @@ private:
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
-	vks::UIOverlay* ui;
+	ImGuiOverlay* ui;
 	vkglTF::Model* mGlTFModel;
 	EngineProperties* mEngineProperties;
 	Window* mWindow;
