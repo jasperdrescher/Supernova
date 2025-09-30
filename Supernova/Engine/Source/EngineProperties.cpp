@@ -8,6 +8,7 @@ EngineProperties::EngineProperties()
 	, mIsFocused{false}
 	, mIsPaused{false}
 	, mIsFramebufferResized{false}
+	, mIsRendererPrepared{false}
 	, mIsVSyncEnabled{false}
 	, mIsValidationEnabled{false}
 {

@@ -127,7 +127,7 @@ void Window::KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aActi
 void Window::FramebufferResizeCallback(GLFWwindow* aWindow, int /*aWidth*/, int /*aHeight*/)
 {
 	Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(aWindow));
-	if (window->mEngineProperties->mIsMinimized)
+	if (window->mEngineProperties->mIsMinimized || !window->mEngineProperties->mIsRendererPrepared)
 		return;
 
 	window->mEngineProperties->mIsFramebufferResized = true;
@@ -136,6 +136,12 @@ void Window::FramebufferResizeCallback(GLFWwindow* aWindow, int /*aWidth*/, int 
 void Window::WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight)
 {
 	Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(aWindow));
+	if (window->mEngineProperties->mIsMinimized)
+		return;
+
+	if (aWidth <= 0 || aHeight <= 0)
+		return;
+
 	window->SetWindowSize(aWidth, aHeight);
 }
 

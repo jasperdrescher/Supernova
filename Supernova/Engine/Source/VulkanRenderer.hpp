@@ -33,6 +33,7 @@ public:
 
 	void InitializeRenderer();
 	void PrepareUpdate();
+	void EndUpdate();
 	void UpdateRenderer(float aDeltaTime);
 
 private:
@@ -114,5 +115,4 @@ private:
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
 	float mFrametime;
 	bool mShouldClose;
-	bool mIsPrepared;
 };

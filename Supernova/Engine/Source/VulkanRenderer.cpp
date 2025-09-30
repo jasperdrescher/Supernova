@@ -34,7 +34,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	: mEngineProperties{aEngineProperties}
 	, mWindow{aWindow}
 	, mVkCommandBuffers{VK_NULL_HANDLE}
-	, mIsPrepared{false}
 	, mFramebufferWidth{0}
 	, mFramebufferHeight{0}
 	, mMaxFrametimes{10}
@@ -142,16 +141,19 @@ void VulkanRenderer::PrepareUpdate()
 	mPreviousEndTime = mLastTimestamp;
 }
 
-void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
+void VulkanRenderer::EndUpdate()
 {
-	if (mIsPrepared)
-	{
-		NextFrame();
-	}
-
 	if (mVulkanDevice->mLogicalVkDevice != VK_NULL_HANDLE)
 	{
 		vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
+	}
+}
+
+void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
+{
+	if (mEngineProperties->mIsRendererPrepared)
+	{
+		NextFrame();
 	}
 
 	mCamera.mKeys.mIsRightDown = InputManager::GetInstance().GetIsKeyDown(Key::Right);
@@ -430,7 +432,7 @@ void VulkanRenderer::PrepareVulkanResources()
 	CreateDescriptors();
 	CreatePipeline();
 
-	mIsPrepared = true;
+	mEngineProperties->mIsRendererPrepared = true;
 }
 
 void VulkanRenderer::PrepareFrame()
@@ -441,15 +443,19 @@ void VulkanRenderer::PrepareFrame()
 
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
-	VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[mCurrentBufferIndex], VK_NULL_HANDLE, &mCurrentImageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	const VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[mCurrentBufferIndex], VK_NULL_HANDLE, &mCurrentImageIndex);
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
 	{
-		OnResizeWindow();
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			OnResizeWindow();
+		}
+
 		return;
 	}
-	else if ((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR))
+	else
 	{
-		throw std::runtime_error("Could not acquire the next swap chain image!");
+		VK_CHECK_RESULT(result);
 	}
 }
 
@@ -558,7 +564,7 @@ void VulkanRenderer::UpdateUniformBuffers()
 void VulkanRenderer::SubmitFrame()
 {
 	const VkPipelineStageFlags waitPipelineStage{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-	VkSubmitInfo submitInfo{
+	const VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.waitSemaphoreCount = 1,
 		.pWaitSemaphores = &mVkPresentCompleteSemaphores[mCurrentBufferIndex],
@@ -570,7 +576,7 @@ void VulkanRenderer::SubmitFrame()
 	};
 	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &submitInfo, mWaitVkFences[mCurrentBufferIndex]));
 
-	VkPresentInfoKHR presentInfo{
+	const VkPresentInfoKHR presentInfo{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.waitSemaphoreCount = 1,
 		.pWaitSemaphores = &mVkRenderCompleteSemaphores[mCurrentImageIndex],
@@ -579,20 +585,19 @@ void VulkanRenderer::SubmitFrame()
 		.pImageIndices = &mCurrentImageIndex
 	};
 
-	VkResult result = vkQueuePresentKHR(mVkQueue, &presentInfo);
+	const VkResult result = vkQueuePresentKHR(mVkQueue, &presentInfo);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || mEngineProperties->mIsFramebufferResized)
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR) || mEngineProperties->mIsFramebufferResized)
 	{
 		mEngineProperties->mIsFramebufferResized = false;
 
-		if (!mEngineProperties->mIsMinimized)
-			OnResizeWindow();
+		OnResizeWindow();
 
 		return;
 	}
-	else if ((result != VK_SUCCESS) && (result != VK_SUBOPTIMAL_KHR))
+	else
 	{
-		throw std::runtime_error("Could not acquire the next swap chain image!");
+		VK_CHECK_RESULT(result);
 	}
 
 	// Select the next frame to render to, based on the max. no. of concurrent frames
@@ -868,10 +873,10 @@ void VulkanRenderer::CreateCommandPool()
 
 void VulkanRenderer::OnResizeWindow()
 {
-	if (!mIsPrepared)
+	if (!mEngineProperties->mIsRendererPrepared)
 		return;
 	
-	mIsPrepared = false;
+	mEngineProperties->mIsRendererPrepared = false;
 
 	// Ensure all operations on the device have been finished before destroying resources
 	vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
@@ -903,7 +908,7 @@ void VulkanRenderer::OnResizeWindow()
 		mCamera.UpdateAspectRatio(static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight));
 	}
 
-	mIsPrepared = true;
+	mEngineProperties->mIsRendererPrepared = true;
 }
 
 void VulkanRenderer::SetupSwapchain()

@@ -17,6 +17,7 @@ struct EngineProperties
 	bool mIsFocused;
 	bool mIsPaused;
 	bool mIsFramebufferResized;
+	bool mIsRendererPrepared;
 	bool mIsVSyncEnabled;
 	bool mIsValidationEnabled;
 };

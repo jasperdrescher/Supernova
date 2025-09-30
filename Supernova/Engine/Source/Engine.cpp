@@ -56,4 +56,6 @@ void Engine::Run()
 			}
 		}
 	}
+
+	mVulkanRenderer->EndUpdate();
 }
