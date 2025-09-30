@@ -822,11 +822,8 @@ void VulkanRenderer::InitializeVulkan()
 	// Get a graphics queue from the device
 	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.mGraphics, 0, &mVkQueue);
 
-	// Find a suitable depth and/or stencil format
-	VkBool32 validFormat{false};
-
 	// Applications that make use of stencil will require a depth + stencil format
-	validFormat = VulkanTools::GetSupportedDepthFormat(mVulkanDevice->mVkPhysicalDevice, &mVkDepthFormat);
+	const VkBool32 validFormat = VulkanTools::GetSupportedDepthFormat(mVulkanDevice->mVkPhysicalDevice, &mVkDepthFormat);
 	if (!validFormat)
 	{
 		throw std::runtime_error("Invalid format");
