@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
@@ -218,12 +217,14 @@ void VulkanRenderer::CreateDescriptors()
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mVkDescriptorPool));
+
 	// Layout
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 	};
 	VkDescriptorSetLayoutCreateInfo descriptorLayout = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorLayout, nullptr, &mVkDescriptorSetLayout));
+
 	// Sets per frame, just like the buffers themselves
 	VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
 	for (size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
@@ -296,7 +297,10 @@ VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::filesystem::path& aPat
 		shaderCode = new char[shaderSize];
 		is.read(shaderCode, shaderSize);
 		is.close();
-		assert(shaderSize > 0);
+		if (shaderSize <= 0)
+		{
+			throw std::runtime_error("Incorrect shader size");
+		}
 	}
 
 	if (shaderCode)
@@ -760,7 +764,12 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem
 	shaderStage.stage = aVkShaderStageMask;
 	shaderStage.module = VulkanTools::LoadShader(aPath, mVulkanDevice->mLogicalVkDevice);
 	shaderStage.pName = "main";
-	assert(shaderStage.module != VK_NULL_HANDLE);
+
+	if (shaderStage.module == VK_NULL_HANDLE)
+	{
+		throw std::runtime_error("Incorrect shader module");
+	}
+
 	mVkShaderModules.push_back(shaderStage.module);
 	return shaderStage;
 }
@@ -818,7 +827,10 @@ void VulkanRenderer::InitializeVulkan()
 
 	// Applications that make use of stencil will require a depth + stencil format
 	validFormat = VulkanTools::GetSupportedDepthFormat(mVulkanDevice->mVkPhysicalDevice, &mVkDepthFormat);
-	assert(validFormat);
+	if (!validFormat)
+	{
+		throw std::runtime_error("Invalid format");
+	}
 
 	mVulkanSwapChain.SetContext(mVkInstance, mVulkanDevice);
 }
