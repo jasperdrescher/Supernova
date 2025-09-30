@@ -34,7 +34,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	: mEngineProperties{aEngineProperties}
 	, mWindow{aWindow}
 	, mVkCommandBuffers{VK_NULL_HANDLE}
-	, mTimer{0.0f}
 	, mIsPrepared{false}
 	, mFramebufferWidth{0}
 	, mFramebufferHeight{0}
@@ -44,7 +43,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVulkanDevice{nullptr}
 	, mFrameCounter{0}
 	, mLastFPS{0}
-	, mAverageFrametime{0.0f}
 	, mVkInstance{VK_NULL_HANDLE}
 	, mVkQueue{VK_NULL_HANDLE}
 	, mVkDepthFormat{VK_FORMAT_UNDEFINED}
@@ -151,17 +149,17 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 		NextFrame();
 	}
 
+	if (mVulkanDevice->mLogicalVkDevice != VK_NULL_HANDLE)
+	{
+		vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
+	}
+
 	mCamera.mKeys.mIsRightDown = InputManager::GetInstance().GetIsKeyDown(Key::Right);
 	mCamera.mKeys.mIsUpDown = InputManager::GetInstance().GetIsKeyDown(Key::Up);
 	mCamera.mKeys.mIsDownDown = InputManager::GetInstance().GetIsKeyDown(Key::Down);
 	mCamera.mKeys.mIsLeftDown = InputManager::GetInstance().GetIsKeyDown(Key::Left);
 
 	mCamera.Update(mFrametime);
-
-	if (mVulkanDevice->mLogicalVkDevice != VK_NULL_HANDLE)
-	{
-		vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
-	}
 
 	mWindow->UpdateWindow(GetWindowTitle());
 }
@@ -769,10 +767,10 @@ void VulkanRenderer::CreateVulkanDevice()
 
 std::string VulkanRenderer::GetWindowTitle() const
 {
-	return std::format("{} - {} - {:.3f} ms {} fps - {}/{} window - {}/{} framebuffer",
+	return std::format("{} - {} - {:.2f} ms {} fps - {}/{} window - {}/{} framebuffer",
 		mEngineProperties->mApplicationName,
 		mVulkanDevice->mVkPhysicalDeviceProperties.deviceName,
-		(mAverageFrametime * 1000.f),
+		(1000.0f / mLastFPS),
 		mLastFPS,
 		mEngineProperties->mWindowWidth,
 		mEngineProperties->mWindowHeight,
@@ -823,18 +821,10 @@ void VulkanRenderer::NextFrame()
 	const float frameTimeDelta = std::chrono::duration<float, std::milli>(frameTimeEnd - frameTimeStart).count();
 	mFrametime = frameTimeDelta / 1000.0f;
 
-	mFrametimes.push_back(mFrametime);
-	if (mFrametimes.size() > mMaxFrametimes)
-	{
-		mFrametimes.erase(mFrametimes.begin());
-	}
-
 	const float fpsTimer = std::chrono::duration<float, std::milli>(frameTimeEnd - mLastTimestamp).count();
 	if (fpsTimer > 1000.0f)
 	{
 		mLastFPS = static_cast<std::uint32_t>(static_cast<float>(mFrameCounter) * (1000.0f / fpsTimer));
-		const float frameTimeSum = std::accumulate(mFrametimes.begin(), mFrametimes.end(), 0.0f);
-		mAverageFrametime = frameTimeSum / mFrametimes.size();
 		mFrameCounter = 0;
 		mLastTimestamp = frameTimeEnd;
 	}

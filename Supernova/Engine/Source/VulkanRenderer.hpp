@@ -96,7 +96,6 @@ private:
 	std::vector<VkShaderModule> mVkShaderModules{}; // List of shader modules created (stored for cleanup)
 	std::vector<VkSemaphore> mVkPresentCompleteSemaphores{};
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
-	std::vector<float> mFrametimes{};
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
 	std::array<VkDescriptorSet, gMaxConcurrentFrames> mVkDescriptorSets{};
@@ -113,9 +112,7 @@ private:
 	Window* mWindow;
 	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
-	float mFrametime; // Last frame time measured using a high performance timer (if available)
-	float mTimer; // Defines a frame rate independent timer value clamped from -1.0...1.0
-	float mAverageFrametime;
+	float mFrametime;
 	bool mShouldClose;
 	bool mIsPrepared;
 };
