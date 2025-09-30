@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Camera.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanTypes.hpp"
@@ -23,6 +22,7 @@ namespace vkglTF
 }
 
 struct EngineProperties;
+class Camera;
 class Window;
 class ImGuiOverlay;
 
@@ -70,7 +70,6 @@ private:
 	void updateOverlay();
 	void OnUpdateUIOverlay();
 
-	Camera mCamera;
 	VulkanUniformData mVulkanUniformData;
 	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
 	VulkanDepthStencil mVulkanDepthStencil;
@@ -111,6 +110,7 @@ private:
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
+	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;
 	vkglTF::Model* mGlTFModel;
 	EngineProperties* mEngineProperties;
