@@ -49,12 +49,6 @@
     <ClCompile Include="Source\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ThirdParty\ImGui\imconfig.h" />
-    <ClInclude Include="..\ThirdParty\ImGui\imgui.h" />
-    <ClInclude Include="..\ThirdParty\ImGui\imgui_internal.h" />
-    <ClInclude Include="..\ThirdParty\ImGui\imstb_rectpack.h" />
-    <ClInclude Include="..\ThirdParty\ImGui\imstb_textedit.h" />
-    <ClInclude Include="..\ThirdParty\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Engine.hpp" />
     <ClInclude Include="Source\EngineProperties.hpp" />
