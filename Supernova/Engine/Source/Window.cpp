@@ -10,7 +10,6 @@
 #include <iostream>
 #include <vector>
 #include <cstdint>
-#include <string>
 #include <format>
 #include <stdexcept>
 
@@ -69,6 +68,8 @@ void Window::InitializeWindow()
 	if (glfwRawMouseMotionSupported())
 		glfwSetInputMode(mGLFWWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
+	glfwSetWindowTitle(mGLFWWindow, mEngineProperties->mApplicationName.c_str());
+
 	int iconWidth = 0;
 	int iconHeight = 0;
 	int iconNumberOfComponents = 0;
@@ -86,9 +87,8 @@ void Window::CreateWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurfa
 	VK_CHECK_RESULT(glfwCreateWindowSurface(*aVkInstance, mGLFWWindow, nullptr, aVkSurface));
 }
 
-void Window::UpdateWindow(const std::string& aWindowTitle)
+void Window::UpdateWindow()
 {
-	glfwSetWindowTitle(mGLFWWindow, aWindowTitle.c_str());
 	glfwPollEvents();
 
 	mEngineProperties->mIsFocused = glfwGetWindowAttrib(mGLFWWindow, GLFW_FOCUSED);

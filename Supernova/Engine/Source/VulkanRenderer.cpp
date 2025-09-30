@@ -1,6 +1,7 @@
 #include "VulkanRenderer.hpp"
 
 #include "EngineProperties.hpp"
+#include "ImGuiOverlay.hpp"
 #include "InputManager.hpp"
 #include "VulkanDebug.hpp"
 #include "VulkanGlTFModel.hpp"
@@ -40,6 +41,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mFrametime{1.0f}
 	, mGlTFModel{nullptr}
 	, mVulkanDevice{nullptr}
+	, ui{nullptr}
 	, mFrameCounter{0}
 	, mLastFPS{0}
 	, mVkInstance{VK_NULL_HANDLE}
@@ -72,6 +74,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 
 	mVkPhysicalDevice13Features.dynamicRendering = VK_TRUE;
 	mVkPhysicalDevice13Features.synchronization2 = VK_TRUE;
+
+	ui = new vks::UIOverlay();
 
 	// Setup a default look-at camera
 	mCamera.SetType(CameraType::LookAt);
@@ -120,6 +124,8 @@ VulkanRenderer::~VulkanRenderer()
 		}
 	}
 
+	ui->freeResources();
+
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
@@ -163,7 +169,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 
 	mCamera.Update(mFrametime);
 
-	mWindow->UpdateWindow(GetWindowTitle());
+	mWindow->UpdateWindow();
 }
 
 void VulkanRenderer::LoadAssets()
@@ -427,6 +433,18 @@ void VulkanRenderer::PrepareVulkanResources()
 	CreateSynchronizationPrimitives();
 	CreateCommandBuffers();
 
+	const std::filesystem::path UIVertexShaderPath = "Core/UIOverlay_vert.spv";
+	const std::filesystem::path UIFragmentShaderPath = "Core/UIOverlay_frag.spv";
+	ui->maxConcurrentFrames = gMaxConcurrentFrames;
+	ui->device = mVulkanDevice;
+	ui->queue = mVkQueue;
+	ui->shaders = {
+		LoadShader(VulkanTools::gShadersPath / UIVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT),
+		LoadShader(VulkanTools::gShadersPath / UIFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT),
+	};
+	ui->prepareResources();
+	ui->preparePipeline(mVkPipelineCache, VK_NULL_HANDLE, mVulkanSwapChain.mColorVkFormat, mVkDepthFormat);
+
 	LoadAssets();
 	CreateUniformBuffers();
 	CreateDescriptors();
@@ -440,6 +458,8 @@ void VulkanRenderer::PrepareFrame()
 	// Use a fence to wait until the command buffer has finished execution before using it again
 	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
 	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex]));
+
+	updateOverlay();
 
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
@@ -534,6 +554,8 @@ void VulkanRenderer::BuildCommandBuffer()
 
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
 	mGlTFModel->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout, 1);
+
+	DrawImGuiOverlay(cmdBuffer);
 
 	// End dynamic rendering
 	vkCmdEndRendering(cmdBuffer);
@@ -770,19 +792,6 @@ void VulkanRenderer::CreateVulkanDevice()
 	mVulkanDevice->CreateLogicalDevice(mEnabledDeviceExtensions, &mVkPhysicalDevice13Features, true, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 }
 
-std::string VulkanRenderer::GetWindowTitle() const
-{
-	return std::format("{} - {} - {:.2f} ms {} fps - {}/{} window - {}/{} framebuffer",
-		mEngineProperties->mApplicationName,
-		mVulkanDevice->mVkPhysicalDeviceProperties.deviceName,
-		(1000.0f / mLastFPS),
-		mLastFPS,
-		mEngineProperties->mWindowWidth,
-		mEngineProperties->mWindowHeight,
-		mFramebufferWidth,
-		mFramebufferHeight);
-}
-
 void VulkanRenderer::CreatePipelineCache()
 {
 	VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo = {};
@@ -890,6 +899,11 @@ void VulkanRenderer::OnResizeWindow()
 	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
 	SetupDepthStencil();
 
+	if ((mFramebufferWidth > 0.0f) && (mFramebufferHeight > 0.0f))
+	{
+		ui->resize(mFramebufferWidth, mFramebufferHeight);
+	}
+
 	for (VkSemaphore& vkPresentCompleteSemaphore : mVkPresentCompleteSemaphores)
 		vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, vkPresentCompleteSemaphore, nullptr);
 	
@@ -914,4 +928,48 @@ void VulkanRenderer::OnResizeWindow()
 void VulkanRenderer::SetupSwapchain()
 {
 	mVulkanSwapChain.CreateSwapchain(mFramebufferWidth, mFramebufferHeight, mEngineProperties->mIsVSyncEnabled);
+}
+
+void VulkanRenderer::DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer)
+{
+	const VkViewport viewport{.width = static_cast<float>(mFramebufferWidth), .height = static_cast<float>(mFramebufferHeight), .minDepth = 0.0f, .maxDepth = 1.0f};
+	const VkRect2D scissor{.extent = {.width = mFramebufferWidth, .height = mFramebufferHeight }};
+	vkCmdSetViewport(aVkCommandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(aVkCommandBuffer, 0, 1, &scissor);
+	ui->draw(aVkCommandBuffer, mCurrentBufferIndex);
+}
+
+void VulkanRenderer::updateOverlay()
+{
+	ImGuiIO& io = ImGui::GetIO();
+	io.DisplaySize = ImVec2(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight));
+	io.DeltaTime = mFrametime;
+	io.MousePos = ImVec2(InputManager::GetInstance().GetMousePosition().mX, InputManager::GetInstance().GetMousePosition().mY);
+	io.MouseDown[0] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Left) && ui->visible;
+	io.MouseDown[1] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Right) && ui->visible;
+	io.MouseDown[2] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Middle) && ui->visible;
+
+	ImGui::NewFrame();
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+	ImGui::SetNextWindowPos(ImVec2(10.0f * ui->scale, 10.0f * ui->scale));
+	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+	ImGui::Begin(mEngineProperties->mApplicationName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+	ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
+	ImGui::TextUnformatted(std::format("{}/{}", mFramebufferWidth, mFramebufferHeight).c_str());
+	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mLastFPS), mLastFPS);
+	ImGui::PushItemWidth(110.0f * ui->scale);
+
+	OnUpdateUIOverlay();
+
+	ImGui::PopItemWidth();
+	ImGui::End();
+	ImGui::PopStyleVar();
+	ImGui::Render();
+
+	ui->update(mCurrentBufferIndex);
+}
+
+void VulkanRenderer::OnUpdateUIOverlay()
+{
+	// TODO: Add more data to draw
 }

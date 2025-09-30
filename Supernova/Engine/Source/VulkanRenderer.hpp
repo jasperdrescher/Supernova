@@ -17,6 +17,11 @@
 
 constexpr std::uint32_t gMaxConcurrentFrames = 2;
 
+namespace vks
+{
+	class UIOverlay;
+}
+
 namespace vkglTF
 {
 	class Model;
@@ -60,12 +65,14 @@ private:
 
 	void OnResizeWindow();
 
-	std::string GetWindowTitle() const;
 	void NextFrame();
 	void CreatePipelineCache();
 	void InitializeSwapchain();
 	void CreateCommandPool();
 	void SetupSwapchain();
+	void DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer);
+	void updateOverlay();
+	void OnUpdateUIOverlay();
 
 	Camera mCamera;
 	VulkanUniformData mVulkanUniformData;
@@ -108,6 +115,7 @@ private:
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
+	vks::UIOverlay* ui;
 	vkglTF::Model* mGlTFModel;
 	EngineProperties* mEngineProperties;
 	Window* mWindow;

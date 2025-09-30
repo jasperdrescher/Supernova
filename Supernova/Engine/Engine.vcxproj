@@ -27,10 +27,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ThirdParty\ImGui\imgui.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Engine.cpp" />
     <ClCompile Include="Source\EngineProperties.cpp" />
     <ClCompile Include="Source\FileLoader.cpp" />
+    <ClCompile Include="Source\ImGuiOverlay.cpp" />
     <ClCompile Include="Source\InputManager.cpp" />
     <ClCompile Include="Source\VulkanGlTFModel.cpp" />
     <ClCompile Include="Source\VulkanGlTFTypes.cpp" />
@@ -44,10 +49,17 @@
     <ClCompile Include="Source\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\ThirdParty\ImGui\imconfig.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\imgui.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\imgui_internal.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\imstb_textedit.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Engine.hpp" />
     <ClInclude Include="Source\EngineProperties.hpp" />
     <ClInclude Include="Source\FileLoader.hpp" />
+    <ClInclude Include="Source\ImGuiOverlay.hpp" />
     <ClInclude Include="Source\InputKeys.hpp" />
     <ClInclude Include="Source\InputManager.hpp" />
     <ClInclude Include="Source\VulkanGlTFModel.hpp" />
@@ -180,7 +192,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -194,7 +206,8 @@
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y
 xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y
-xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command>
+xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y
+xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy only specific resources</Message>
     </PostBuildEvent>
     <PreLinkEvent>
@@ -208,7 +221,7 @@ xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\TinyGLTF\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -222,7 +235,8 @@ xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y
 xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y
-xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command>
+xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y
+xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy only specific resources</Message>
     </PostBuildEvent>
     <PreLinkEvent>
@@ -240,7 +254,7 @@ xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\TinyGLTF\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -253,7 +267,8 @@ xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)Resources\*.spv" "$(TargetDir)Resources\" /s /i /y
 xcopy "$(ProjectDir)Resources\*.png" "$(TargetDir)Resources\" /s /i /y
-xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y</Command>
+xcopy "$(ProjectDir)Resources\*.gltf" "$(TargetDir)Resources\" /s /i /y
+xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy only specific resources</Message>
     </PostBuildEvent>
     <PreLinkEvent>

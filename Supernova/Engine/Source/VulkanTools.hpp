@@ -30,6 +30,7 @@ namespace VulkanTools
 	static ShaderType gShaderType{ShaderType::GLSL};
 	static std::filesystem::path gResourcesPath = "Resources/";
 	static std::filesystem::path gShadersPath = gResourcesPath / "Shaders/GLSL/";
+	static std::filesystem::path gFontPath = gResourcesPath / "Fonts/";
 
 	/** @brief Returns an error code as a string */
 	std::string GetErrorString(VkResult aErrorCode);

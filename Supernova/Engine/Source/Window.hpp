@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <string>
 #include <vector>
 
 typedef struct VkInstance_T* VkInstance;
@@ -18,7 +17,7 @@ public:
 
 	void InitializeWindow();
 	void CreateWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurface);
-	void UpdateWindow(const std::string& aWindowTitle);
+	void UpdateWindow();
 
 	void SetWindowSize(int aWidth, int aHeight);
 
