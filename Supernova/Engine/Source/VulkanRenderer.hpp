@@ -115,7 +115,6 @@ private:
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
 	float mFrametime; // Last frame time measured using a high performance timer (if available)
 	float mTimer; // Defines a frame rate independent timer value clamped from -1.0...1.0
-	float mTimerSpeed; // Multiplier for speeding up (or slowing down) the global timer
 	float mAverageFrametime;
 	bool mShouldClose;
 	bool mIsPrepared;

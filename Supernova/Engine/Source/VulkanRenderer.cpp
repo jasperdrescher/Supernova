@@ -35,7 +35,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mWindow{aWindow}
 	, mVkCommandBuffers{VK_NULL_HANDLE}
 	, mTimer{0.0f}
-	, mTimerSpeed{0.25f}
 	, mIsPrepared{false}
 	, mFramebufferWidth{0}
 	, mFramebufferHeight{0}
