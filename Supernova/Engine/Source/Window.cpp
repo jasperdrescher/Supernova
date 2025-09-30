@@ -78,6 +78,8 @@ void Window::InitializeWindow()
 	unsigned char* iconSource = FileLoader::LoadImage(VulkanTools::gResourcesPath / mIconPath, iconWidth, iconHeight, iconNumberOfComponents);
 	SetWindowIcon(iconSource, iconWidth, iconHeight);
 
+	glfwPollEvents();
+
 	int major, minor, revision;
 	glfwGetVersion(&major, &minor, &revision);
 
