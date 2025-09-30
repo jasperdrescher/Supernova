@@ -42,7 +42,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mFrametime{1.0f}
 	, mGlTFModel{nullptr}
 	, mVulkanDevice{nullptr}
-	, ui{nullptr}
+	, mImGuiOverlay{nullptr}
 	, mFrameCounter{0}
 	, mLastFPS{0}
 	, mVkInstance{VK_NULL_HANDLE}
@@ -76,7 +76,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	mVkPhysicalDevice13Features.dynamicRendering = VK_TRUE;
 	mVkPhysicalDevice13Features.synchronization2 = VK_TRUE;
 
-	ui = new ImGuiOverlay();
+	mImGuiOverlay = new ImGuiOverlay();
 
 	// Setup a default look-at camera
 	mCamera.SetType(CameraType::LookAt);
@@ -125,11 +125,12 @@ VulkanRenderer::~VulkanRenderer()
 		}
 	}
 
-	ui->FreeResources();
+	mImGuiOverlay->FreeResources();
 
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
+	delete mImGuiOverlay;
 	delete mGlTFModel;
 	delete mVulkanDevice;
 
@@ -436,13 +437,13 @@ void VulkanRenderer::PrepareVulkanResources()
 
 	const std::filesystem::path UIVertexShaderPath = "Core/UIOverlay_vert.spv";
 	const std::filesystem::path UIFragmentShaderPath = "Core/UIOverlay_frag.spv";
-	ui->SetMaxConcurrentFrames(gMaxConcurrentFrames);
-	ui->SetVulkanDevice(mVulkanDevice);
-	ui->SetVkQueue(mVkQueue);
-	ui->AddShader(LoadShader(VulkanTools::gShadersPath / UIVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT));
-	ui->AddShader(LoadShader(VulkanTools::gShadersPath / UIFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT));
-	ui->PrepareResources();
-	ui->PreparePipeline(mVkPipelineCache, mVulkanSwapChain.mColorVkFormat, mVkDepthFormat);
+	mImGuiOverlay->SetMaxConcurrentFrames(gMaxConcurrentFrames);
+	mImGuiOverlay->SetVulkanDevice(mVulkanDevice);
+	mImGuiOverlay->SetVkQueue(mVkQueue);
+	mImGuiOverlay->AddShader(LoadShader(VulkanTools::gShadersPath / UIVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT));
+	mImGuiOverlay->AddShader(LoadShader(VulkanTools::gShadersPath / UIFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT));
+	mImGuiOverlay->PrepareResources();
+	mImGuiOverlay->PreparePipeline(mVkPipelineCache, mVulkanSwapChain.mColorVkFormat, mVkDepthFormat);
 
 	LoadAssets();
 	CreateUniformBuffers();
@@ -900,7 +901,7 @@ void VulkanRenderer::OnResizeWindow()
 
 	if ((mFramebufferWidth > 0.0f) && (mFramebufferHeight > 0.0f))
 	{
-		ui->Resize(mFramebufferWidth, mFramebufferHeight);
+		mImGuiOverlay->Resize(mFramebufferWidth, mFramebufferHeight);
 	}
 
 	for (VkSemaphore& vkPresentCompleteSemaphore : mVkPresentCompleteSemaphores)
@@ -935,7 +936,7 @@ void VulkanRenderer::DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer)
 	const VkRect2D scissor{.extent = {.width = mFramebufferWidth, .height = mFramebufferHeight }};
 	vkCmdSetViewport(aVkCommandBuffer, 0, 1, &viewport);
 	vkCmdSetScissor(aVkCommandBuffer, 0, 1, &scissor);
-	ui->Draw(aVkCommandBuffer, mCurrentBufferIndex);
+	mImGuiOverlay->Draw(aVkCommandBuffer, mCurrentBufferIndex);
 }
 
 void VulkanRenderer::updateOverlay()
@@ -944,19 +945,19 @@ void VulkanRenderer::updateOverlay()
 	io.DisplaySize = ImVec2(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight));
 	io.DeltaTime = mFrametime;
 	io.MousePos = ImVec2(InputManager::GetInstance().GetMousePosition().mX, InputManager::GetInstance().GetMousePosition().mY);
-	io.MouseDown[0] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Left) && ui->IsVisible();
-	io.MouseDown[1] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Right) && ui->IsVisible();
-	io.MouseDown[2] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Middle) && ui->IsVisible();
+	io.MouseDown[0] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Left) && mImGuiOverlay->IsVisible();
+	io.MouseDown[1] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Right) && mImGuiOverlay->IsVisible();
+	io.MouseDown[2] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Middle) && mImGuiOverlay->IsVisible();
 
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-	ImGui::SetNextWindowPos(ImVec2(10.0f * ui->GetScale(), 10.0f * ui->GetScale()));
+	ImGui::SetNextWindowPos(ImVec2(10.0f * mImGuiOverlay->GetScale(), 10.0f * mImGuiOverlay->GetScale()));
 	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
 	ImGui::Begin(mEngineProperties->mApplicationName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
 	ImGui::TextUnformatted(std::format("{}/{}", mFramebufferWidth, mFramebufferHeight).c_str());
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mLastFPS), mLastFPS);
-	ImGui::PushItemWidth(110.0f * ui->GetScale());
+	ImGui::PushItemWidth(110.0f * mImGuiOverlay->GetScale());
 
 	OnUpdateUIOverlay();
 
@@ -965,7 +966,7 @@ void VulkanRenderer::updateOverlay()
 	ImGui::PopStyleVar();
 	ImGui::Render();
 
-	ui->Update(mCurrentBufferIndex);
+	mImGuiOverlay->Update(mCurrentBufferIndex);
 }
 
 void VulkanRenderer::OnUpdateUIOverlay()

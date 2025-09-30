@@ -111,7 +111,7 @@ private:
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
-	ImGuiOverlay* ui;
+	ImGuiOverlay* mImGuiOverlay;
 	vkglTF::Model* mGlTFModel;
 	EngineProperties* mEngineProperties;
 	Window* mWindow;
