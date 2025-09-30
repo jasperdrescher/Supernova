@@ -53,9 +53,12 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkDescriptorPool{VK_NULL_HANDLE}
 	, mVkPipelineCache{VK_NULL_HANDLE}
 	, mBufferIndexCount{0}
+	, mCurrentImageIndex{0}
+	, mCurrentBufferIndex{0}
 	, mVkPipelineLayout{VK_NULL_HANDLE}
 	, mVkPipeline{VK_NULL_HANDLE}
 	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
+	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mModelPath{"Models/Voyager.gltf"}
 	, mVertexShaderPath{"DynamicRendering/Texture_vert.spv"}
@@ -113,8 +116,8 @@ VulkanRenderer::~VulkanRenderer()
 		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
 		{
 			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, mWaitVkFences[i], nullptr);
-			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, uniformBuffers[i].mVkBuffer, nullptr);
-			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, uniformBuffers[i].mVkDeviceMemory, nullptr);
+			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, nullptr);
+			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
 	}
 
@@ -223,11 +226,11 @@ void VulkanRenderer::CreateDescriptors()
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorLayout, nullptr, &mVkDescriptorSetLayout));
 	// Sets per frame, just like the buffers themselves
 	VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
-	for (size_t i = 0; i < uniformBuffers.size(); i++)
+	for (size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mVkDescriptorSets[i]));
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &uniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
@@ -371,7 +374,7 @@ void VulkanRenderer::CreatePipeline()
 
 void VulkanRenderer::CreateUniformBuffers()
 {
-	for (VulkanBuffer& buffer : uniformBuffers)
+	for (VulkanBuffer& buffer : mVulkanUniformBuffers)
 	{
 		VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(VulkanUniformData), &mVulkanUniformData));
 		VK_CHECK_RESULT(buffer.Map(VK_WHOLE_SIZE, 0));
@@ -399,12 +402,12 @@ void VulkanRenderer::PrepareVulkanResources()
 void VulkanRenderer::PrepareFrame()
 {
 	// Use a fence to wait until the command buffer has finished execution before using it again
-	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[currentBuffer], VK_TRUE, UINT64_MAX));
-	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[currentBuffer]));
+	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
+	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex]));
 
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
-	VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[currentBuffer], VK_NULL_HANDLE, &currentImageIndex);
+	VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[mCurrentBufferIndex], VK_NULL_HANDLE, &mCurrentImageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		OnResizeWindow();
@@ -418,7 +421,7 @@ void VulkanRenderer::PrepareFrame()
 
 void VulkanRenderer::BuildCommandBuffer()
 {
-	VkCommandBuffer cmdBuffer = mVkCommandBuffers[currentBuffer];
+	VkCommandBuffer cmdBuffer = mVkCommandBuffers[mCurrentBufferIndex];
 
 	VkCommandBufferBeginInfo cmdBufInfo = VulkanInitializers::commandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
@@ -427,7 +430,7 @@ void VulkanRenderer::BuildCommandBuffer()
 	// This set of barriers prepares the color and depth images for output
 	VulkanTools::InsertImageMemoryBarrier(
 		cmdBuffer,
-		mVulkanSwapChain.mVkImages[currentImageIndex],
+		mVulkanSwapChain.mVkImages[mCurrentImageIndex],
 		0,
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		VK_IMAGE_LAYOUT_UNDEFINED,
@@ -450,7 +453,7 @@ void VulkanRenderer::BuildCommandBuffer()
 	// New structures are used to define the attachments used in dynamic rendering
 	VkRenderingAttachmentInfoKHR colorAttachment{};
 	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-	colorAttachment.imageView = mVulkanSwapChain.mVkImageViews[currentImageIndex];
+	colorAttachment.imageView = mVulkanSwapChain.mVkImageViews[mCurrentImageIndex];
 	colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -484,7 +487,7 @@ void VulkanRenderer::BuildCommandBuffer()
 	VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[currentBuffer], 0, nullptr);
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex], 0, nullptr);
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
 
 	mGlTFModel->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout, 1);
@@ -495,7 +498,7 @@ void VulkanRenderer::BuildCommandBuffer()
 	// This set of barriers prepares the color image for presentation, we don't need to care for the depth image
 	VulkanTools::InsertImageMemoryBarrier(
 		cmdBuffer,
-		mVulkanSwapChain.mVkImages[currentImageIndex],
+		mVulkanSwapChain.mVkImages[mCurrentImageIndex],
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		0,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -512,7 +515,7 @@ void VulkanRenderer::UpdateUniformBuffers()
 	mVulkanUniformData.mProjectionMatrix = mCamera.mMatrices.mPerspective;
 	mVulkanUniformData.mModelViewMatrix = mCamera.mMatrices.mView;
 	mVulkanUniformData.mViewPosition = mCamera.getViewPosition();
-	std::memcpy(uniformBuffers[currentBuffer].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
+	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 
 void VulkanRenderer::SubmitFrame()
@@ -521,22 +524,22 @@ void VulkanRenderer::SubmitFrame()
 	VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &mVkPresentCompleteSemaphores[currentBuffer],
+		.pWaitSemaphores = &mVkPresentCompleteSemaphores[mCurrentBufferIndex],
 		.pWaitDstStageMask = &waitPipelineStage,
 		.commandBufferCount = 1,
-		.pCommandBuffers = &mVkCommandBuffers[currentBuffer],
+		.pCommandBuffers = &mVkCommandBuffers[mCurrentBufferIndex],
 		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &mVkRenderCompleteSemaphores[currentImageIndex]
+		.pSignalSemaphores = &mVkRenderCompleteSemaphores[mCurrentImageIndex]
 	};
-	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &submitInfo, mWaitVkFences[currentBuffer]));
+	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &submitInfo, mWaitVkFences[mCurrentBufferIndex]));
 
 	VkPresentInfoKHR presentInfo{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &mVkRenderCompleteSemaphores[currentImageIndex],
+		.pWaitSemaphores = &mVkRenderCompleteSemaphores[mCurrentImageIndex],
 		.swapchainCount = 1,
 		.pSwapchains = &mVulkanSwapChain.mVkSwapchainKHR,
-		.pImageIndices = &currentImageIndex
+		.pImageIndices = &mCurrentImageIndex
 	};
 
 	VkResult result = vkQueuePresentKHR(mVkQueue, &presentInfo);
@@ -556,7 +559,7 @@ void VulkanRenderer::SubmitFrame()
 	}
 
 	// Select the next frame to render to, based on the max. no. of concurrent frames
-	currentBuffer = (currentBuffer + 1) % gMaxConcurrentFrames;
+	mCurrentBufferIndex = (mCurrentBufferIndex + 1) % gMaxConcurrentFrames;
 }
 
 void VulkanRenderer::CreateVkInstance()

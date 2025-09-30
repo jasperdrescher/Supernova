@@ -36,16 +36,6 @@ public:
 	void UpdateRenderer(float aDeltaTime);
 
 private:
-	std::array<VulkanBuffer, gMaxConcurrentFrames> uniformBuffers;
-
-	// Synchronization related objects and variables
-	// These are used to have multiple frame buffers "in flight" to get some CPU/GPU parallelism
-	uint32_t currentImageIndex{0};
-	uint32_t currentBuffer{0};
-
-	// Command buffer pool
-	VkCommandPool mVkCommandPoolBuffer{VK_NULL_HANDLE};
-
 	void PrepareVulkanResources();
 	void PrepareFrame();
 	void BuildCommandBuffer();
@@ -88,11 +78,13 @@ private:
 	VkPipelineLayout mVkPipelineLayout;
 	VkPipeline mVkPipeline;
 	VkDescriptorSetLayout mVkDescriptorSetLayout;
+	VkCommandPool mVkCommandPoolBuffer;
 	std::filesystem::path mModelPath;
 	std::filesystem::path mVertexShaderPath;
 	std::filesystem::path mFragmentShaderPath;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
+	std::array<VulkanBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
 	std::vector<std::string> mSupportedInstanceExtensions{};
 	std::vector<const char*> mEnabledDeviceExtensions{}; // Set of device extensions to be enabled for this example
 	std::vector<const char*> mRequestedInstanceExtensions{}; // Set of instance extensions to be enabled for this example
@@ -111,6 +103,8 @@ private:
 	std::uint32_t mLastFPS;
 	std::uint32_t mMaxFrametimes;
 	std::uint32_t mBufferIndexCount;
+	std::uint32_t mCurrentImageIndex;
+	std::uint32_t mCurrentBufferIndex;
 	vkglTF::Model* mGlTFModel;
 	EngineProperties* mEngineProperties;
 	Window* mWindow;
