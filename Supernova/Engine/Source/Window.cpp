@@ -51,7 +51,6 @@ void Window::InitializeWindow()
 	}
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_SAMPLES, 4);
 
 	mGLFWWindow = glfwCreateWindow(mEngineProperties->mWindowWidth, mEngineProperties->mWindowHeight, mEngineProperties->mApplicationName.c_str(), nullptr, nullptr);
 	if (!mGLFWWindow)
