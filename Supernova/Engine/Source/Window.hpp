@@ -26,6 +26,7 @@ public:
 
 private:
 	static void KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aAction, int aMode);
+	static void CursorPositionCallback(GLFWwindow* aWindow, double aX, double aY);
 	static void FramebufferResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);

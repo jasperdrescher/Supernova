@@ -12,9 +12,9 @@ enum class MouseButtons
 	Middle
 };
 
-struct MousePosition
+struct MouseVec2
 {
-	MousePosition() : mX{0.0f}, mY{0.0f} {}
+	MouseVec2() : mX{0.0f}, mY{0.0f} {}
 
 	float mX;
 	float mY;
@@ -37,23 +37,20 @@ public:
 	void OnScrollAction(double aXOffset, double aYOffset);
 	void OnMouseButtonAction(int aButton, int aAction, int aModifier);
 
-	const MousePosition& GetMousePosition() const { return mMousePosition; }
+	const MouseVec2& GetMousePosition() const { return mMousePosition; }
+	const MouseVec2& GetScrollOffset() const { return mMousePosition; }
 	bool GetIsKeyDown(Key aKey) const;
 	bool GetIsMouseButtonDown(MouseButtons aMouseButton) const;
 
-	float myCursorXPosition;
-	float myCursorYPosition;
-	float myScrollXOffset;
-	float myScrollYOffset;
-
 private:
-	InputManager();
+	InputManager() {}
 
 	Key GetTranslatedKey(int aKey) const;
 	MouseButtons GetTranslatedMouseButton(int aButton) const;
 
 private:
-	std::map<Key, bool> myKeys;
-	std::map<MouseButtons, bool> myMouseButtons;
-	MousePosition mMousePosition{};
+	std::map<Key, bool> myKeys{};
+	std::map<MouseButtons, bool> myMouseButtons{};
+	MouseVec2 mMousePosition{};
+	MouseVec2 mScrollOffset{};
 };

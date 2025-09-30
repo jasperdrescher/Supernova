@@ -4,14 +4,6 @@
 
 #include <map>
 
-InputManager::InputManager()
-	: myCursorXPosition{0.0f}
-	, myCursorYPosition{0.0f}
-	, myScrollXOffset{0.0f}
-	, myScrollYOffset{0.0f}
-{
-}
-
 bool InputManager::GetIsKeyDown(Key aKey) const
 {
 	std::map<Key, bool>::const_iterator iterator = myKeys.find(aKey);
@@ -37,14 +29,14 @@ void InputManager::OnKeyAction(int aKey, int /*aScancode*/, bool aIsKeyDown, int
 
 void InputManager::OnCursorAction(double aXPosition, double aYPosition)
 {
-	myCursorXPosition = static_cast<float>(aXPosition);
-	myCursorYPosition = static_cast<float>(aYPosition);
+	mMousePosition.mX = static_cast<float>(aXPosition);
+	mMousePosition.mY = static_cast<float>(aYPosition);
 }
 
 void InputManager::OnScrollAction(double aXOffset, double aYOffset)
 {
-	myScrollXOffset = static_cast<float>(aXOffset);
-	myScrollYOffset = static_cast<float>(aYOffset);
+	mScrollOffset.mX = static_cast<float>(aXOffset);
+	mScrollOffset.mY = static_cast<float>(aYOffset);
 }
 
 void InputManager::OnMouseButtonAction(int aButton, int aAction, int /*aModifier*/)
