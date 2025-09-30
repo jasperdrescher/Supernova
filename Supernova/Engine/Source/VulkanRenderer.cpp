@@ -518,7 +518,7 @@ void VulkanRenderer::BuildCommandBuffer()
 	// Begin dynamic rendering
 	vkCmdBeginRendering(cmdBuffer, &renderingInfo);
 
-	VkViewport viewport = VulkanInitializers::viewport((float)mFramebufferWidth, (float)mFramebufferHeight, 0.0f, 1.0f);
+	VkViewport viewport = VulkanInitializers::viewport(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f);
 	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
