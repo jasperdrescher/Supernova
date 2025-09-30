@@ -960,6 +960,7 @@ void VulkanRenderer::updateOverlay()
 	ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
 	ImGui::TextUnformatted(std::format("{}/{}", mFramebufferWidth, mFramebufferHeight).c_str());
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mLastFPS), mLastFPS);
+	ImGui::Text("X %.f Y %.f", io.MousePos.x, io.MousePos.y);
 	ImGui::PushItemWidth(110.0f * mImGuiOverlay->GetScale());
 
 	OnUpdateUIOverlay();
