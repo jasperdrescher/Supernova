@@ -56,12 +56,15 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mCurrentBufferIndex{0}
 	, mVkPipelineLayout{VK_NULL_HANDLE}
 	, mVkPipeline{VK_NULL_HANDLE}
+	, mStarfieldVkPipeline{VK_NULL_HANDLE}
 	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
 	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mModelPath{"Models/Voyager.gltf"}
 	, mVertexShaderPath{"DynamicRendering/Texture_vert.spv"}
 	, mFragmentShaderPath{"DynamicRendering/Texture_frag.spv"}
+	, mStarfieldVertexShaderPath{"Instancing/Starfield_vert.spv"}
+	, mStarfieldFragmentShaderPath{"Instancing/Starfield_frag.spv"}
 {
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
 	mEngineProperties->mIsValidationEnabled = true;
@@ -101,6 +104,7 @@ VulkanRenderer::~VulkanRenderer()
 
 		vkDestroyPipelineCache(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, nullptr);
 
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mStarfieldVkPipeline, nullptr);
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipeline, nullptr);
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptorSetLayout, nullptr);
@@ -368,12 +372,41 @@ void VulkanRenderer::CreatePipeline()
 	pipelineRenderingCreateInfo.pColorAttachmentFormats = &mVulkanSwapChain.mColorVkFormat;
 	pipelineRenderingCreateInfo.depthAttachmentFormat = mVkDepthFormat;
 	pipelineRenderingCreateInfo.stencilAttachmentFormat = mVkDepthFormat;
-	// Chain into the pipeline creat einfo
 	pipelineCI.pNext = &pipelineRenderingCreateInfo;
+	
+	// Vertex input bindings
+	std::vector<VkVertexInputBindingDescription> bindingDescriptions = {
+		// Binding point 0: Mesh vertex layout description at per-vertex rate
+		VulkanInitializers::vertexInputBindingDescription(0, sizeof(vkglTF::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
+	};
+
+	std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {
+		// Per-vertex attributes
+		// These are advanced for each vertex fetched by the vertex shader
+		VulkanInitializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0), // Location 0: Position
+		VulkanInitializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3), // Location 1: Normal
+		VulkanInitializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6), // Location 2: Texture coordinates
+	};
+
+	VkPipelineVertexInputStateCreateInfo inputState = VulkanInitializers::pipelineVertexInputStateCreateInfo();
+	inputState.pVertexBindingDescriptions = bindingDescriptions.data();
+	inputState.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+	pipelineCI.pVertexInputState = &inputState;
 
 	shaderStages[0] = LoadShader(VulkanTools::gShadersPath / mVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
 	shaderStages[1] = LoadShader(VulkanTools::gShadersPath / mFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	inputState.vertexBindingDescriptionCount = 1;
+	inputState.vertexAttributeDescriptionCount = 3;
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipeline));
+
+	rasterizationState.cullMode = VK_CULL_MODE_NONE;
+	depthStencilState.depthWriteEnable = VK_FALSE;
+	shaderStages[0] = LoadShader(VulkanTools::gShadersPath / mStarfieldVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(VulkanTools::gShadersPath / mStarfieldFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	inputState.vertexBindingDescriptionCount = 0;
+	inputState.vertexAttributeDescriptionCount = 0;
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mStarfieldVkPipeline));
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -492,8 +525,11 @@ void VulkanRenderer::BuildCommandBuffer()
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex], 0, nullptr);
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
 
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mStarfieldVkPipeline);
+	vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
 	mGlTFModel->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout, 1);
 
 	// End dynamic rendering

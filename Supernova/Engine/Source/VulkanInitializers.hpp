@@ -384,4 +384,37 @@ namespace VulkanInitializers
 		rect2D.offset.y = offsetY;
 		return rect2D;
 	}
+
+	inline VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo()
+	{
+		VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{};
+		pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		return pipelineVertexInputStateCreateInfo;
+	}
+
+	inline VkVertexInputBindingDescription vertexInputBindingDescription(
+		uint32_t binding,
+		uint32_t stride,
+		VkVertexInputRate inputRate)
+	{
+		VkVertexInputBindingDescription vInputBindDescription{};
+		vInputBindDescription.binding = binding;
+		vInputBindDescription.stride = stride;
+		vInputBindDescription.inputRate = inputRate;
+		return vInputBindDescription;
+	}
+
+	inline VkVertexInputAttributeDescription vertexInputAttributeDescription(
+		uint32_t binding,
+		uint32_t location,
+		VkFormat format,
+		uint32_t offset)
+	{
+		VkVertexInputAttributeDescription vInputAttribDescription{};
+		vInputAttribDescription.location = location;
+		vInputAttribDescription.binding = binding;
+		vInputAttribDescription.format = format;
+		vInputAttribDescription.offset = offset;
+		return vInputAttribDescription;
+	}
 }

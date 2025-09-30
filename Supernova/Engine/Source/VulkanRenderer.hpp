@@ -77,11 +77,14 @@ private:
 	VulkanSwapChain mVulkanSwapChain; // Wraps the swap chain to present images (framebuffers) to the windowing system
 	VkPipelineLayout mVkPipelineLayout;
 	VkPipeline mVkPipeline;
+	VkPipeline mStarfieldVkPipeline;
 	VkDescriptorSetLayout mVkDescriptorSetLayout;
 	VkCommandPool mVkCommandPoolBuffer;
 	std::filesystem::path mModelPath;
 	std::filesystem::path mVertexShaderPath;
 	std::filesystem::path mFragmentShaderPath;
+	std::filesystem::path mStarfieldVertexShaderPath;
+	std::filesystem::path mStarfieldFragmentShaderPath;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
 	std::array<VulkanBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
