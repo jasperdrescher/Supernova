@@ -6,3 +6,14 @@ The renderer is based on [Vulkan C++ examples and demos](https://github.com/Sasc
 Currently using Vulkan [1.3](https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#versions-1.3) with [Dynamic Rendering](https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#_render_pass_objects_deprecation_via_dynamic_rendering).
 
 Visual Studio 2022 is supported, but CMake support will be added soon.
+
+## Dependencies
+The following third-party dependencies are being used.
+| Dependency  | Version |
+| ------------- | ------------- |
+| GLFW  | 3.4 |
+| GLM  | 1.0.1  |
+| Dear ImGui  | 1.92.3  |
+| TinyGLTF  | 2.9.6  |
+| KTX  | 4.4.0  |
+| stb_image  | 1.16  |
