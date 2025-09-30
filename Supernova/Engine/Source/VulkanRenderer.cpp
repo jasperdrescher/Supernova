@@ -168,7 +168,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 
 void VulkanRenderer::LoadAssets()
 {
-	const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+	const std::uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 	mGlTFModel = new vkglTF::Model();
 	mGlTFModel->LoadFromFile(VulkanTools::gResourcesPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 }
@@ -236,7 +236,7 @@ void VulkanRenderer::CreateDescriptors()
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 }
 
@@ -360,7 +360,7 @@ void VulkanRenderer::CreatePipeline()
 	pipelineCI.pViewportState = &viewportState;
 	pipelineCI.pDepthStencilState = &depthStencilState;
 	pipelineCI.pDynamicState = &dynamicState;
-	pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+	pipelineCI.stageCount = static_cast<std::uint32_t>(shaderStages.size());
 	pipelineCI.pStages = shaderStages.data();
 	pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV});
 
