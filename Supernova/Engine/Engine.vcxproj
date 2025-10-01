@@ -137,7 +137,7 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
     </PreLinkEvent>
     <Lib>
       <AdditionalDependencies>vulkan-1.lib;ktx.lib;ImGui.lib;GLFW.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_ASAN|x64'">
@@ -171,7 +171,7 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy DLLs</Message>
     </PreLinkEvent>
     <Lib>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;ktx.lib;ImGui.lib;GLFW.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
@@ -207,7 +207,7 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy DLLs</Message>
     </PreLinkEvent>
     <Lib>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;ktx.lib;ImGui.lib;GLFW.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
