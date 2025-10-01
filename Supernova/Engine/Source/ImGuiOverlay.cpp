@@ -1,5 +1,6 @@
 #include "ImGuiOverlay.hpp"
 
+#include "FileLoader.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
 #include "VulkanTypes.hpp"
@@ -80,7 +81,7 @@ void ImGuiOverlay::PrepareResources()
 	unsigned char* fontData;
 	int texWidth, texHeight;
 	const std::filesystem::path fontPath = "Roboto-Medium.ttf";
-	const std::filesystem::path filePath = VulkanTools::gFontPath / fontPath;
+	const std::filesystem::path filePath = FileLoader::GetEngineResourcesPath() / FileLoader::gFontPath / fontPath;
 	io.Fonts->AddFontFromFileTTF(filePath.generic_string().c_str(), 16.0f * mScale);
 	io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
 	VkDeviceSize uploadSize = texWidth * texHeight * 4 * sizeof(char);

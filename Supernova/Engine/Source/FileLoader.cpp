@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <format>
 #include <stdexcept>
+#include <iostream>
 
 namespace FileLoader
 {
@@ -29,5 +30,15 @@ namespace FileLoader
 		}
 
 		return image;
+	}
+
+	void PrintWorkingDirectory()
+	{
+		std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
+	}
+
+	std::filesystem::path GetEngineResourcesPath()
+	{
+		return std::filesystem::current_path().parent_path() / gEnginePath / gResourcesPath;
 	}
 }

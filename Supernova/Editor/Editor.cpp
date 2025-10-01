@@ -12,9 +12,9 @@ int main(const int /*argc*/, const char* /*argv*/[])
 		engine.Start();
 		engine.Run();
 	}
-	catch (const std::exception& exception)
+	catch (const std::exception& aException)
 	{
-		std::cerr << exception.what() << std::endl;
+		std::cerr << aException.what() << std::endl;
 		return 1;
 	}
 

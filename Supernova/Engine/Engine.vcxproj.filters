@@ -36,9 +36,6 @@
     <ClCompile Include="Source\VulkanDebug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Supernova.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

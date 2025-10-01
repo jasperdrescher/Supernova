@@ -1,6 +1,7 @@
 #include "Engine.hpp"
 
 #include "EngineProperties.hpp"
+#include "FileLoader.hpp"
 #include "VulkanRenderer.hpp"
 #include "Window.hpp"
 
@@ -29,6 +30,8 @@ Engine::~Engine()
 
 void Engine::Start()
 {
+	FileLoader::PrintWorkingDirectory();
+
 	mVulkanWindow->InitializeWindow();
 	mVulkanRenderer->InitializeRenderer();
 }

@@ -2,6 +2,7 @@
 
 #include "Camera.hpp"
 #include "EngineProperties.hpp"
+#include "FileLoader.hpp"
 #include "ImGuiOverlay.hpp"
 #include "InputManager.hpp"
 #include "VulkanDebug.hpp"
@@ -61,7 +62,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
 	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
-	, mModelPath{"Models/Voyager.gltf"}
+	, mModelPath{"Voyager.gltf"}
 	, mVertexShaderPath{"DynamicRendering/Texture_vert.spv"}
 	, mFragmentShaderPath{"DynamicRendering/Texture_frag.spv"}
 	, mStarfieldVertexShaderPath{"Instancing/Starfield_vert.spv"}
@@ -181,7 +182,7 @@ void VulkanRenderer::LoadAssets()
 {
 	const std::uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 	mGlTFModel = new vkglTF::Model();
-	mGlTFModel->LoadFromFile(VulkanTools::gResourcesPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	mGlTFModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
@@ -404,16 +405,16 @@ void VulkanRenderer::CreatePipeline()
 
 	pipelineCI.pVertexInputState = &inputState;
 
-	shaderStages[0] = LoadShader(VulkanTools::gShadersPath / mVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = LoadShader(VulkanTools::gShadersPath / mFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / mVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / mFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
 	inputState.vertexBindingDescriptionCount = 1;
 	inputState.vertexAttributeDescriptionCount = 3;
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipeline));
 
 	rasterizationState.cullMode = VK_CULL_MODE_NONE;
 	depthStencilState.depthWriteEnable = VK_FALSE;
-	shaderStages[0] = LoadShader(VulkanTools::gShadersPath / mStarfieldVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = LoadShader(VulkanTools::gShadersPath / mStarfieldFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / mStarfieldVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / mStarfieldFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
 	inputState.vertexBindingDescriptionCount = 0;
 	inputState.vertexAttributeDescriptionCount = 0;
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mStarfieldVkPipeline));
@@ -443,8 +444,8 @@ void VulkanRenderer::PrepareVulkanResources()
 	mImGuiOverlay->SetMaxConcurrentFrames(gMaxConcurrentFrames);
 	mImGuiOverlay->SetVulkanDevice(mVulkanDevice);
 	mImGuiOverlay->SetVkQueue(mVkQueue);
-	mImGuiOverlay->AddShader(LoadShader(VulkanTools::gShadersPath / UIVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT));
-	mImGuiOverlay->AddShader(LoadShader(VulkanTools::gShadersPath / UIFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT));
+	mImGuiOverlay->AddShader(LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / UIVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT));
+	mImGuiOverlay->AddShader(LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / UIFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT));
 	mImGuiOverlay->PrepareResources();
 	mImGuiOverlay->PreparePipeline(mVkPipelineCache, mVulkanSwapChain.mColorVkFormat, mVkDepthFormat);
 

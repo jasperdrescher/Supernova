@@ -75,7 +75,7 @@ void Window::InitializeWindow()
 	int iconWidth = 0;
 	int iconHeight = 0;
 	int iconNumberOfComponents = 0;
-	unsigned char* iconSource = FileLoader::LoadImage(VulkanTools::gResourcesPath / mIconPath, iconWidth, iconHeight, iconNumberOfComponents);
+	unsigned char* iconSource = FileLoader::LoadImage(FileLoader::GetEngineResourcesPath() / mIconPath, iconWidth, iconHeight, iconNumberOfComponents);
 	SetWindowIcon(iconSource, iconWidth, iconHeight);
 
 	glfwPollEvents();
