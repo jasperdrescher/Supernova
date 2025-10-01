@@ -37,14 +37,14 @@ Window::~Window()
 
 void Window::InitializeWindow()
 {
-	if (!glfwInit())
+	if (glfwInit() != GLFW_TRUE)
 	{
 		throw std::runtime_error("Failed to init GLFW");
 	}
 
 	glfwSetErrorCallback(WindowLocal::GLFWErrorCallback);
 
-	if (!glfwVulkanSupported())
+	if (glfwVulkanSupported() != GLFW_TRUE)
 	{
 		throw std::runtime_error("Failed to init Vulkan");
 	}
@@ -67,7 +67,7 @@ void Window::InitializeWindow()
 	glfwSetWindowIconifyCallback(mGLFWWindow, WindowMinimizedCallback);
 	glfwSetInputMode(mGLFWWindow, GLFW_STICKY_KEYS, GLFW_TRUE);
 	glfwSetInputMode(mGLFWWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-	if (glfwRawMouseMotionSupported())
+	if (glfwRawMouseMotionSupported() == GLFW_TRUE)
 		glfwSetInputMode(mGLFWWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
 	glfwSetWindowTitle(mGLFWWindow, mEngineProperties->mApplicationName.c_str());
