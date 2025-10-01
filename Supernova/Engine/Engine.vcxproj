@@ -15,10 +15,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\ThirdParty\ImGui\imgui.cpp" />
-    <ClCompile Include="..\ThirdParty\ImGui\imgui_draw.cpp" />
-    <ClCompile Include="..\ThirdParty\ImGui\imgui_tables.cpp" />
-    <ClCompile Include="..\ThirdParty\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Engine.cpp" />
     <ClCompile Include="Source\EngineProperties.cpp" />
@@ -140,8 +136,8 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy DLLs</Message>
     </PreLinkEvent>
     <Lib>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;ImGui.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_ASAN|x64'">
@@ -175,8 +171,8 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy DLLs</Message>
     </PreLinkEvent>
     <Lib>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;ImGui.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -211,8 +207,8 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <Message>Copy DLLs</Message>
     </PreLinkEvent>
     <Lib>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)ThirdParty\GLFW\lib-vc2022\Debug;$(SolutionDir)ThirdParty\KTX\Lib;$(SolutionDir)Binaries\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;ktx.lib;ImGui.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
