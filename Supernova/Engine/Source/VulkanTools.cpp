@@ -158,10 +158,8 @@ namespace VulkanTools
 	}
 
 	// Create an image memory barrier for changing the layout of
-		// an image and put it into an active command buffer
-		// See chapter 11.4 "Image Layout" for details
-
-	void setImageLayout(
+	// an image and put it into an active command buffer
+	void SetImageLayout(
 		VkCommandBuffer cmdbuffer,
 		VkImage image,
 		VkImageLayout oldImageLayout,
@@ -284,7 +282,7 @@ namespace VulkanTools
 	}
 
 	// Fixed sub resource on first mip level and layer
-	void setImageLayout(
+	void SetImageLayout(
 		VkCommandBuffer cmdbuffer,
 		VkImage image,
 		VkImageAspectFlags aspectMask,
@@ -298,6 +296,6 @@ namespace VulkanTools
 		subresourceRange.baseMipLevel = 0;
 		subresourceRange.levelCount = 1;
 		subresourceRange.layerCount = 1;
-		setImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
+		SetImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
 	}
 }

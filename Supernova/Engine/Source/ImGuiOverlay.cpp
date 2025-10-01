@@ -134,7 +134,7 @@ void ImGuiOverlay::PrepareResources()
 	// Copy buffer data to font image
 	VkCommandBuffer copyCmd = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 	// Prepare for transfer
-	VulkanTools::setImageLayout(
+	VulkanTools::SetImageLayout(
 		copyCmd,
 		mFontImage,
 		VK_IMAGE_ASPECT_COLOR_BIT,
@@ -149,7 +149,7 @@ void ImGuiOverlay::PrepareResources()
 	};
 	vkCmdCopyBufferToImage(copyCmd, stagingBuffer.mVkBuffer, mFontImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
 	// Prepare for shader read
-	VulkanTools::setImageLayout(
+	VulkanTools::SetImageLayout(
 		copyCmd,
 		mFontImage,
 		VK_IMAGE_ASPECT_COLOR_BIT,

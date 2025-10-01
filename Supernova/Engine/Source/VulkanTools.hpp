@@ -55,7 +55,7 @@ namespace VulkanTools
 	VkShaderModule LoadShader(const std::filesystem::path& aPath, VkDevice aVkDevice);
 
 	// Put an image memory barrier for setting an image layout on the sub resource into the given command buffer
-	void setImageLayout(
+	void SetImageLayout(
 		VkCommandBuffer cmdbuffer,
 		VkImage image,
 		VkImageLayout oldImageLayout,
@@ -65,7 +65,7 @@ namespace VulkanTools
 		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 	// Uses a fixed sub resource layout with first mip level and layer
-	void setImageLayout(
+	void SetImageLayout(
 		VkCommandBuffer cmdbuffer,
 		VkImage image,
 		VkImageAspectFlags aspectMask,
