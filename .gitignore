@@ -450,3 +450,4 @@ FodyWeavers.xsd
 !glfw3_mtlib
 !glfw3dll.lib
 !glfw3.dll
+imgui.ini
