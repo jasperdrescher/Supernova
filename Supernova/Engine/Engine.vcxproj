@@ -39,6 +39,7 @@
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\ECS\Components.hpp" />
     <ClInclude Include="Source\ECS\Entity.hpp" />
+    <ClInclude Include="Source\ECS\EntityContainer.hpp" />
     <ClInclude Include="Source\ECS\Scene.hpp" />
     <ClInclude Include="Source\Engine.hpp" />
     <ClInclude Include="Source\EngineProperties.hpp" />

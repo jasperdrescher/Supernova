@@ -2,14 +2,15 @@
 
 #include "Components.hpp"
 #include "Entity.hpp"
+#include "EntityContainer.hpp"
 #include "UniqueIdentifier.hpp"
 
 #include <string>
 
-namespace ECS
+namespace SceneLocal
 {
 	template<typename... Component>
-	static void CopyComponentIfExists(Entity aDst, Entity aSrc)
+	static void CopyComponentIfExists(ECS::Entity aDst, ECS::Entity aSrc)
 	{
 		([&]()
 			{
@@ -19,9 +20,23 @@ namespace ECS
 	}
 
 	template<typename... Component>
-	static void CopyComponentIfExists(ComponentGroup<Component...>, Entity aDst, Entity aSrc)
+	static void CopyComponentIfExists(ECS::ComponentGroup<Component...>, ECS::Entity aDst, ECS::Entity aSrc)
 	{
 		CopyComponentIfExists<Component...>(aDst, aSrc);
+	}
+}
+
+namespace ECS
+{
+	Scene::Scene()
+		: mEntityContainer{nullptr}
+	{
+		mEntityContainer = new EntityContainer();
+	}
+
+	Scene::~Scene()
+	{
+		delete mEntityContainer;
 	}
 
 	Entity Scene::CreateEntity(const std::string& aName)
@@ -31,42 +46,58 @@ namespace ECS
 
 	Entity Scene::CreateEntity(UniqueIdentifier aUniqueIdentifier, const std::string& aName)
 	{
-		Entity entity = {mRegistry.create(), this};
+		Entity entity = {mEntityContainer->mRegistry.create(), this};
 		entity.AddComponent<IdentifierComponent>(aUniqueIdentifier);
 		entity.AddComponent<TransformComponent>();
 
 		TagComponent& tagComponent = entity.AddComponent<TagComponent>();
 		tagComponent.mTag = aName.empty() ? "Entity" : aName;
 
-		mEntityMap[aUniqueIdentifier] = entity;
+		mEntityContainer->mEntityMap[aUniqueIdentifier] = entity;
 
 		return entity;
 	}
 
 	void Scene::DestroyEntity(Entity aEntity)
 	{
-		mEntityMap.erase(aEntity.GetUniqueIdentifier());
-		mRegistry.destroy(aEntity);
+		mEntityContainer->mEntityMap.erase(aEntity.GetUniqueIdentifier());
+		mEntityContainer->mRegistry.destroy(aEntity);
 	}
 
 	Entity Scene::DuplicateEntity(Entity aEntity)
 	{
 		const std::string name = aEntity.GetName();
 		Entity newEntity = CreateEntity(name);
-		CopyComponentIfExists(AllComponents{}, newEntity, aEntity);
+		SceneLocal::CopyComponentIfExists(AllComponents{}, newEntity, aEntity);
 		return newEntity;
 	}
 
 	Entity Scene::FindEntityByName(std::string_view aName)
 	{
-		auto view = mRegistry.view<TagComponent>();
-		for (auto entity : view)
+		const auto view = mEntityContainer->mRegistry.view<TagComponent>();
+		for (const auto entity : view)
 		{
 			const TagComponent& tc = view.get<TagComponent>(entity);
 			if (tc.mTag == aName)
 				return Entity{entity, this};
 		}
 		return {};
+	}
+
+	EntityContainer* Scene::GetEntityContainer()
+	{
+		return mEntityContainer;
+	}
+
+	EntityContainer* Scene::GetEntityContainer() const
+	{
+		return mEntityContainer;
+	}
+
+	template<typename ...Components>
+	auto Scene::GetAllEntitiesWith()
+	{
+		return mEntityContainer->mRegistry.view<Components...>();
 	}
 
 	template<typename T>

@@ -143,5 +143,8 @@
     <ClInclude Include="Source\ECS\Entity.hpp">
       <Filter>Header Files\ECS</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ECS\EntityContainer.hpp">
+      <Filter>Header Files\ECS</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -2,12 +2,11 @@
 
 #include "UniqueIdentifier.hpp"
 
-#include <entt.hpp>
 #include <string>
-#include <unordered_map>
 
 namespace ECS
 {
+	struct EntityContainer;
 	class Entity;
 
 	class Scene
@@ -15,6 +14,9 @@ namespace ECS
 		friend class Entity;
 
 	public:
+		Scene();
+		~Scene();
+
 		Entity CreateEntity(const std::string& aName = std::string());
 		Entity CreateEntity(UniqueIdentifier aUniqueIdentifier, const std::string& aName = std::string());
 		void DestroyEntity(Entity aEntity);
@@ -22,16 +24,16 @@ namespace ECS
 		Entity FindEntityByName(std::string_view aName);
 
 		template<typename... Components>
-		auto GetAllEntitiesWith()
-		{
-			return mRegistry.view<Components...>();
-		}
+		auto GetAllEntitiesWith();
+
+		EntityContainer* GetEntityContainer();
+		EntityContainer* GetEntityContainer() const;
+
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity aEntity, T& aComponent);
 
 	private:
-		entt::registry mRegistry;
-		std::unordered_map<UniqueIdentifier, entt::entity> mEntityMap;
+		EntityContainer* mEntityContainer;
 	};
 }

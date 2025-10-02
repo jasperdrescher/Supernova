@@ -3,8 +3,13 @@
 #include "UniqueIdentifier.hpp"
 
 #include <cstdint>
-#include <entt.hpp>
 #include <string>
+
+namespace entt
+{
+	using id_type = std::uint32_t;
+	enum class entity : id_type;
+}
 
 namespace ECS
 {
@@ -13,7 +18,7 @@ namespace ECS
 	class Entity
 	{
 	public:
-		Entity() = default;
+		Entity();
 		Entity(entt::entity aHandle, Scene* aScene);
 		Entity(const Entity& aOther) = default;
 
@@ -36,9 +41,9 @@ namespace ECS
 		void RemoveComponent();
 
 		UniqueIdentifier GetUniqueIdentifier() const;
-		operator bool() const { return mEntityHandle != entt::null; }
+		operator bool() const;
 		operator entt::entity() const { return mEntityHandle; }
-		operator std::uint32_t() const { return static_cast<std::uint32_t>(mEntityHandle); }
+		operator std::uint32_t() const;
 
 		const std::string& GetName() const;
 
@@ -50,7 +55,7 @@ namespace ECS
 		}
 
 	private:
-		entt::entity mEntityHandle{entt::null};
-		Scene* mScene = nullptr;
+		entt::entity mEntityHandle;
+		Scene* mScene;
 	};
 }
