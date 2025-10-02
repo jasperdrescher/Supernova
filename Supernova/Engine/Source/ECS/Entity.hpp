@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <entt.hpp>
 #include <string>
-#include <utility>
 
 namespace ECS
 {
