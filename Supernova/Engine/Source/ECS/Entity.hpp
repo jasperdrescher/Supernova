@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Components.hpp"
 #include "UniqueIdentifier.hpp"
 
 #include <cstdint>
@@ -36,12 +35,12 @@ namespace ECS
 		template<typename T>
 		void RemoveComponent();
 
-		UniqueIdentifier GetUniqueIdentifier() const { return GetComponent<IdentifierComponent>().mUniqueIdentifier; }
+		UniqueIdentifier GetUniqueIdentifier() const;
 		operator bool() const { return mEntityHandle != entt::null; }
 		operator entt::entity() const { return mEntityHandle; }
 		operator std::uint32_t() const { return static_cast<std::uint32_t>(mEntityHandle); }
 
-		const std::string& GetName() const { return GetComponent<TagComponent>().mTag; }
+		const std::string& GetName() const;
 
 		bool operator==(const Entity& aOther) const;
 

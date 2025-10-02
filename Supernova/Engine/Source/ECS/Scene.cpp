@@ -24,12 +24,12 @@ namespace ECS
 		CopyComponentIfExists<Component...>(aDst, aSrc);
 	}
 
-	Entity ECS::Scene::CreateEntity(const std::string& aName)
+	Entity Scene::CreateEntity(const std::string& aName)
 	{
-		return CreateEntityWithUUID(UniqueIdentifier(), aName);
+		return CreateEntity(UniqueIdentifier(), aName);
 	}
 
-	Entity ECS::Scene::CreateEntityWithUUID(UniqueIdentifier aUniqueIdentifier, const std::string& aName)
+	Entity Scene::CreateEntity(UniqueIdentifier aUniqueIdentifier, const std::string& aName)
 	{
 		Entity entity = {mRegistry.create(), this};
 		entity.AddComponent<IdentifierComponent>(aUniqueIdentifier);
@@ -43,13 +43,13 @@ namespace ECS
 		return entity;
 	}
 
-	void ECS::Scene::DestroyEntity(Entity aEntity)
+	void Scene::DestroyEntity(Entity aEntity)
 	{
 		mEntityMap.erase(aEntity.GetUniqueIdentifier());
 		mRegistry.destroy(aEntity);
 	}
 
-	Entity ECS::Scene::DuplicateEntity(Entity aEntity)
+	Entity Scene::DuplicateEntity(Entity aEntity)
 	{
 		const std::string name = aEntity.GetName();
 		Entity newEntity = CreateEntity(name);
@@ -57,7 +57,7 @@ namespace ECS
 		return newEntity;
 	}
 
-	Entity ECS::Scene::FindEntityByName(std::string_view aName)
+	Entity Scene::FindEntityByName(std::string_view aName)
 	{
 		auto view = mRegistry.view<TagComponent>();
 		for (auto entity : view)

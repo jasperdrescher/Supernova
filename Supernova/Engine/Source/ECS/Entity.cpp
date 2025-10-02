@@ -1,9 +1,12 @@
 #include "Entity.hpp"
 
+#include "Components.hpp"
 #include "Scene.hpp"
+#include "UniqueIdentifier.hpp"
 
 #include <cassert>
 #include <entt.hpp>
+#include <string>
 
 namespace ECS
 {
@@ -54,6 +57,16 @@ namespace ECS
 	{
 		assert(HasComponent<T>());
 		mScene->mRegistry.remove<T>(mEntityHandle);
+	}
+
+	UniqueIdentifier Entity::GetUniqueIdentifier() const
+	{
+		return GetComponent<IdentifierComponent>().mUniqueIdentifier;
+	}
+
+	const std::string& Entity::GetName() const
+	{
+		return GetComponent<TagComponent>().mTag;
 	}
 
 	bool Entity::operator==(const Entity& aOther) const

@@ -16,7 +16,7 @@ namespace ECS
 
 	public:
 		Entity CreateEntity(const std::string& aName = std::string());
-		Entity CreateEntityWithUUID(UniqueIdentifier aUniqueIdentifier, const std::string& aName = std::string());
+		Entity CreateEntity(UniqueIdentifier aUniqueIdentifier, const std::string& aName = std::string());
 		void DestroyEntity(Entity aEntity);
 		Entity DuplicateEntity(Entity aEntity);
 		Entity FindEntityByName(std::string_view aName);
