@@ -16,11 +16,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp" />
+    <ClCompile Include="Source\ECS\Entity.cpp" />
+    <ClCompile Include="Source\ECS\Scene.cpp" />
     <ClCompile Include="Source\Engine.cpp" />
     <ClCompile Include="Source\EngineProperties.cpp" />
     <ClCompile Include="Source\FileLoader.cpp" />
     <ClCompile Include="Source\ImGuiOverlay.cpp" />
     <ClCompile Include="Source\InputManager.cpp" />
+    <ClCompile Include="Source\UniqueIdentifier.cpp" />
     <ClCompile Include="Source\VulkanGlTFModel.cpp" />
     <ClCompile Include="Source\VulkanGlTFTypes.cpp" />
     <ClCompile Include="Source\VulkanRenderer.cpp" />
@@ -33,12 +36,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.hpp" />
+    <ClInclude Include="Source\ECS\Components.hpp" />
+    <ClInclude Include="Source\ECS\Entity.hpp" />
+    <ClInclude Include="Source\ECS\Scene.hpp" />
     <ClInclude Include="Source\Engine.hpp" />
     <ClInclude Include="Source\EngineProperties.hpp" />
     <ClInclude Include="Source\FileLoader.hpp" />
     <ClInclude Include="Source\ImGuiOverlay.hpp" />
     <ClInclude Include="Source\InputKeys.hpp" />
     <ClInclude Include="Source\InputManager.hpp" />
+    <ClInclude Include="Source\UniqueIdentifier.hpp" />
     <ClInclude Include="Source\VulkanGlTFModel.hpp" />
     <ClInclude Include="Source\VulkanGlTFTypes.hpp" />
     <ClInclude Include="Source\VulkanRenderer.hpp" />
@@ -113,7 +120,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\EnTT\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -146,7 +153,7 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\EnTT\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -183,7 +190,7 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\EnTT\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
