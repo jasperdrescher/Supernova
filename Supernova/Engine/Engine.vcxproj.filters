@@ -75,6 +75,9 @@
     <ClCompile Include="Source\ECS\Scene.cpp">
       <Filter>Source Files\ECS</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ECS\Components.cpp">
+      <Filter>Source Files\ECS</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\VulkanRenderer.hpp">
