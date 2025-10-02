@@ -37,7 +37,7 @@ namespace ECS
 		template<typename T>
 		void RemoveComponent();
 
-		UniqueIdentifier GetUniqueIdentifier() const { return GetComponent<IDComponent>().mUniqueIdentifier; }
+		UniqueIdentifier GetUniqueIdentifier() const { return GetComponent<IdentifierComponent>().mUniqueIdentifier; }
 		operator bool() const { return mEntityHandle != entt::null; }
 		operator entt::entity() const { return mEntityHandle; }
 		operator std::uint32_t() const { return static_cast<std::uint32_t>(mEntityHandle); }

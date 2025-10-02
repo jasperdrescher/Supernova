@@ -32,7 +32,7 @@ namespace ECS
 	Entity ECS::Scene::CreateEntityWithUUID(UniqueIdentifier aUniqueIdentifier, const std::string& aName)
 	{
 		Entity entity = {mRegistry.create(), this};
-		entity.AddComponent<IDComponent>(aUniqueIdentifier);
+		entity.AddComponent<IdentifierComponent>(aUniqueIdentifier);
 		entity.AddComponent<TransformComponent>();
 
 		TagComponent& tagComponent = entity.AddComponent<TagComponent>();
@@ -76,7 +76,7 @@ namespace ECS
 	}
 
 	template<>
-	void Scene::OnComponentAdded<IDComponent>(Entity /*aEntity*/, IDComponent& /*aComponent*/)
+	void Scene::OnComponentAdded<IdentifierComponent>(Entity /*aEntity*/, IdentifierComponent& /*aComponent*/)
 	{
 	}
 

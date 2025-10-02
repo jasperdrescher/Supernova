@@ -11,11 +11,11 @@
 
 namespace ECS
 {
-	struct IDComponent
+	struct IdentifierComponent
 	{
-		IDComponent() = default;
-		IDComponent(const IDComponent&) = default;
-		IDComponent(UniqueIdentifier aUniqueIdentifier)
+		IdentifierComponent() = default;
+		IdentifierComponent(const IdentifierComponent&) = default;
+		IdentifierComponent(UniqueIdentifier aUniqueIdentifier)
 			: mUniqueIdentifier(aUniqueIdentifier)
 		{
 		}
