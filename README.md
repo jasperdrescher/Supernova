@@ -15,5 +15,6 @@ The following third-party dependencies are being used.
 | GLM  | 1.0.1  |
 | Dear ImGui  | 1.92.3  |
 | TinyGLTF  | 2.9.6  |
+| EnTT  | 3.15.0  |
 | KTX  | 4.4.0  |
 | stb_image  | 1.16  |
