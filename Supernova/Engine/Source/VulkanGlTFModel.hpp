@@ -46,50 +46,22 @@ namespace vkglTF
 		Node* FindNode(Node* aParent, std::uint32_t aIndex);
 		Node* NodeFromIndex(std::uint32_t aIndex);
 		vkglTF::Texture* GetTexture(std::uint32_t aIndex);
+
 		vkglTF::Texture mEmptyTexture;
-
-	public:
-		VulkanDevice* mVulkanDevice = nullptr;
-		VkDescriptorPool descriptorPool{VK_NULL_HANDLE};
-
-		struct Dimensions
-		{
-			Dimensions();
-
-			glm::vec3 mMin;
-			glm::vec3 mMax;
-			glm::vec3 mSize;
-			glm::vec3 mCenter;
-			float mRadius;
-		};
-
-		struct Vertices
-		{
-			int count = 0;
-			VkBuffer buffer{VK_NULL_HANDLE};
-			VkDeviceMemory memory{VK_NULL_HANDLE};
-		} vertices{};
-
-		struct Indices
-		{
-			int count = 0;
-			VkBuffer buffer{VK_NULL_HANDLE};
-			VkDeviceMemory memory{VK_NULL_HANDLE};
-		} indices{};
-
+		VkDescriptorPool descriptorPool;
 		std::vector<Node*> nodes;
 		std::vector<Node*> linearNodes;
-
 		std::vector<Skin*> skins;
-
 		std::vector<Texture> textures{};
 		std::vector<Material> materials{};
 		std::vector<Animation> animations{};
-
-		Dimensions dimensions;
-		bool metallicRoughnessWorkflow = true;
-		bool buffersBound = false;
+		Vertices vertices{};
+		Indices indices{};
+		Dimensions mDimensions;
 		std::string path;
 		tinygltf::Model* mCurrentModel;
+		VulkanDevice* mVulkanDevice;
+		bool metallicRoughnessWorkflow;
+		bool buffersBound;
 	};
 }

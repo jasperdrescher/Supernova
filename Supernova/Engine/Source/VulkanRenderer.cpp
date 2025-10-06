@@ -345,7 +345,7 @@ void VulkanRenderer::CreatePipeline()
 	// Uses set 0 for passing vertex shader ubo and set 1 for fragment shader images (taken from glTF model)
 	const std::vector<VkDescriptorSetLayout> setLayouts = {
 		mVkDescriptorSetLayout,
-		vkglTF::descriptorSetLayoutImage,
+		vkglTF::gDescriptorSetLayoutImage,
 	};
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(setLayouts.data(), 2);
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mVkPipelineLayout));

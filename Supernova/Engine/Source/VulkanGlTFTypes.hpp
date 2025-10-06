@@ -27,10 +27,10 @@ namespace vkglTF
 		ImageNormalMap = 0x00000002
 	};
 
-	extern VkDescriptorSetLayout descriptorSetLayoutImage;
-	extern VkDescriptorSetLayout descriptorSetLayoutUbo;
-	extern VkMemoryPropertyFlags memoryPropertyFlags;
-	extern std::uint32_t descriptorBindingFlags;
+	extern VkDescriptorSetLayout gDescriptorSetLayoutImage;
+	extern VkDescriptorSetLayout gDescriptorSetLayoutUbo;
+	extern VkMemoryPropertyFlags gMemoryPropertyFlags;
+	extern std::uint32_t gDescriptorBindingFlags;
 
 	struct Node;
 
@@ -60,87 +60,114 @@ namespace vkglTF
 	{
 		enum class AlphaMode { ALPHAMODE_OPAQUE, ALPHAMODE_MASK, ALPHAMODE_BLEND };
 
-		Material(VulkanDevice* device);
+		Material(VulkanDevice* aDevice);
 
 		void CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, std::uint32_t aDescriptorBindingFlags);
 
 		VulkanDevice* mVulkanDevice;
-		AlphaMode alphaMode = AlphaMode::ALPHAMODE_OPAQUE;
-		float alphaCutoff = 1.0f;
-		float metallicFactor = 1.0f;
-		float roughnessFactor = 1.0f;
-		glm::vec4 baseColorFactor = glm::vec4(1.0f);
-		vkglTF::Texture* baseColorTexture = nullptr;
-		vkglTF::Texture* metallicRoughnessTexture = nullptr;
-		vkglTF::Texture* normalTexture = nullptr;
-		vkglTF::Texture* occlusionTexture = nullptr;
-		vkglTF::Texture* emissiveTexture = nullptr;
+		AlphaMode mAlphaMode;
+		float mAlphaCutoff;
+		float mMetallicFactor;
+		float mRoughnessFactor;
+		glm::vec4 mBaseColorFactor;
+		vkglTF::Texture* mBaseColorTexture;
+		vkglTF::Texture* mMetallicRoughnessTexture;
+		vkglTF::Texture* mNormalTexture;
+		vkglTF::Texture* mOcclusionTexture;
+		vkglTF::Texture* mEmissiveTexture;
+		vkglTF::Texture* mSpecularGlossinessTexture;
+		vkglTF::Texture* mDiffuseTexture;
+		VkDescriptorSet mDescriptorSet;
+	};
 
-		vkglTF::Texture* specularGlossinessTexture = nullptr;
-		vkglTF::Texture* diffuseTexture = nullptr;
+	struct Dimensions
+	{
+		Dimensions() : mMin{std::numeric_limits<float>::max()}, mMax{std::numeric_limits<float>::lowest()}, mRadius{0.0f} {}
 
-		VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+		glm::vec3 mMin;
+		glm::vec3 mMax;
+		glm::vec3 mSize{};
+		glm::vec3 mCenter{};
+		float mRadius;
 	};
 
 	struct Primitive
 	{
 		Primitive(std::uint32_t firstIndex, std::uint32_t indexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), firstVertex{0}, vertexCount{0}, material(material) {};
 
-		void setDimensions(glm::vec3 min, glm::vec3 max);
+		void SetDimensions(const glm::vec3& aMin, const glm::vec3& aMax);
 
+		Dimensions mDimensions;
 		std::uint32_t firstIndex;
 		std::uint32_t indexCount;
 		std::uint32_t firstVertex;
 		std::uint32_t vertexCount;
 		Material& material;
+	};
 
-		struct Dimensions
-		{
-			glm::vec3 min = glm::vec3(FLT_MAX);
-			glm::vec3 max = glm::vec3(-FLT_MAX);
-			glm::vec3 size;
-			glm::vec3 center;
-			float radius = 0.0f;
-		} dimensions;
+	struct Vertices
+	{
+		Vertices() : count{0}, buffer{VK_NULL_HANDLE}, memory{VK_NULL_HANDLE} {}
+
+		int count;
+		VkBuffer buffer;
+		VkDeviceMemory memory;
+	};
+
+	struct Indices
+	{
+		Indices() : count{0}, buffer{VK_NULL_HANDLE}, memory{VK_NULL_HANDLE} {}
+
+		int count;
+		VkBuffer buffer;
+		VkDeviceMemory memory;
 	};
 
 	struct Mesh
 	{
-		Mesh(VulkanDevice* aDevice, glm::mat4 aMatrix);
-		~Mesh();
-
-		VulkanDevice* mVulkanDevice;
-
-		std::vector<Primitive*> primitives;
-		std::string name;
-
 		struct UniformBuffer
 		{
+			UniformBuffer() : buffer{VK_NULL_HANDLE}, memory{VK_NULL_HANDLE}, mDescriptorSet{VK_NULL_HANDLE}, mMappedData{nullptr} {}
+
 			VkBuffer buffer;
 			VkDeviceMemory memory;
-			VkDescriptorBufferInfo descriptor;
-			VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-			void* mapped;
-		} uniformBuffer;
+			VkDescriptorBufferInfo descriptor{};
+			VkDescriptorSet mDescriptorSet;
+			void* mMappedData;
+		};
 
 		struct UniformBlock
 		{
-			glm::mat4 matrix;
-			glm::mat4 jointMatrix[64]{};
-			float jointcount{0};
-		} uniformBlock;
+			UniformBlock() : mJointcount{0.0f} {}
+
+			glm::mat4 mMatrix{};
+			glm::mat4 mJointMatrix[64]{};
+			float mJointcount;
+		};
+
+		Mesh(VulkanDevice* aDevice, const glm::mat4& aMatrix);
+		~Mesh();
+
+		std::vector<Primitive*> mPrimitives;
+		std::string mName;
+		UniformBuffer mUniformBuffer;
+		UniformBlock mUniformBlock;
+		VulkanDevice* mVulkanDevice;
 	};
 
 	struct Skin
 	{
-		std::string name;
-		Node* skeletonRoot = nullptr;
-		std::vector<glm::mat4> inverseBindMatrices;
-		std::vector<Node*> joints;
+		Skin() : mSkeletonRoot{nullptr} {}
+
+		std::string mName{};
+		Node* mSkeletonRoot;
+		std::vector<glm::mat4> inverseBindMatrices{};
+		std::vector<Node*> joints{};
 	};
 
 	struct Node
 	{
+		Node() : mParent{nullptr}, mIndex{0}, mMesh{nullptr}, mSkin{nullptr}, mSkinIndex{-1}, mScale{1.0f} {}
 		~Node();
 
 		void update();
@@ -148,65 +175,73 @@ namespace vkglTF
 		glm::mat4 GetLocalMatrix() const;
 		glm::mat4 GetMatrix() const;
 
-		Node* parent;
-		std::uint32_t index;
-		std::vector<Node*> children;
-		glm::mat4 matrix;
-		std::string name;
-		Mesh* mesh;
-		Skin* skin;
-		int32_t skinIndex = -1;
-		glm::vec3 translation{};
-		glm::vec3 scale{1.0f};
-		glm::quat rotation{};
+		Node* mParent;
+		std::uint32_t mIndex;
+		std::vector<Node*> mChildren{};
+		glm::mat4 mMatrix{};
+		std::string mName{};
+		Mesh* mMesh;
+		Skin* mSkin;
+		std::int32_t mSkinIndex;
+		glm::vec3 mTranslation{};
+		glm::vec3 mScale{};
+		glm::quat mRotation{};
 	};
 
 	struct AnimationChannel
 	{
 		enum class PathType { TRANSLATION, ROTATION, SCALE };
 
+		AnimationChannel() : mPathType{PathType::TRANSLATION}, mNode{nullptr}, mSamplerIndex{0} {}
+
 		PathType mPathType;
-		Node* node;
-		std::uint32_t samplerIndex;
+		Node* mNode;
+		std::uint32_t mSamplerIndex;
 	};
 
 	struct AnimationSampler
 	{
 		enum class InterpolationType { LINEAR, STEP, CUBICSPLINE };
 
-		std::vector<glm::vec4> outputsVec4;
-		std::vector<float> inputs;
-		InterpolationType interpolation;
+		AnimationSampler() : mInterpolation{InterpolationType::LINEAR} {}
+
+		std::vector<glm::vec4> mOutputsVec4{};
+		std::vector<float> mInputs{};
+		InterpolationType mInterpolation;
 	};
 
 	struct Animation
 	{
-		std::vector<AnimationSampler> samplers;
-		std::vector<AnimationChannel> channels;
-		std::string name;
-		float start = std::numeric_limits<float>::max();
-		float end = std::numeric_limits<float>::min();
+		Animation() : mStart{std::numeric_limits<float>::max()}, mEnd{std::numeric_limits<float>::lowest()} {}
+
+		std::vector<AnimationSampler> mSamplers{};
+		std::vector<AnimationChannel> mChannels{};
+		std::string mName{};
+		float mStart;
+		float mEnd;
 	};
 
 	enum class VertexComponent { Position, Normal, UV, Color, Tangent, Joint0, Weight0 };
 
 	struct Vertex
 	{
-		static VkVertexInputBindingDescription inputBindingDescription(std::uint32_t binding);
-		static VkVertexInputAttributeDescription inputAttributeDescription(std::uint32_t binding, std::uint32_t location, VertexComponent component);
-		static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(std::uint32_t binding, const std::vector<VertexComponent> components);
-		static VkPipelineVertexInputStateCreateInfo* getPipelineVertexInputState(const std::vector<VertexComponent> components); // Returns the default pipeline vertex input state create info structure for the requested vertex components
+		Vertex() {}
 
-		glm::vec3 pos;
-		glm::vec3 normal;
-		glm::vec2 uv;
-		glm::vec4 color;
-		glm::vec4 joint0;
-		glm::vec4 weight0;
-		glm::vec4 tangent;
-		static VkVertexInputBindingDescription vertexInputBindingDescription;
-		static std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
-		static VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo;
+		static VkVertexInputBindingDescription inputBindingDescription(std::uint32_t aBinding);
+		static VkVertexInputAttributeDescription inputAttributeDescription(std::uint32_t aBinding, std::uint32_t aLocation, VertexComponent aComponent);
+		static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(std::uint32_t aBinding, const std::vector<VertexComponent>& aComponents);
+		static VkPipelineVertexInputStateCreateInfo* getPipelineVertexInputState(const std::vector<VertexComponent>& aComponents); // Returns the default pipeline vertex input state create info structure for the requested vertex components
+
+		glm::vec3 mPosition{};
+		glm::vec3 mNormal{};
+		glm::vec2 mUV{};
+		glm::vec4 mColor{};
+		glm::vec4 mJoint0{};
+		glm::vec4 mWeight0{};
+		glm::vec4 mTangent{};
+		static VkVertexInputBindingDescription mVertexInputBindingDescription;
+		static std::vector<VkVertexInputAttributeDescription> mVertexInputAttributeDescriptions;
+		static VkPipelineVertexInputStateCreateInfo mPipelineVertexInputStateCreateInfo;
 	};
 
 	enum FileLoadingFlags

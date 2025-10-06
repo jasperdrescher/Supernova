@@ -25,6 +25,7 @@
 #include <cstring>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 
 namespace vkglTF
 {
@@ -42,11 +43,23 @@ namespace vkglTF
 	{
 	}
 
-	Material::Material(VulkanDevice* device)
-		: mVulkanDevice(device)
+	Material::Material(VulkanDevice* aDevice)
+		: mVulkanDevice{aDevice}
+		, mAlphaMode{AlphaMode::ALPHAMODE_OPAQUE}
+		, mAlphaCutoff{1.0f}
+		, mMetallicFactor{1.0f}
+		, mRoughnessFactor{1.0f}
+		, mBaseColorFactor{1.0f}
+		, mBaseColorTexture{nullptr}
+		, mMetallicRoughnessTexture{nullptr}
+		, mNormalTexture{nullptr}
+		, mOcclusionTexture{nullptr}
+		, mEmissiveTexture{nullptr}
+		, mSpecularGlossinessTexture{nullptr}
+		, mDiffuseTexture{nullptr}
+		, mDescriptorSet{VK_NULL_HANDLE}
 	{
 	}
-
 
 	void Texture::UpdateDescriptor()
 	{
@@ -437,7 +450,7 @@ namespace vkglTF
 			.anisotropyEnable = VK_TRUE,
 			.maxAnisotropy = 8.0f,
 			.compareOp = VK_COMPARE_OP_NEVER,
-			.maxLod = (float)mMipLevels,
+			.maxLod = static_cast<float>(mMipLevels),
 			.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
 		};
 		VK_CHECK_RESULT(vkCreateSampler(aDevice->mLogicalVkDevice, &samplerInfo, nullptr, &mSampler));
@@ -464,67 +477,67 @@ namespace vkglTF
 			.descriptorSetCount = 1,
 			.pSetLayouts = &aDescriptorSetLayout,
 		};
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocInfo, &descriptorSet));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocInfo, &mDescriptorSet));
 		std::vector<VkDescriptorImageInfo> imageDescriptors{};
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets{};
 		if (aDescriptorBindingFlags & DescriptorBindingFlags::ImageBaseColor)
 		{
-			imageDescriptors.push_back(baseColorTexture->mDescriptorImageInfo);
+			imageDescriptors.push_back(mBaseColorTexture->mDescriptorImageInfo);
 			VkWriteDescriptorSet writeDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = descriptorSet,
+				.dstSet = mDescriptorSet,
 				.dstBinding = static_cast<std::uint32_t>(writeDescriptorSets.size()),
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				.pImageInfo = &baseColorTexture->mDescriptorImageInfo
+				.pImageInfo = &mBaseColorTexture->mDescriptorImageInfo
 			};
 			writeDescriptorSets.push_back(writeDescriptorSet);
 		}
-		if (normalTexture && aDescriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap)
+		if (mNormalTexture && aDescriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap)
 		{
-			imageDescriptors.push_back(normalTexture->mDescriptorImageInfo);
+			imageDescriptors.push_back(mNormalTexture->mDescriptorImageInfo);
 			VkWriteDescriptorSet writeDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = descriptorSet,
+				.dstSet = mDescriptorSet,
 				.dstBinding = static_cast<std::uint32_t>(writeDescriptorSets.size()),
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				.pImageInfo = &normalTexture->mDescriptorImageInfo
+				.pImageInfo = &mNormalTexture->mDescriptorImageInfo
 			};
 			writeDescriptorSets.push_back(writeDescriptorSet);
 		}
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
-	void Primitive::setDimensions(glm::vec3 min, glm::vec3 max)
+	void vkglTF::Primitive::SetDimensions(const glm::vec3& aMin, const glm::vec3& aMax)
 	{
-		dimensions.min = min;
-		dimensions.max = max;
-		dimensions.size = max - min;
-		dimensions.center = (min + max) / 2.0f;
-		dimensions.radius = glm::distance(min, max) / 2.0f;
+		mDimensions.mMin = aMin;
+		mDimensions.mMax = aMax;
+		mDimensions.mSize = aMax - aMin;
+		mDimensions.mCenter = (aMin + aMax) / 2.0f;
+		mDimensions.mRadius = glm::distance(aMin, aMax) / 2.0f;
 	}
 
-	Mesh::Mesh(VulkanDevice* aDevice, glm::mat4 aMatrix)
+	vkglTF::Mesh::Mesh(VulkanDevice* aDevice, const glm::mat4& aMatrix)
 	{
 		mVulkanDevice = aDevice;
-		uniformBlock.matrix = aMatrix;
+		mUniformBlock.mMatrix = aMatrix;
 		VK_CHECK_RESULT(aDevice->CreateBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			sizeof(uniformBlock),
-			&uniformBuffer.buffer,
-			&uniformBuffer.memory,
-			&uniformBlock));
-		VK_CHECK_RESULT(vkMapMemory(aDevice->mLogicalVkDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
-		uniformBuffer.descriptor = {uniformBuffer.buffer, 0, sizeof(uniformBlock)};
+			sizeof(mUniformBlock),
+			&mUniformBuffer.buffer,
+			&mUniformBuffer.memory,
+			&mUniformBlock));
+		VK_CHECK_RESULT(vkMapMemory(aDevice->mLogicalVkDevice, mUniformBuffer.memory, 0, sizeof(mUniformBlock), 0, &mUniformBuffer.mMappedData));
+		mUniformBuffer.descriptor = {mUniformBuffer.buffer, 0, sizeof(mUniformBlock)};
 	};
 
 	Mesh::~Mesh()
 	{
-		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, uniformBuffer.buffer, nullptr);
-		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, uniformBuffer.memory, nullptr);
-		for (vkglTF::Primitive* primitive : primitives)
+		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mUniformBuffer.buffer, nullptr);
+		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mUniformBuffer.memory, nullptr);
+		for (vkglTF::Primitive* primitive : mPrimitives)
 		{
 			delete primitive;
 		}
@@ -532,48 +545,48 @@ namespace vkglTF
 
 	glm::mat4 Node::GetLocalMatrix() const
 	{
-		return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) * glm::scale(glm::mat4(1.0f), scale) * matrix;
+		return glm::translate(glm::mat4(1.0f), mTranslation) * glm::mat4(mRotation) * glm::scale(glm::mat4(1.0f), mScale) * mMatrix;
 	}
 
 	glm::mat4 Node::GetMatrix() const
 	{
 		glm::mat4 m = GetLocalMatrix();
-		vkglTF::Node* p = parent;
+		vkglTF::Node* p = mParent;
 		while (p)
 		{
 			m = p->GetLocalMatrix() * m;
-			p = p->parent;
+			p = p->mParent;
 		}
 		return m;
 	}
 
 	void Node::update()
 	{
-		if (mesh)
+		if (mMesh)
 		{
 			glm::mat4 m = GetMatrix();
-			if (skin)
+			if (mSkin)
 			{
-				mesh->uniformBlock.matrix = m;
+				mMesh->mUniformBlock.mMatrix = m;
 				// Update join matrices
 				glm::mat4 inverseTransform = glm::inverse(m);
-				for (size_t i = 0; i < skin->joints.size(); i++)
+				for (size_t i = 0; i < mSkin->joints.size(); i++)
 				{
-					vkglTF::Node* jointNode = skin->joints[i];
-					glm::mat4 jointMat = jointNode->GetMatrix() * skin->inverseBindMatrices[i];
+					vkglTF::Node* jointNode = mSkin->joints[i];
+					glm::mat4 jointMat = jointNode->GetMatrix() * mSkin->inverseBindMatrices[i];
 					jointMat = inverseTransform * jointMat;
-					mesh->uniformBlock.jointMatrix[i] = jointMat;
+					mMesh->mUniformBlock.mJointMatrix[i] = jointMat;
 				}
-				mesh->uniformBlock.jointcount = (float)skin->joints.size();
-				std::memcpy(mesh->uniformBuffer.mapped, &mesh->uniformBlock, sizeof(mesh->uniformBlock));
+				mMesh->mUniformBlock.mJointcount = static_cast<float>(mSkin->joints.size());
+				std::memcpy(mMesh->mUniformBuffer.mMappedData, &mMesh->mUniformBlock, sizeof(mMesh->mUniformBlock));
 			}
 			else
 			{
-				std::memcpy(mesh->uniformBuffer.mapped, &m, sizeof(glm::mat4));
+				std::memcpy(mMesh->mUniformBuffer.mMappedData, &m, sizeof(glm::mat4));
 			}
 		}
 
-		for (vkglTF::Node* child : children)
+		for (vkglTF::Node* child : mChildren)
 		{
 			child->update();
 		}
@@ -581,71 +594,71 @@ namespace vkglTF
 
 	Node::~Node()
 	{
-		if (mesh)
+		if (mMesh)
 		{
-			delete mesh;
+			delete mMesh;
 		}
 
-		for (vkglTF::Node* child : children)
+		for (vkglTF::Node* child : mChildren)
 		{
 			delete child;
 		}
 	}
 
-	VkVertexInputBindingDescription Vertex::vertexInputBindingDescription;
-	std::vector<VkVertexInputAttributeDescription> Vertex::vertexInputAttributeDescriptions;
-	VkPipelineVertexInputStateCreateInfo Vertex::pipelineVertexInputStateCreateInfo;
+	VkVertexInputBindingDescription Vertex::mVertexInputBindingDescription;
+	std::vector<VkVertexInputAttributeDescription> Vertex::mVertexInputAttributeDescriptions;
+	VkPipelineVertexInputStateCreateInfo Vertex::mPipelineVertexInputStateCreateInfo;
 
-	VkVertexInputBindingDescription Vertex::inputBindingDescription(std::uint32_t binding)
+	VkVertexInputBindingDescription vkglTF::Vertex::inputBindingDescription(std::uint32_t aBinding)
 	{
-		return VkVertexInputBindingDescription({binding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX});
+		return VkVertexInputBindingDescription({aBinding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX});
 	}
 
-	VkVertexInputAttributeDescription Vertex::inputAttributeDescription(std::uint32_t binding, std::uint32_t location, VertexComponent component)
+	VkVertexInputAttributeDescription vkglTF::Vertex::inputAttributeDescription(std::uint32_t aBinding, std::uint32_t aLocation, VertexComponent aComponent)
 	{
-		switch (component)
+		switch (aComponent)
 		{
 			case VertexComponent::Position:
-				return VkVertexInputAttributeDescription({location, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)});
+				return VkVertexInputAttributeDescription({aLocation, aBinding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, mPosition)});
 			case VertexComponent::Normal:
-				return VkVertexInputAttributeDescription({location, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)});
+				return VkVertexInputAttributeDescription({aLocation, aBinding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, mNormal)});
 			case VertexComponent::UV:
-				return VkVertexInputAttributeDescription({location, binding, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
+				return VkVertexInputAttributeDescription({aLocation, aBinding, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, mUV)});
 			case VertexComponent::Color:
-				return VkVertexInputAttributeDescription({location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, color)});
+				return VkVertexInputAttributeDescription({aLocation, aBinding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, mColor)});
 			case VertexComponent::Tangent:
-				return VkVertexInputAttributeDescription({location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, tangent)});
+				return VkVertexInputAttributeDescription({aLocation, aBinding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, mTangent)});
 			case VertexComponent::Joint0:
-				return VkVertexInputAttributeDescription({location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, joint0)});
+				return VkVertexInputAttributeDescription({aLocation, aBinding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, mJoint0)});
 			case VertexComponent::Weight0:
-				return VkVertexInputAttributeDescription({location, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, weight0)});
+				return VkVertexInputAttributeDescription({aLocation, aBinding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, mWeight0)});
 			default:
 				return VkVertexInputAttributeDescription({});
 		}
 	}
 
-	std::vector<VkVertexInputAttributeDescription> Vertex::inputAttributeDescriptions(std::uint32_t binding, const std::vector<VertexComponent> components)
+	std::vector<VkVertexInputAttributeDescription> vkglTF::Vertex::inputAttributeDescriptions(std::uint32_t aBinding, const std::vector<VertexComponent>& aComponents)
 	{
 		std::vector<VkVertexInputAttributeDescription> result;
 		std::uint32_t location = 0;
-		for (VertexComponent component : components)
+		for (VertexComponent component : aComponents)
 		{
-			result.push_back(Vertex::inputAttributeDescription(binding, location, component));
+			result.push_back(Vertex::inputAttributeDescription(aBinding, location, component));
 			location++;
 		}
 		return result;
 	}
 
 	/** @brief Returns the default pipeline vertex input state create info structure for the requested vertex components */
-	VkPipelineVertexInputStateCreateInfo* Vertex::getPipelineVertexInputState(const std::vector<VertexComponent> components)
+	VkPipelineVertexInputStateCreateInfo* vkglTF::Vertex::getPipelineVertexInputState(const std::vector<VertexComponent>& aComponents)
 	{
-		vertexInputBindingDescription = Vertex::inputBindingDescription(0);
-		Vertex::vertexInputAttributeDescriptions = Vertex::inputAttributeDescriptions(0, components);
-		pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
-		pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = &Vertex::vertexInputBindingDescription;
-		pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(Vertex::vertexInputAttributeDescriptions.size());
-		pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = Vertex::vertexInputAttributeDescriptions.data();
-		return &pipelineVertexInputStateCreateInfo;
+		mVertexInputBindingDescription = Vertex::inputBindingDescription(0);
+		Vertex::mVertexInputAttributeDescriptions = Vertex::inputAttributeDescriptions(0, aComponents);
+		mPipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		mPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
+		mPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = &Vertex::mVertexInputBindingDescription;
+		mPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(Vertex::mVertexInputAttributeDescriptions.size());
+		mPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = Vertex::mVertexInputAttributeDescriptions.data();
+		return &mPipelineVertexInputStateCreateInfo;
 	}
 };
