@@ -1,16 +1,16 @@
 #include "VulkanTypes.hpp"
 
-#include <cstring>
 #include <cassert>
+#include <cstring>
 
 /**
-	* Map a memory range of this buffer. If successful, mapped points to the specified buffer range.
-	*
-	* @param size (Optional) Size of the memory range to map. Pass VK_WHOLE_SIZE to map the complete buffer range.
-	* @param offset (Optional) Byte offset from beginning
-	*
-	* @return VkResult of the buffer mapping call
-	*/
+* Map a memory range of this buffer. If successful, mapped points to the specified buffer range.
+*
+* @param size (Optional) Size of the memory range to map. Pass VK_WHOLE_SIZE to map the complete buffer range.
+* @param offset (Optional) Byte offset from beginning
+*
+* @return VkResult of the buffer mapping call
+*/
 VkResult VulkanBuffer::Map(VkDeviceSize aSize, VkDeviceSize aOffset)
 {
 	return vkMapMemory(mLogicalVkDevice, mVkDeviceMemory, aOffset, aSize, 0, &mMappedData);

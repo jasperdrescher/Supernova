@@ -2,8 +2,8 @@
 
 #include "EngineProperties.hpp"
 #include "FileLoader.hpp"
-#include "VulkanRenderer.hpp"
-#include "Window.hpp"
+#include "Graphics/VulkanRenderer.hpp"
+#include "Graphics/Window.hpp"
 
 #include <chrono>
 #include <ratio>

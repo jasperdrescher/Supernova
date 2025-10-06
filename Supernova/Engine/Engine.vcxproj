@@ -22,18 +22,18 @@
     <ClCompile Include="Source\Engine.cpp" />
     <ClCompile Include="Source\EngineProperties.cpp" />
     <ClCompile Include="Source\FileLoader.cpp" />
-    <ClCompile Include="Source\ImGuiOverlay.cpp" />
-    <ClCompile Include="Source\InputManager.cpp" />
+    <ClCompile Include="Source\Graphics\ImGuiOverlay.cpp" />
+    <ClCompile Include="Source\Graphics\VulkanDebug.cpp" />
+    <ClCompile Include="Source\Graphics\VulkanDevice.cpp" />
+    <ClCompile Include="Source\Graphics\VulkanGlTFModel.cpp" />
+    <ClCompile Include="Source\Graphics\VulkanGlTFTypes.cpp" />
+    <ClCompile Include="Source\Graphics\VulkanRenderer.cpp" />
+    <ClCompile Include="Source\Graphics\VulkanSwapChain.cpp" />
+    <ClCompile Include="Source\Graphics\VulkanTools.cpp" />
+    <ClCompile Include="Source\Graphics\VulkanTypes.cpp" />
+    <ClCompile Include="Source\Graphics\Window.cpp" />
+    <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\UniqueIdentifier.cpp" />
-    <ClCompile Include="Source\VulkanGlTFModel.cpp" />
-    <ClCompile Include="Source\VulkanGlTFTypes.cpp" />
-    <ClCompile Include="Source\VulkanRenderer.cpp" />
-    <ClCompile Include="Source\VulkanDebug.cpp" />
-    <ClCompile Include="Source\VulkanDevice.cpp" />
-    <ClCompile Include="Source\VulkanSwapChain.cpp" />
-    <ClCompile Include="Source\VulkanTools.cpp" />
-    <ClCompile Include="Source\VulkanTypes.cpp" />
-    <ClCompile Include="Source\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.hpp" />
@@ -44,20 +44,20 @@
     <ClInclude Include="Source\Engine.hpp" />
     <ClInclude Include="Source\EngineProperties.hpp" />
     <ClInclude Include="Source\FileLoader.hpp" />
-    <ClInclude Include="Source\ImGuiOverlay.hpp" />
-    <ClInclude Include="Source\InputKeys.hpp" />
-    <ClInclude Include="Source\InputManager.hpp" />
+    <ClInclude Include="Source\Graphics\ImGuiOverlay.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanDebug.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanDevice.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanGlTFModel.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanGlTFTypes.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanInitializers.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanRenderer.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanSwapChain.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanTools.hpp" />
+    <ClInclude Include="Source\Graphics\VulkanTypes.hpp" />
+    <ClInclude Include="Source\Graphics\Window.hpp" />
+    <ClInclude Include="Source\Input\InputKeys.hpp" />
+    <ClInclude Include="Source\Input\InputManager.hpp" />
     <ClInclude Include="Source\UniqueIdentifier.hpp" />
-    <ClInclude Include="Source\VulkanGlTFModel.hpp" />
-    <ClInclude Include="Source\VulkanGlTFTypes.hpp" />
-    <ClInclude Include="Source\VulkanRenderer.hpp" />
-    <ClInclude Include="Source\VulkanDebug.hpp" />
-    <ClInclude Include="Source\VulkanDevice.hpp" />
-    <ClInclude Include="Source\VulkanInitializers.hpp" />
-    <ClInclude Include="Source\VulkanSwapChain.hpp" />
-    <ClInclude Include="Source\VulkanTools.hpp" />
-    <ClInclude Include="Source\VulkanTypes.hpp" />
-    <ClInclude Include="Source\Window.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

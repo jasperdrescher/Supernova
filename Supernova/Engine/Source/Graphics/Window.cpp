@@ -2,7 +2,7 @@
 
 #include "EngineProperties.hpp"
 #include "FileLoader.hpp"
-#include "InputManager.hpp"
+#include "Input/InputManager.hpp"
 #include "Vulkantools.hpp"
 
 #define GLFW_EXCLUDE_API
@@ -125,17 +125,17 @@ void Window::KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aActi
 		glfwSetWindowShouldClose(window->mGLFWWindow, GLFW_TRUE);
 	}
 
-	InputManager::GetInstance().OnKeyAction(aKey, aScancode, aAction != GLFW_RELEASE, aMode);
+	Input::InputManager::GetInstance().OnKeyAction(aKey, aScancode, aAction != GLFW_RELEASE, aMode);
 }
 
 void Window::MouseButtonCallback(GLFWwindow* /*window*/, int aButton, int aAction, int aMode)
 {
-	InputManager::GetInstance().OnMouseButtonAction(aButton, aAction, aMode);
+	Input::InputManager::GetInstance().OnMouseButtonAction(aButton, aAction, aMode);
 }
 
 void Window::CursorPositionCallback(GLFWwindow* /*aWindow*/, double aX, double aY)
 {
-	InputManager::GetInstance().OnCursorAction(aX, aY);
+	Input::InputManager::GetInstance().OnCursorAction(aX, aY);
 }
 
 void Window::FramebufferResizeCallback(GLFWwindow* aWindow, int /*aWidth*/, int /*aHeight*/)

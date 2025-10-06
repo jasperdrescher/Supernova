@@ -4,7 +4,7 @@
 #include "EngineProperties.hpp"
 #include "FileLoader.hpp"
 #include "ImGuiOverlay.hpp"
-#include "InputManager.hpp"
+#include "Input/InputManager.hpp"
 #include "VulkanDebug.hpp"
 #include "VulkanGlTFModel.hpp"
 #include "VulkanInitializers.hpp"
@@ -168,10 +168,11 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 		NextFrame();
 	}
 
-	mCamera->mKeys.mIsRightDown = InputManager::GetInstance().GetIsKeyDown(Key::Right);
-	mCamera->mKeys.mIsUpDown = InputManager::GetInstance().GetIsKeyDown(Key::Up);
-	mCamera->mKeys.mIsDownDown = InputManager::GetInstance().GetIsKeyDown(Key::Down);
-	mCamera->mKeys.mIsLeftDown = InputManager::GetInstance().GetIsKeyDown(Key::Left);
+	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
+	mCamera->mKeys.mIsRightDown = inputManager.GetIsKeyDown(Input::Key::Right);
+	mCamera->mKeys.mIsUpDown = inputManager.GetIsKeyDown(Input::Key::Up);
+	mCamera->mKeys.mIsDownDown = inputManager.GetIsKeyDown(Input::Key::Down);
+	mCamera->mKeys.mIsLeftDown = inputManager.GetIsKeyDown(Input::Key::Left);
 
 	mCamera->Update(mFrametime);
 
@@ -948,10 +949,12 @@ void VulkanRenderer::updateOverlay()
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize = ImVec2(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight));
 	io.DeltaTime = mFrametime;
-	io.MousePos = ImVec2(InputManager::GetInstance().GetMousePosition().mX, InputManager::GetInstance().GetMousePosition().mY);
-	io.MouseDown[0] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Left) && mImGuiOverlay->IsVisible();
-	io.MouseDown[1] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Right) && mImGuiOverlay->IsVisible();
-	io.MouseDown[2] = InputManager::GetInstance().GetIsMouseButtonDown(MouseButtons::Middle) && mImGuiOverlay->IsVisible();
+
+	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
+	io.MousePos = ImVec2(inputManager.GetMousePosition().mX, inputManager.GetMousePosition().mY);
+	io.MouseDown[0] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left) && mImGuiOverlay->IsVisible();
+	io.MouseDown[1] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Right) && mImGuiOverlay->IsVisible();
+	io.MouseDown[2] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle) && mImGuiOverlay->IsVisible();
 
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
