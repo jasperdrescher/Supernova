@@ -9,15 +9,15 @@ Visual Studio 2022 is supported, but CMake support will be added soon.
 
 ## Dependencies
 The following third-party dependencies are being used.
-| Dependency  | Version |
-| ------------- | ------------- |
-| GLFW  | 3.4 |
-| GLM  | 1.0.1  |
-| Dear ImGui  | 1.92.3  |
-| TinyGLTF  | 2.9.6  |
-| EnTT  | 3.15.0  |
-| KTX  | 4.4.0  |
-| stb_image  | 1.16  |
+| Dependency  | Version | Purpose 
+| ------------- | ------------- | ------------- |
+| GLFW  | 3.4 | Cross-platform window management |
+| GLM  | 1.0.1  | Graphics math |
+| Dear ImGui  | 1.92.3  | GUI |
+| TinyGLTF  | 2.9.6  | glTF loading |
+| EnTT  | 3.15.0  | Entity-component system |
+| KTX  | 4.4.0  | Vulkan textures |
+| stb_image  | 1.16  | Image loading |
 
 ## Compilation
 The project uses C++20 with the latest installed Windows 11 SDK (10.0.x) for compilation.
