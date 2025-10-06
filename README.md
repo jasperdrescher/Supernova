@@ -18,3 +18,6 @@ The following third-party dependencies are being used.
 | EnTT  | 3.15.0  |
 | KTX  | 4.4.0  |
 | stb_image  | 1.16  |
+
+## Compilation
+The project uses C++20 with the latest installed Windows 11 SDK (10.0.x) for compilation.
