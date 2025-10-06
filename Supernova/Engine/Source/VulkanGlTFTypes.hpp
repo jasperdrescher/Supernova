@@ -107,20 +107,20 @@ namespace vkglTF
 
 	struct Vertices
 	{
-		Vertices() : count{0}, buffer{VK_NULL_HANDLE}, memory{VK_NULL_HANDLE} {}
+		Vertices() : mCount{0}, mBuffer{VK_NULL_HANDLE}, mMemory{VK_NULL_HANDLE} {}
 
-		int count;
-		VkBuffer buffer;
-		VkDeviceMemory memory;
+		int mCount;
+		VkBuffer mBuffer;
+		VkDeviceMemory mMemory;
 	};
 
 	struct Indices
 	{
-		Indices() : count{0}, buffer{VK_NULL_HANDLE}, memory{VK_NULL_HANDLE} {}
+		Indices() : mCount{0}, mBuffer{VK_NULL_HANDLE}, mMemory{VK_NULL_HANDLE} {}
 
-		int count;
-		VkBuffer buffer;
-		VkDeviceMemory memory;
+		int mCount;
+		VkBuffer mBuffer;
+		VkDeviceMemory mMemory;
 	};
 
 	struct Mesh

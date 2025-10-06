@@ -68,10 +68,10 @@ vkglTF::Model::Model()
 
 vkglTF::Model::~Model()
 {
-	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, vertices.buffer, nullptr);
-	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, vertices.memory, nullptr);
-	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, indices.buffer, nullptr);
-	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, indices.memory, nullptr);
+	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, vertices.mBuffer, nullptr);
+	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, vertices.mMemory, nullptr);
+	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, indices.mBuffer, nullptr);
+	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, indices.mMemory, nullptr);
 	for (vkglTF::Texture& texture : textures)
 	{
 		texture.Destroy();
@@ -715,8 +715,8 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 
 	size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 	size_t indexBufferSize = indexBuffer.size() * sizeof(std::uint32_t);
-	indices.count = static_cast<std::uint32_t>(indexBuffer.size());
-	vertices.count = static_cast<std::uint32_t>(vertexBuffer.size());
+	indices.mCount = static_cast<std::uint32_t>(indexBuffer.size());
+	vertices.mCount = static_cast<std::uint32_t>(vertexBuffer.size());
 
 	assert((vertexBufferSize > 0) && (indexBufferSize > 0));
 
@@ -751,16 +751,16 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | gMemoryPropertyFlags,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		vertexBufferSize,
-		&vertices.buffer,
-		&vertices.memory, nullptr));
+		&vertices.mBuffer,
+		&vertices.mMemory, nullptr));
 
 	// Index buffer
 	VK_CHECK_RESULT(aDevice->CreateBuffer(
 		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | gMemoryPropertyFlags,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		indexBufferSize,
-		&indices.buffer,
-		&indices.memory, nullptr));
+		&indices.mBuffer,
+		&indices.mMemory, nullptr));
 
 	// Copy from staging buffers
 	VkCommandBuffer copyCmd = aDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -768,10 +768,10 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 	VkBufferCopy copyRegion = {};
 
 	copyRegion.size = vertexBufferSize;
-	vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, vertices.buffer, 1, &copyRegion);
+	vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, vertices.mBuffer, 1, &copyRegion);
 
 	copyRegion.size = indexBufferSize;
-	vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.buffer, 1, &copyRegion);
+	vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.mBuffer, 1, &copyRegion);
 
 	aDevice->flushCommandBuffer(copyCmd, aTransferQueue, true);
 
@@ -993,8 +993,8 @@ void vkglTF::Model::CreateEmptyTexture(VkQueue aTransferQueue)
 void vkglTF::Model::BindBuffers(VkCommandBuffer aCommandBuffer)
 {
 	const VkDeviceSize offsets[1] = {0};
-	vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &vertices.buffer, offsets);
-	vkCmdBindIndexBuffer(aCommandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &vertices.mBuffer, offsets);
+	vkCmdBindIndexBuffer(aCommandBuffer, indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
 	buffersBound = true;
 }
 
@@ -1044,8 +1044,8 @@ void vkglTF::Model::Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFl
 	if (!buffersBound)
 	{
 		const VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &vertices.buffer, offsets);
-		vkCmdBindIndexBuffer(aCommandBuffer, indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &vertices.mBuffer, offsets);
+		vkCmdBindIndexBuffer(aCommandBuffer, indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
 	}
 
 	for (const vkglTF::Node* node : nodes)
