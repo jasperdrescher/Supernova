@@ -52,6 +52,7 @@ private:
 	VkShaderModule LoadSPIRVShader(const std::filesystem::path& aPath) const;
 	void CreatePipeline();
 	void CreateUniformBuffers();
+	void CreateUIOverlay();
 
 	void InitializeVulkan();
 	void CreateVkInstance();
@@ -67,7 +68,7 @@ private:
 	void CreateCommandPool();
 	void SetupSwapchain();
 	void DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer);
-	void updateOverlay();
+	void UpdateUIOverlay();
 	void OnUpdateUIOverlay();
 
 	VulkanUniformData mVulkanUniformData;

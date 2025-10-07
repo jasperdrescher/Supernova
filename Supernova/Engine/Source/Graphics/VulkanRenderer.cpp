@@ -430,16 +430,8 @@ void VulkanRenderer::CreateUniformBuffers()
 	}
 }
 
-void VulkanRenderer::PrepareVulkanResources()
+void VulkanRenderer::CreateUIOverlay()
 {
-	InitializeSwapchain();
-	CreateCommandPool();
-	SetupSwapchain();
-	SetupDepthStencil();
-	CreatePipelineCache();
-	CreateSynchronizationPrimitives();
-	CreateCommandBuffers();
-
 	const std::filesystem::path UIVertexShaderPath = "Core/UIOverlay_vert.spv";
 	const std::filesystem::path UIFragmentShaderPath = "Core/UIOverlay_frag.spv";
 	mImGuiOverlay->SetMaxConcurrentFrames(gMaxConcurrentFrames);
@@ -449,8 +441,22 @@ void VulkanRenderer::PrepareVulkanResources()
 	mImGuiOverlay->AddShader(LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / UIFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT));
 	mImGuiOverlay->PrepareResources();
 	mImGuiOverlay->PreparePipeline(mVkPipelineCache, mVulkanSwapChain.mColorVkFormat, mVkDepthFormat);
+}
+
+void VulkanRenderer::PrepareVulkanResources()
+{
+	InitializeSwapchain();
+	CreateCommandPool();
+	SetupSwapchain();
+	SetupDepthStencil();
+	CreatePipelineCache();
+	CreateSynchronizationPrimitives();
+	CreateCommandBuffers();
+	
+	CreateUIOverlay();
 
 	LoadAssets();
+	
 	CreateUniformBuffers();
 	CreateDescriptors();
 	CreatePipeline();
@@ -464,7 +470,7 @@ void VulkanRenderer::PrepareFrame()
 	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
 	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex]));
 
-	updateOverlay();
+	UpdateUIOverlay();
 
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
@@ -944,7 +950,7 @@ void VulkanRenderer::DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer)
 	mImGuiOverlay->Draw(aVkCommandBuffer, mCurrentBufferIndex);
 }
 
-void VulkanRenderer::updateOverlay()
+void VulkanRenderer::UpdateUIOverlay()
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize = ImVec2(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight));
