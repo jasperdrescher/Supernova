@@ -626,7 +626,10 @@ void VulkanRenderer::SubmitFrame()
 
 		OnResizeWindow();
 
-		return;
+		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			return;
+		}
 	}
 	else
 	{
