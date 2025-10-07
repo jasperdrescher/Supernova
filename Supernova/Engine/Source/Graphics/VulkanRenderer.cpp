@@ -42,7 +42,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mFramebufferHeight{0}
 	, mMaxFrametimes{10}
 	, mFrametime{1.0f}
-	, mGlTFModel{nullptr}
 	, mVulkanDevice{nullptr}
 	, mImGuiOverlay{nullptr}
 	, mCamera{nullptr}
@@ -134,8 +133,13 @@ VulkanRenderer::~VulkanRenderer()
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
+	for (vkglTF::Model* model : mGlTFModels)
+	{
+		delete model;
+	}
+	mGlTFModels.clear();
+
 	delete mImGuiOverlay;
-	delete mGlTFModel;
 	delete mVulkanDevice;
 
 	vkDestroyInstance(mVkInstance, nullptr);
@@ -182,8 +186,8 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 void VulkanRenderer::LoadAssets()
 {
 	const std::uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-	mGlTFModel = new vkglTF::Model();
-	mGlTFModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	mGlTFModels.push_back(new vkglTF::Model());
+	mGlTFModels.back()->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
@@ -564,7 +568,10 @@ void VulkanRenderer::BuildCommandBuffer()
 	vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
-	mGlTFModel->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout, 1);
+	for (vkglTF::Model* model : mGlTFModels)
+	{
+		model->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout, 1);
+	}
 
 	DrawImGuiOverlay(cmdBuffer);
 
@@ -590,7 +597,7 @@ void VulkanRenderer::UpdateUniformBuffers()
 {
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mModelViewMatrix = mCamera->mMatrices.mView;
-	mVulkanUniformData.mViewPosition = mCamera->getViewPosition();
+	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 

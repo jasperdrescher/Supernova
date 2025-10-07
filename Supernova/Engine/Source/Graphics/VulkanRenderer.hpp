@@ -103,6 +103,7 @@ private:
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
 	std::array<VkDescriptorSet, gMaxConcurrentFrames> mVkDescriptorSets{};
+	std::vector<vkglTF::Model*> mGlTFModels;
 	std::uint32_t mFramebufferWidth;
 	std::uint32_t mFramebufferHeight;
 	std::uint32_t mFrameCounter;
@@ -113,7 +114,6 @@ private:
 	std::uint32_t mCurrentBufferIndex;
 	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;
-	vkglTF::Model* mGlTFModel;
 	EngineProperties* mEngineProperties;
 	Window* mWindow;
 	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
