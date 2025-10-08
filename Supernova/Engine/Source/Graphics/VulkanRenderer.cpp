@@ -34,6 +34,9 @@
 #include <vulkan/vulkan_core.h>
 #include <imgui.h>
 #include <filesystem>
+#include <random>
+#include <numbers>
+#include <cmath>
 
 VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	Window* aWindow)
@@ -58,8 +61,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mCurrentImageIndex{0}
 	, mCurrentBufferIndex{0}
 	, mVkPipelineLayout{VK_NULL_HANDLE}
-	, mVkPipeline{VK_NULL_HANDLE}
-	, mStarfieldVkPipeline{VK_NULL_HANDLE}
 	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
 	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
@@ -80,8 +81,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	// Setup a default look-at camera
 	mCamera = new Camera();
 	mCamera->SetType(CameraType::LookAt);
-	mCamera->SetPosition(glm::vec3(0.0f, 0.0f, -10.0f));
-	mCamera->SetRotation(glm::vec3(-7.5f, 72.0f, 0.0f));
+	mCamera->SetPosition(glm::vec3(5.5f, -1.85f, -18.5f));
+	mCamera->SetRotation(glm::vec3(-17.2f, -4.7f, 0.0f));
 	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 1.0f, 256.0f);
 }
 
@@ -105,11 +106,16 @@ VulkanRenderer::~VulkanRenderer()
 
 		vkDestroyPipelineCache(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, nullptr);
 
-		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mStarfieldVkPipeline, nullptr);
-		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipeline, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mPlanet, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mRocks, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mStarfield, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mVoyager, nullptr);
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptorSetLayout, nullptr);
 		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, nullptr);
+
+		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, instanceBuffer.buffer, nullptr);
+		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, instanceBuffer.memory, nullptr);
 
 		for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
 			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
@@ -123,6 +129,9 @@ VulkanRenderer::~VulkanRenderer()
 			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, nullptr);
 			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
+
+		textures.rocks.Destroy();
+		textures.planet.Destroy();
 	}
 
 	mImGuiOverlay->FreeResources();
@@ -130,12 +139,9 @@ VulkanRenderer::~VulkanRenderer()
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
-	for (vkglTF::Model* model : mGlTFModels)
-	{
-		delete model;
-	}
-	mGlTFModels.clear();
-
+	delete models.mPlanetModel;
+	delete models.mRockModel;
+	delete models.mVoyagerModel;
 	delete mImGuiOverlay;
 	delete mVulkanDevice;
 
@@ -183,9 +189,22 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 void VulkanRenderer::LoadAssets()
 {
 	const std::uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-	mGlTFModels.push_back(new vkglTF::Model());
+	models.mVoyagerModel = new vkglTF::Model();
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
-	mGlTFModels.back()->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	models.mVoyagerModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+
+	models.mRockModel = new vkglTF::Model();
+	const std::filesystem::path rockModelPath = "Rock01.gltf";
+	models.mRockModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / rockModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+
+	models.mPlanetModel = new vkglTF::Model();
+	const std::filesystem::path planetModelPath = "Lavaplanet.gltf";
+	models.mPlanetModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+
+	const std::filesystem::path planetTexturePath = "Lavaplanet_rgba.ktx";
+	textures.planet.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / planetTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mVkQueue);
+	const std::filesystem::path rockTexturePath = "Texturearray_rocks_rgba.ktx";
+	textures.rocks.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / rockTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mVkQueue, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
@@ -230,26 +249,52 @@ void VulkanRenderer::CreateCommandBuffers()
 void VulkanRenderer::CreateDescriptors()
 {
 	const std::vector<VkDescriptorPoolSize> poolSizes = {
-		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, gMaxConcurrentFrames),
+		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, gMaxConcurrentFrames * 3),
+		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxConcurrentFrames * 2),
 	};
-	VkDescriptorPoolCreateInfo descriptorPoolInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames);
+	VkDescriptorPoolCreateInfo descriptorPoolInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames * 3);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mVkDescriptorPool));
 
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+		// Binding 0 : Vertex shader uniform buffer
 		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+		// Binding 1 : Fragment shader combined sampler
+		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 	};
-	VkDescriptorSetLayoutCreateInfo descriptorLayout = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorLayout, nullptr, &mVkDescriptorSetLayout));
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mVkDescriptorSetLayout));
 
 	// Sets per frame, just like the buffers themselves
-	VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
+	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
 	for (std::size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mVkDescriptorSets[i]));
-		const std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+		// Instanced models
+		// Binding 0 : Vertex shader uniform buffer
+		// Binding 1 : Color map
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mInstancedRocks));
+		const std::vector<VkWriteDescriptorSet> instancedWriteDescriptorSets = {
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.rocks.mDescriptor),
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(instancedWriteDescriptorSets.size()), instancedWriteDescriptorSets.data(), 0, nullptr);
+
+		// Static planet
+		//	Binding 0 : Vertex shader uniform buffer
+		//	Binding 1 : Color map
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mStaticPlanetWithStarfield));
+		const std::vector<VkWriteDescriptorSet> staticPlanetWriteDescriptorSets = {
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.planet.mDescriptor),
+		};
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
+
+		// Static voyager
+		//	Binding 0 : Vertex shader uniform buffer
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mStaticVoyager));
+		const std::vector<VkWriteDescriptorSet> staticVoyagerWriteDescriptorSets = {
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticVoyager, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+		};
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(staticVoyagerWriteDescriptorSets.size()), staticVoyagerWriteDescriptorSets.data(), 0, nullptr);
 	}
 }
 
@@ -375,7 +420,6 @@ void VulkanRenderer::CreatePipeline()
 	pipelineCI.pDynamicState = &dynamicState;
 	pipelineCI.stageCount = static_cast<std::uint32_t>(shaderStages.size());
 	pipelineCI.pStages = shaderStages.data();
-	pipelineCI.pVertexInputState = vkglTF::Vertex::getPipelineVertexInputState({vkglTF::VertexComponent::Position, vkglTF::VertexComponent::Normal, vkglTF::VertexComponent::UV});
 
 	// New create info to define color, depth and stencil attachments at pipeline create time
 	VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo{};
@@ -387,17 +431,26 @@ void VulkanRenderer::CreatePipeline()
 	pipelineCI.pNext = &pipelineRenderingCreateInfo;
 	
 	// Vertex input bindings
-	std::vector<VkVertexInputBindingDescription> bindingDescriptions = {
+	const std::vector<VkVertexInputBindingDescription> bindingDescriptions = {
 		// Binding point 0: Mesh vertex layout description at per-vertex rate
 		VulkanInitializers::vertexInputBindingDescription(0, sizeof(vkglTF::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
+		// Binding point 1: Instanced data at per-instance rate
+		VulkanInitializers::vertexInputBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE),
 	};
 
-	std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {
+	const std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {
 		// Per-vertex attributes
 		// These are advanced for each vertex fetched by the vertex shader
 		VulkanInitializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0), // Location 0: Position
 		VulkanInitializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3), // Location 1: Normal
 		VulkanInitializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6), // Location 2: Texture coordinates
+		VulkanInitializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8), // Location 3: Color
+		// Per-Instance attributes
+		// These are advanced for each instance rendered
+		VulkanInitializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0), // Location 4: Position
+		VulkanInitializers::vertexInputAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3), // Location 5: Rotation
+		VulkanInitializers::vertexInputAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT,sizeof(float) * 6), // Location 6: Scale
+		VulkanInitializers::vertexInputAttributeDescription(1, 7, VK_FORMAT_R32_SINT, sizeof(float) * 7), // Location 7: Texture array layer index
 	};
 
 	VkPipelineVertexInputStateCreateInfo inputState = VulkanInitializers::pipelineVertexInputStateCreateInfo();
@@ -406,13 +459,29 @@ void VulkanRenderer::CreatePipeline()
 
 	pipelineCI.pVertexInputState = &inputState;
 
-	const std::filesystem::path vertexShaderPath = "DynamicRendering/Texture_vert.spv";
-	const std::filesystem::path fragmentShaderPath = "DynamicRendering/Texture_frag.spv";
-	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / vertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / fragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	const std::filesystem::path voyagerVertexShaderPath = "DynamicRendering/Texture_vert.spv";
+	const std::filesystem::path voyagerFragmentShaderPath = "DynamicRendering/Texture_frag.spv";
+	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / voyagerVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / voyagerFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
 	inputState.vertexBindingDescriptionCount = 1;
 	inputState.vertexAttributeDescriptionCount = 3;
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipeline));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mVoyager));
+
+	const std::filesystem::path planetVertexShaderPath = "Instancing/Planet_vert.spv";
+	const std::filesystem::path planetFragmentShaderPath = "Instancing/Planet_frag.spv";
+	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / planetVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / planetFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	inputState.vertexBindingDescriptionCount = 1;
+	inputState.vertexAttributeDescriptionCount = 4;
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mPlanet));
+
+	const std::filesystem::path rockVertexShaderPath = "Instancing/Instancing_vert.spv";
+	const std::filesystem::path rockFragmentShaderPath = "Instancing/Instancing_frag.spv";
+	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
+	inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mRocks));
 
 	rasterizationState.cullMode = VK_CULL_MODE_NONE;
 	depthStencilState.depthWriteEnable = VK_FALSE;
@@ -422,7 +491,7 @@ void VulkanRenderer::CreatePipeline()
 	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / starfieldFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
 	inputState.vertexBindingDescriptionCount = 0;
 	inputState.vertexAttributeDescriptionCount = 0;
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mStarfieldVkPipeline));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mStarfield));
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -461,6 +530,7 @@ void VulkanRenderer::PrepareVulkanResources()
 
 	LoadAssets();
 	
+	PrepareInstanceData();
 	CreateUniformBuffers();
 	CreateDescriptors();
 	CreatePipeline();
@@ -562,16 +632,26 @@ void VulkanRenderer::BuildCommandBuffer()
 	VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex], 0, nullptr);
-
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mStarfieldVkPipeline);
+	// Draw non-instanced static models
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticPlanetWithStarfield, 0, nullptr);
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mStarfield);
 	vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipeline);
-	for (vkglTF::Model* model : mGlTFModels)
-	{
-		model->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout, 1);
-	}
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
+	models.mPlanetModel->Draw(cmdBuffer);
+
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
+	models.mVoyagerModel->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
+
+	// Draw instanced models
+	VkDeviceSize offsets[1] = {0};
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
+	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &models.mRockModel->vertices.mBuffer, offsets);
+	vkCmdBindVertexBuffers(cmdBuffer, 1, 1, &instanceBuffer.buffer, offsets);
+	vkCmdBindIndexBuffer(cmdBuffer, models.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdDrawIndexed(cmdBuffer, models.mRockModel->indices.mCount, gRockInstanceCount, 0, 0, 0);
 
 	DrawImGuiOverlay(cmdBuffer);
 
@@ -597,7 +677,9 @@ void VulkanRenderer::UpdateUniformBuffers()
 {
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mModelViewMatrix = mCamera->mMatrices.mView;
-	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
+	//mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
+	mVulkanUniformData.locSpeed += mFrametime * 0.35f;
+	mVulkanUniformData.globSpeed += mFrametime * 0.01f;
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 
@@ -820,6 +902,92 @@ void VulkanRenderer::CreatePipelineCache()
 	VK_CHECK_RESULT(vkCreatePipelineCache(mVulkanDevice->mLogicalVkDevice, &vkPipelineCacheCreateInfo, nullptr, &mVkPipelineCache));
 }
 
+void VulkanRenderer::PrepareInstanceData()
+{
+	std::vector<InstanceData> instanceData;
+	instanceData.resize(gRockInstanceCount);
+
+	std::default_random_engine rndGenerator((unsigned)time(nullptr));
+	std::uniform_real_distribution<float> uniformDist(0.0, 1.0);
+	std::uniform_int_distribution<uint32_t> rndTextureIndex(0, textures.rocks.mLayerCount);
+
+	// Distribute rocks randomly on two different rings
+	for (auto i = 0; i < gRockInstanceCount / 2; i++)
+	{
+		glm::vec2 ring0{7.0f, 11.0f};
+		glm::vec2 ring1{14.0f, 18.0f};
+
+		float rho, theta;
+
+		// Inner ring
+		rho = std::sqrt((std::pow(ring0[1], 2.0f) - std::pow(ring0[0], 2.0f)) * uniformDist(rndGenerator) + std::pow(ring0[0], 2.0f));
+		theta = static_cast<float>(2.0f * std::numbers::pi * uniformDist(rndGenerator));
+		instanceData[i].pos = glm::vec3(rho * std::cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho * std::sin(theta));
+		instanceData[i].rot = glm::vec3(std::numbers::pi * uniformDist(rndGenerator), std::numbers::pi * uniformDist(rndGenerator), std::numbers::pi * uniformDist(rndGenerator));
+		instanceData[i].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
+		instanceData[i].texIndex = rndTextureIndex(rndGenerator);
+		instanceData[i].scale *= 0.75f;
+
+		// Outer ring
+		rho = std::sqrt((std::pow(ring1[1], 2.0f) - std::pow(ring1[0], 2.0f)) * uniformDist(rndGenerator) + std::pow(ring1[0], 2.0f));
+		theta = static_cast<float>(2.0f * std::numbers::pi * uniformDist(rndGenerator));
+		instanceData[i + gRockInstanceCount / 2].pos = glm::vec3(rho * std::cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho * std::sin(theta));
+		instanceData[i + gRockInstanceCount / 2].rot = glm::vec3(std::numbers::pi * uniformDist(rndGenerator), std::numbers::pi * uniformDist(rndGenerator), std::numbers::pi * uniformDist(rndGenerator));
+		instanceData[i + gRockInstanceCount / 2].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
+		instanceData[i + gRockInstanceCount / 2].texIndex = rndTextureIndex(rndGenerator);
+		instanceData[i + gRockInstanceCount / 2].scale *= 0.75f;
+	}
+
+	instanceBuffer.size = instanceData.size() * sizeof(InstanceData);
+
+	// Staging
+	// Instanced data is static, copy to device local memory
+	// This results in better performance
+
+	struct
+	{
+		VkDeviceMemory memory;
+		VkBuffer buffer;
+	} stagingBuffer;
+
+	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		instanceBuffer.size,
+		&stagingBuffer.buffer,
+		&stagingBuffer.memory,
+		instanceData.data()));
+
+	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		instanceBuffer.size,
+		&instanceBuffer.buffer,
+		&instanceBuffer.memory));
+
+	// Copy to staging buffer
+	VkCommandBuffer copyCmd = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+	VkBufferCopy copyRegion = { };
+	copyRegion.size = instanceBuffer.size;
+	vkCmdCopyBuffer(
+		copyCmd,
+		stagingBuffer.buffer,
+		instanceBuffer.buffer,
+		1,
+		&copyRegion);
+
+	mVulkanDevice->flushCommandBuffer(copyCmd, mVkQueue, true);
+
+	instanceBuffer.descriptor.range = instanceBuffer.size;
+	instanceBuffer.descriptor.buffer = instanceBuffer.buffer;
+	instanceBuffer.descriptor.offset = 0;
+
+	// Destroy staging resources
+	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, stagingBuffer.buffer, nullptr);
+	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, stagingBuffer.memory, nullptr);
+}
+
 void VulkanRenderer::InitializeSwapchain()
 {
 	mVulkanSwapChain.InitializeSurface();
@@ -835,7 +1003,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem
 
 	if (shaderStage.module == VK_NULL_HANDLE)
 	{
-		throw std::runtime_error("Incorrect shader module");
+		throw std::runtime_error(std::format("Incorrect shader module for shader {}", aPath.generic_string()));
 	}
 
 	mVkShaderModules.push_back(shaderStage.module);
@@ -995,5 +1163,5 @@ void VulkanRenderer::UpdateUIOverlay()
 
 void VulkanRenderer::OnUpdateUIOverlay()
 {
-	// TODO: Add more data to draw
+	mImGuiOverlay->text("Rock instances: %d", gRockInstanceCount);
 }

@@ -20,7 +20,10 @@ struct VulkanUniformData
 {
 	glm::mat4 mProjectionMatrix;
 	glm::mat4 mModelViewMatrix;
-	glm::vec4 mViewPosition;
+	//glm::vec4 mViewPosition;
+	glm::vec4 lightPos = glm::vec4(0.0f, -5.0f, 0.0f, 1.0f);
+	float locSpeed = 0.0f;
+	float globSpeed = 0.0f;
 };
 
 struct VulkanBuffer
@@ -90,4 +93,10 @@ class VulkanTexture2D : public VulkanTexture
 public:
 	void LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	void FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkFormat aFormat, std::uint32_t aWidth, std::uint32_t aHeight, VulkanDevice* aDevice, VkQueue aCopyQueue, VkFilter aFilter = VK_FILTER_LINEAR, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+};
+
+class VulkanTexture2DArray : public VulkanTexture
+{
+public:
+	void LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 };

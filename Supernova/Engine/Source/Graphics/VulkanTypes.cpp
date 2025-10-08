@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <iostream>
 
 /**
 * Map a memory range of this buffer. If successful, mapped points to the specified buffer range.
@@ -164,7 +165,7 @@ ktxResult VulkanTexture::LoadKTXFile(const std::filesystem::path& aPath, ktxText
 	ktxResult result = KTX_SUCCESS;
 	if (!FileLoader::IsFileValid(aPath))
 	{
-		throw std::runtime_error(std::format("Could not load texture from {}. Make sure the assets submodule has been checked out and is up-to-date. ", aPath.generic_string()));
+		throw std::runtime_error(std::format("Could not load texture from {}. ", aPath.generic_string()));
 	}
 	result = ktxTexture_CreateFromNamedFile(aPath.generic_string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, aTargetTexture);
 	return result;
@@ -184,7 +185,7 @@ ktxResult VulkanTexture::LoadKTXFile(const std::filesystem::path& aPath, ktxText
 void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags, VkImageLayout aImageLayout)
 {
 	ktxTexture* ktxTexture;
-	const ktxResult loadResult = LoadKTXFile(aPath.generic_string(), &ktxTexture);
+	const ktxResult loadResult = LoadKTXFile(aPath, &ktxTexture);
 	assert(loadResult == KTX_SUCCESS);
 
 	mDevice = aDevice;
@@ -197,10 +198,10 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 
 	// Get device properties for the requested texture format
 	VkFormatProperties formatProperties;
-	vkGetPhysicalDeviceFormatProperties(aDevice->mVkPhysicalDevice, aFormat, &formatProperties);
+	vkGetPhysicalDeviceFormatProperties(mDevice->mVkPhysicalDevice, aFormat, &formatProperties);
 
 	// Use a separate command buffer for texture loading
-	VkCommandBuffer copyCmd = aDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	VkCommandBuffer copyCmd = mDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 	// Create a host-visible staging buffer that contains the raw image data
 	VkBuffer stagingBuffer;
@@ -212,25 +213,25 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 		.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		.sharingMode = VK_SHARING_MODE_EXCLUSIVE
 	};
-	VK_CHECK_RESULT(vkCreateBuffer(aDevice->mLogicalVkDevice, &bufferCreateInfo, nullptr, &stagingBuffer));
+	VK_CHECK_RESULT(vkCreateBuffer(mDevice->mLogicalVkDevice, &bufferCreateInfo, nullptr, &stagingBuffer));
 
 	// Get memory requirements for the staging buffer (alignment, memory type bits)
 	VkMemoryRequirements memReqs;
-	vkGetBufferMemoryRequirements(aDevice->mLogicalVkDevice, stagingBuffer, &memReqs);
+	vkGetBufferMemoryRequirements(mDevice->mLogicalVkDevice, stagingBuffer, &memReqs);
 	VkMemoryAllocateInfo memAllocInfo{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 		.allocationSize = memReqs.size,
 		// Get memory type index for a host visible buffer
-		.memoryTypeIndex = aDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+		.memoryTypeIndex = mDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
 	};
-	VK_CHECK_RESULT(vkAllocateMemory(aDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &stagingMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(aDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &stagingMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
 
 	// Copy texture data into staging buffer
 	std::uint8_t* data{nullptr};
-	VK_CHECK_RESULT(vkMapMemory(aDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
+	VK_CHECK_RESULT(vkMapMemory(mDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
 	std::memcpy(data, ktxTextureData, ktxTextureSize);
-	vkUnmapMemory(aDevice->mLogicalVkDevice, stagingMemory);
+	vkUnmapMemory(mDevice->mLogicalVkDevice, stagingMemory);
 
 	// Setup buffer copy regions for each mip level
 	std::vector<VkBufferImageCopy> bufferCopyRegions;
@@ -276,12 +277,12 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 	{
 		imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
-	VK_CHECK_RESULT(vkCreateImage(aDevice->mLogicalVkDevice, &imageCreateInfo, nullptr, &mImage));
-	vkGetImageMemoryRequirements(aDevice->mLogicalVkDevice, mImage, &memReqs);
+	VK_CHECK_RESULT(vkCreateImage(mDevice->mLogicalVkDevice, &imageCreateInfo, nullptr, &mImage));
+	vkGetImageMemoryRequirements(mDevice->mLogicalVkDevice, mImage, &memReqs);
 	memAllocInfo.allocationSize = memReqs.size;
-	memAllocInfo.memoryTypeIndex = aDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(aDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &mDeviceMemory));
-	VK_CHECK_RESULT(vkBindImageMemory(aDevice->mLogicalVkDevice, mImage, mDeviceMemory, 0));
+	memAllocInfo.memoryTypeIndex = mDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	VK_CHECK_RESULT(vkAllocateMemory(mDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &mDeviceMemory));
+	VK_CHECK_RESULT(vkBindImageMemory(mDevice->mLogicalVkDevice, mImage, mDeviceMemory, 0));
 
 	VkImageSubresourceRange subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = mMipLevels, .layerCount = 1,};
 
@@ -313,11 +314,11 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 		aImageLayout,
 		subresourceRange);
 
-	aDevice->flushCommandBuffer(copyCmd, aCopyQueue);
+	mDevice->flushCommandBuffer(copyCmd, aCopyQueue);
 
 	// Clean up staging resources
-	vkDestroyBuffer(aDevice->mLogicalVkDevice, stagingBuffer, nullptr);
-	vkFreeMemory(aDevice->mLogicalVkDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(mDevice->mLogicalVkDevice, stagingBuffer, nullptr);
+	vkFreeMemory(mDevice->mLogicalVkDevice, stagingMemory, nullptr);
 
 	ktxTexture_Destroy(ktxTexture);
 
@@ -331,14 +332,14 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.mipLodBias = 0.0f,
-		.anisotropyEnable = aDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy,
-		.maxAnisotropy = aDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? aDevice->mVkPhysicalDeviceProperties.limits.maxSamplerAnisotropy : 1.0f,
+		.anisotropyEnable = mDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy,
+		.maxAnisotropy = mDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? mDevice->mVkPhysicalDeviceProperties.limits.maxSamplerAnisotropy : 1.0f,
 		.compareOp = VK_COMPARE_OP_NEVER,
 		.minLod = 0.0f,
 		.maxLod = (float)mMipLevels,
 		.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE
 	};
-	VK_CHECK_RESULT(vkCreateSampler(aDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &mSampler));
+	VK_CHECK_RESULT(vkCreateSampler(mDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &mSampler));
 
 	// Create image view
 	// Textures are not directly accessed by the shaders and
@@ -351,10 +352,12 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 		.format = aFormat,
 		.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = mMipLevels, .baseArrayLayer = 0, .layerCount = 1 },
 	};
-	VK_CHECK_RESULT(vkCreateImageView(aDevice->mLogicalVkDevice, &viewCreateInfo, nullptr, &mView));
+	VK_CHECK_RESULT(vkCreateImageView(mDevice->mLogicalVkDevice, &viewCreateInfo, nullptr, &mView));
 
 	// Update descriptor image info member that can be used for setting up descriptor sets
 	UpdateDescriptor();
+
+	std::cout << "Loaded texture " << aPath.filename() << std::endl;
 }
 
 /**
@@ -393,23 +396,23 @@ void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkForm
 	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	VK_CHECK_RESULT(vkCreateBuffer(aDevice->mLogicalVkDevice, &bufferCreateInfo, nullptr, &stagingBuffer));
+	VK_CHECK_RESULT(vkCreateBuffer(mDevice->mLogicalVkDevice, &bufferCreateInfo, nullptr, &stagingBuffer));
 
 	// Get memory requirements for the staging buffer (alignment, memory type bits)
-	vkGetBufferMemoryRequirements(aDevice->mLogicalVkDevice, stagingBuffer, &memReqs);
+	vkGetBufferMemoryRequirements(mDevice->mLogicalVkDevice, stagingBuffer, &memReqs);
 
 	memAllocInfo.allocationSize = memReqs.size;
 	// Get memory type index for a host visible buffer
-	memAllocInfo.memoryTypeIndex = aDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	memAllocInfo.memoryTypeIndex = mDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-	VK_CHECK_RESULT(vkAllocateMemory(aDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &stagingMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(aDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
+	VK_CHECK_RESULT(vkAllocateMemory(mDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &stagingMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
 
 	// Copy texture data into staging buffer
 	std::uint8_t* data{nullptr};
-	VK_CHECK_RESULT(vkMapMemory(aDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
+	VK_CHECK_RESULT(vkMapMemory(mDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
 	std::memcpy(data, aBuffer, aBufferSize);
-	vkUnmapMemory(aDevice->mLogicalVkDevice, stagingMemory);
+	vkUnmapMemory(mDevice->mLogicalVkDevice, stagingMemory);
 
 	VkBufferImageCopy bufferCopyRegion{
 		.bufferOffset = 0,
@@ -445,20 +448,20 @@ void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkForm
 	{
 		imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
-	VK_CHECK_RESULT(vkCreateImage(aDevice->mLogicalVkDevice, &imageCreateInfo, nullptr, &mImage));
+	VK_CHECK_RESULT(vkCreateImage(mDevice->mLogicalVkDevice, &imageCreateInfo, nullptr, &mImage));
 
-	vkGetImageMemoryRequirements(aDevice->mLogicalVkDevice, mImage, &memReqs);
+	vkGetImageMemoryRequirements(mDevice->mLogicalVkDevice, mImage, &memReqs);
 
 	memAllocInfo.allocationSize = memReqs.size;
 
-	memAllocInfo.memoryTypeIndex = aDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(aDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &mDeviceMemory));
-	VK_CHECK_RESULT(vkBindImageMemory(aDevice->mLogicalVkDevice, mImage, mDeviceMemory, 0));
+	memAllocInfo.memoryTypeIndex = mDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	VK_CHECK_RESULT(vkAllocateMemory(mDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &mDeviceMemory));
+	VK_CHECK_RESULT(vkBindImageMemory(mDevice->mLogicalVkDevice, mImage, mDeviceMemory, 0));
 
 	VkImageSubresourceRange subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = mMipLevels, .layerCount = 1};
 
 	// Use a separate command buffer for texture loading
-	VkCommandBuffer copyCmd = aDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	VkCommandBuffer copyCmd = mDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 	// Image barrier for optimal image (target)
 	// Optimal image will be used as destination for the copy
 	VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
@@ -467,11 +470,11 @@ void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkForm
 	// Change texture image layout to shader read after all mip levels have been copied
 	mImageLayout = aImageLayout;
 	VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, aImageLayout, subresourceRange);
-	aDevice->flushCommandBuffer(copyCmd, aCopyQueue);
+	mDevice->flushCommandBuffer(copyCmd, aCopyQueue);
 
 	// Clean up staging resources
-	vkDestroyBuffer(aDevice->mLogicalVkDevice, stagingBuffer, nullptr);
-	vkFreeMemory(aDevice->mLogicalVkDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(mDevice->mLogicalVkDevice, stagingBuffer, nullptr);
+	vkFreeMemory(mDevice->mLogicalVkDevice, stagingMemory, nullptr);
 
 	// Create sampler
 	VkSamplerCreateInfo samplerCreateInfo{
@@ -488,7 +491,7 @@ void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkForm
 		.minLod = 0.0f,
 		.maxLod = 0.0f,
 	};
-	VK_CHECK_RESULT(vkCreateSampler(aDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &mSampler));
+	VK_CHECK_RESULT(vkCreateSampler(mDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &mSampler));
 
 	// Create image view
 	VkImageViewCreateInfo viewCreateInfo{
@@ -498,8 +501,171 @@ void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkForm
 		.format = aFormat,
 		.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1 },
 	};
-	VK_CHECK_RESULT(vkCreateImageView(aDevice->mLogicalVkDevice, &viewCreateInfo, nullptr, &mView));
+	VK_CHECK_RESULT(vkCreateImageView(mDevice->mLogicalVkDevice, &viewCreateInfo, nullptr, &mView));
 
 	// Update descriptor image info member that can be used for setting up descriptor sets
 	UpdateDescriptor();
+}
+
+/**
+	* Load a 2D texture array including all mip levels
+	*
+	* @param filename File to load (supports .ktx)
+	* @param format Vulkan format of the image data stored in the file
+	* @param device Vulkan device to create the texture on
+	* @param copyQueue Queue used for the texture staging copy commands (must support transfer)
+	* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+	* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	*
+	*/
+void VulkanTexture2DArray::LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags, VkImageLayout aImageLayout)
+{
+	ktxTexture* ktxTexture;
+	const ktxResult loadFileResult = LoadKTXFile(aPath, &ktxTexture);
+	assert(loadFileResult == KTX_SUCCESS);
+
+	mDevice = aDevice;
+	mWidth = ktxTexture->baseWidth;
+	mHeight = ktxTexture->baseHeight;
+	mLayerCount = ktxTexture->numLayers;
+	mMipLevels = ktxTexture->numLevels;
+
+	ktx_uint8_t* ktxTextureData = ktxTexture_GetData(ktxTexture);
+	ktx_size_t ktxTextureSize = ktxTexture_GetDataSize(ktxTexture);
+
+	// Create a host-visible staging buffer that contains the raw image data
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingMemory;
+
+	VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::bufferCreateInfo();
+	bufferCreateInfo.size = ktxTextureSize;
+	// This buffer is used as a transfer source for the buffer copy
+	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	VK_CHECK_RESULT(vkCreateBuffer(mDevice->mLogicalVkDevice, &bufferCreateInfo, nullptr, &stagingBuffer));
+
+	// Get memory requirements for the staging buffer (alignment, memory type bits)
+	VkMemoryRequirements memReqs;
+	vkGetBufferMemoryRequirements(mDevice->mLogicalVkDevice, stagingBuffer, &memReqs);
+	VkMemoryAllocateInfo memAllocInfo{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = memReqs.size,
+		.memoryTypeIndex = mDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+	};
+	VK_CHECK_RESULT(vkAllocateMemory(mDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &stagingMemory));
+	VK_CHECK_RESULT(vkBindBufferMemory(mDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
+
+	// Copy texture data into staging buffer
+	uint8_t* data{nullptr};
+	VK_CHECK_RESULT(vkMapMemory(mDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
+	memcpy(data, ktxTextureData, ktxTextureSize);
+	vkUnmapMemory(mDevice->mLogicalVkDevice, stagingMemory);
+
+	// Setup buffer copy regions for each layer including all of its miplevels
+	std::vector<VkBufferImageCopy> bufferCopyRegions;
+
+	for (std::uint32_t layer = 0; layer < mLayerCount; layer++)
+	{
+		for (std::uint32_t level = 0; level < mMipLevels; level++)
+		{
+			ktx_size_t offset;
+			const KTX_error_code getImageOffsetResult = ktxTexture_GetImageOffset(ktxTexture, level, layer, 0, &offset);
+			assert(getImageOffsetResult == KTX_SUCCESS);
+			VkBufferImageCopy bufferCopyRegion{
+				.bufferOffset = offset,
+				.imageSubresource {
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.mipLevel = level,
+					.baseArrayLayer = layer,
+					.layerCount = 1,
+				},
+				.imageExtent {
+					.width = ktxTexture->baseWidth >> level,
+					.height = ktxTexture->baseHeight >> level,
+					.depth = 1,
+				}
+			};
+			bufferCopyRegions.push_back(bufferCopyRegion);
+		}
+	}
+
+	// Create optimal tiled target image
+	VkImageCreateInfo imageCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = aFormat,
+		.extent = {.width = mWidth, .height = mHeight, .depth = 1 },
+		.mipLevels = mMipLevels,
+		.arrayLayers = mLayerCount,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = aImageUsageFlags,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+	};
+	// Ensure that the TRANSFER_DST bit is set for staging
+	if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
+	{
+		imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	}
+	VK_CHECK_RESULT(vkCreateImage(mDevice->mLogicalVkDevice, &imageCreateInfo, nullptr, &mImage));
+
+	vkGetImageMemoryRequirements(mDevice->mLogicalVkDevice, mImage, &memReqs);
+	memAllocInfo.allocationSize = memReqs.size;
+	memAllocInfo.memoryTypeIndex = mDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	VK_CHECK_RESULT(vkAllocateMemory(mDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &mDeviceMemory));
+	VK_CHECK_RESULT(vkBindImageMemory(mDevice->mLogicalVkDevice, mImage, mDeviceMemory, 0));
+
+	// Use a separate command buffer for texture loading
+	VkCommandBuffer copyCmd = mDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	// Image barrier for optimal image (target)
+	// Set initial layout for all array layers (faces) of the optimal (target) tiled texture
+	VkImageSubresourceRange subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = mMipLevels, .layerCount = mLayerCount};
+	VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
+	// Copy the layers and mip levels from the staging buffer to the optimal tiled image
+	vkCmdCopyBufferToImage(copyCmd, stagingBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<std::uint32_t>(bufferCopyRegions.size()), bufferCopyRegions.data());
+	// Change texture image layout to shader read after all faces have been copied
+	mImageLayout = aImageLayout;
+	VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, aImageLayout, subresourceRange);
+	mDevice->flushCommandBuffer(copyCmd, aCopyQueue);
+
+	// Create sampler
+	VkSamplerCreateInfo samplerCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		.magFilter = VK_FILTER_LINEAR,
+		.minFilter = VK_FILTER_LINEAR,
+		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		.addressModeV = samplerCreateInfo.addressModeU,
+		.addressModeW = samplerCreateInfo.addressModeU,
+		.mipLodBias = 0.0f,
+		.anisotropyEnable = mDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy,
+		.maxAnisotropy = mDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? mDevice->mVkPhysicalDeviceProperties.limits.maxSamplerAnisotropy : 1.0f,
+		.compareOp = VK_COMPARE_OP_NEVER,
+		.minLod = 0.0f,
+		.maxLod = (float)mMipLevels,
+		.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+	};
+	VK_CHECK_RESULT(vkCreateSampler(mDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &mSampler));
+
+	// Create image view
+	VkImageViewCreateInfo viewCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = mImage,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+		.format = aFormat,
+		.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = mMipLevels, .baseArrayLayer = 0, .layerCount = mLayerCount },
+	};
+	VK_CHECK_RESULT(vkCreateImageView(mDevice->mLogicalVkDevice, &viewCreateInfo, nullptr, &mView));
+
+	// Clean up staging resources
+	ktxTexture_Destroy(ktxTexture);
+	vkDestroyBuffer(mDevice->mLogicalVkDevice, stagingBuffer, nullptr);
+	vkFreeMemory(mDevice->mLogicalVkDevice, stagingMemory, nullptr);
+
+	// Update descriptor image info member that can be used for setting up descriptor sets
+	UpdateDescriptor();
+
+	std::cout << "Loaded texture " << aPath.filename() << std::endl;
 }

@@ -30,6 +30,9 @@ namespace vkglTF
 		void Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags = 0, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, std::uint32_t aBindImageSet = 1);
 		void BindBuffers(VkCommandBuffer aCommandBuffer);
 
+		Vertices vertices{};
+		Indices indices{};
+
 	private:
 		void LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale);
 		void LoadSkins();
@@ -55,8 +58,6 @@ namespace vkglTF
 		std::vector<Texture> textures{};
 		std::vector<Material> materials{};
 		std::vector<Animation> animations{};
-		Vertices vertices{};
-		Indices indices{};
 		Dimensions mDimensions;
 		std::string path;
 		tinygltf::Model* mCurrentModel;
