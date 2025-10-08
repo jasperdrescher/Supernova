@@ -66,8 +66,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 {
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
 	mEngineProperties->mIsValidationEnabled = true;
-	mEngineProperties->mApplicationName = "Supernova";
-	mEngineProperties->mEngineName = "Supernova";
+	mEngineProperties->mApplicationName = "Supernova Editor";
+	mEngineProperties->mEngineName = "Supernova Engine";
 
 	mFramebufferWidth = mEngineProperties->mWindowWidth;
 	mFramebufferHeight = mEngineProperties->mWindowHeight;
