@@ -9,6 +9,7 @@
 #include "VulkanGlTFModel.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
+#include "VulkanTypes.hpp"
 #include "Window.hpp"
 
 #define GLM_FORCE_RADIANS
@@ -32,6 +33,7 @@
 #include <numeric>
 #include <vulkan/vulkan_core.h>
 #include <imgui.h>
+#include <filesystem>
 
 VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	Window* aWindow)
@@ -61,11 +63,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
 	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
-	, mModelPath{"Voyager.gltf"}
-	, mVertexShaderPath{"DynamicRendering/Texture_vert.spv"}
-	, mFragmentShaderPath{"DynamicRendering/Texture_frag.spv"}
-	, mStarfieldVertexShaderPath{"Instancing/Starfield_vert.spv"}
-	, mStarfieldFragmentShaderPath{"Instancing/Starfield_frag.spv"}
 {
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
 	mEngineProperties->mIsValidationEnabled = true;
@@ -187,7 +184,8 @@ void VulkanRenderer::LoadAssets()
 {
 	const std::uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 	mGlTFModels.push_back(new vkglTF::Model());
-	mGlTFModels.back()->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / mModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
+	mGlTFModels.back()->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
@@ -231,14 +229,12 @@ void VulkanRenderer::CreateCommandBuffers()
 
 void VulkanRenderer::CreateDescriptors()
 {
-	// Pool
-	std::vector<VkDescriptorPoolSize> poolSizes = {
+	const std::vector<VkDescriptorPoolSize> poolSizes = {
 		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, gMaxConcurrentFrames),
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mVkDescriptorPool));
 
-	// Layout
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 	};
@@ -250,7 +246,7 @@ void VulkanRenderer::CreateDescriptors()
 	for (size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mVkDescriptorSets[i]));
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+		const std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
@@ -363,7 +359,7 @@ void VulkanRenderer::CreatePipeline()
 	VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 	VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::pipelineViewportStateCreateInfo(1, 1, 0);
 	VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
-	std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+	const std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 	VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
@@ -410,16 +406,20 @@ void VulkanRenderer::CreatePipeline()
 
 	pipelineCI.pVertexInputState = &inputState;
 
-	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / mVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / mFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	const std::filesystem::path vertexShaderPath = "DynamicRendering/Texture_vert.spv";
+	const std::filesystem::path fragmentShaderPath = "DynamicRendering/Texture_frag.spv";
+	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / vertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / fragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
 	inputState.vertexBindingDescriptionCount = 1;
 	inputState.vertexAttributeDescriptionCount = 3;
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipeline));
 
 	rasterizationState.cullMode = VK_CULL_MODE_NONE;
 	depthStencilState.depthWriteEnable = VK_FALSE;
-	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / mStarfieldVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / mStarfieldFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	const std::filesystem::path starfieldVertexShaderPath = "Instancing/Starfield_vert.spv";
+	const std::filesystem::path starfieldFragmentShaderPath = "Instancing/Starfield_frag.spv";
+	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / starfieldVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / starfieldFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
 	inputState.vertexBindingDescriptionCount = 0;
 	inputState.vertexAttributeDescriptionCount = 0;
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mStarfieldVkPipeline));
