@@ -243,7 +243,7 @@ void VulkanRenderer::CreateDescriptors()
 
 	// Sets per frame, just like the buffers themselves
 	VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
-	for (size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
+	for (std::size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mVkDescriptorSets[i]));
 		const std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -300,7 +300,7 @@ void VulkanRenderer::SetupDepthStencil()
 
 VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::filesystem::path& aPath) const
 {
-	size_t shaderSize{0};
+	std::size_t shaderSize{0};
 	char* shaderCode{nullptr};
 
 	std::ifstream is(aPath, std::ios::binary | std::ios::in | std::ios::ate);

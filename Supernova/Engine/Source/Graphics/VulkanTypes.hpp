@@ -67,42 +67,27 @@ struct VulkanDepthStencil
 class VulkanTexture
 {
 public:
-	VulkanDevice* device;
-	VkImage               image;
-	VkImageLayout         imageLayout;
-	VkDeviceMemory        deviceMemory;
-	VkImageView           view;
-	std::uint32_t              width, height;
-	std::uint32_t              mipLevels;
-	std::uint32_t              layerCount;
-	VkDescriptorImageInfo descriptor;
-	VkSampler             sampler;
+	void UpdateDescriptor();
+	void Destroy();
 
-	void      updateDescriptor();
-	void      destroy();
-	ktxResult loadKTXFile(const std::filesystem::path& aPath, ktxTexture** target);
+	ktxResult LoadKTXFile(const std::filesystem::path& aPath, ktxTexture** aTargetTexture);
+
+	VulkanDevice* mDevice;
+	VkImage mImage;
+	VkImageLayout mImageLayout;
+	VkDeviceMemory mDeviceMemory;
+	VkImageView mView;
+	std::uint32_t mWidth;
+	std::uint32_t mHeight;
+	std::uint32_t mMipLevels;
+	std::uint32_t mLayerCount;
+	VkDescriptorImageInfo mDescriptor;
+	VkSampler mSampler;
 };
 
 class VulkanTexture2D : public VulkanTexture
 {
 public:
-	void loadFromFile(
-		const std::filesystem::path& aPath,
-		VkFormat           format,
-		VulkanDevice* device,
-		VkQueue            copyQueue,
-		VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-		VkImageLayout      imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	void fromBuffer(
-		void* buffer,
-		VkDeviceSize       bufferSize,
-		VkFormat           format,
-		std::uint32_t           texWidth,
-		std::uint32_t           texHeight,
-		VulkanDevice* device,
-		VkQueue            copyQueue,
-		VkFilter           filter = VK_FILTER_LINEAR,
-		VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-		VkImageLayout      imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	void LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	void FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkFormat aFormat, std::uint32_t aWidth, std::uint32_t aHeight, VulkanDevice* aDevice, VkQueue aCopyQueue, VkFilter aFilter = VK_FILTER_LINEAR, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 };
