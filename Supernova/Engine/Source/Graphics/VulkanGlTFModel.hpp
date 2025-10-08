@@ -28,6 +28,7 @@ namespace vkglTF
 
 		void LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags = vkglTF::FileLoadingFlags::None, float aScale = 1.0f);
 		void Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags = 0, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, std::uint32_t aBindImageSet = 1);
+		void BindBuffers(VkCommandBuffer aCommandBuffer);
 
 	private:
 		void LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale);
@@ -35,7 +36,6 @@ namespace vkglTF
 		void LoadImages(VulkanDevice* aDevice, VkQueue aTransferQueue);
 		void LoadMaterials();
 		void LoadAnimations();
-		void BindBuffers(VkCommandBuffer aCommandBuffer);
 		void GetNodeDimensions(const Node* aNode, glm::vec3& aMin, glm::vec3& aMax);
 		void GetSceneDimensions();
 		void UpdateAnimation(std::uint32_t aIndex, float aTime);

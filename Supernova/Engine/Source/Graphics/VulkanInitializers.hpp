@@ -64,6 +64,13 @@ namespace VulkanInitializers
 		return fenceCreateInfo;
 	}
 
+	inline VkBufferCreateInfo bufferCreateInfo()
+	{
+		VkBufferCreateInfo bufCreateInfo{};
+		bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		return bufCreateInfo;
+	}
+
 	inline VkBufferCreateInfo bufferCreateInfo(
 		VkBufferUsageFlags usage,
 		VkDeviceSize size)

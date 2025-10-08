@@ -14,4 +14,5 @@ namespace FileLoader
 	static std::filesystem::path gShadersPath = "Shaders/GLSL/";
 	static std::filesystem::path gFontPath = "Fonts/";
 	static std::filesystem::path gModelsPath = "Models/";
+	static std::filesystem::path gTexturesPath = "Textures/";
 }
