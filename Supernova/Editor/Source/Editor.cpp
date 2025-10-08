@@ -1,7 +1,7 @@
 #include "Engine.hpp"
 
-#include <exception>
 #include <iostream>
+#include <stdexcept>
 
 int main(const int /*argc*/, const char* /*argv*/[])
 {
@@ -12,9 +12,9 @@ int main(const int /*argc*/, const char* /*argv*/[])
 		engine.Start();
 		engine.Run();
 	}
-	catch (const std::exception& aException)
+	catch (const std::runtime_error& aError)
 	{
-		std::cerr << aException.what() << std::endl;
+		std::cerr << aError.what() << std::endl;
 		return 1;
 	}
 
