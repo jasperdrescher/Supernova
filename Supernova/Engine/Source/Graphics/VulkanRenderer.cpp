@@ -566,15 +566,15 @@ void VulkanRenderer::PrepareFrame()
 
 void VulkanRenderer::BuildCommandBuffer()
 {
-	VkCommandBuffer cmdBuffer = mVkCommandBuffers[mCurrentBufferIndex];
+	VkCommandBuffer vkCommandBuffer = mVkCommandBuffers[mCurrentBufferIndex];
 
-	VkCommandBufferBeginInfo cmdBufInfo = VulkanInitializers::commandBufferBeginInfo();
-	VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+	VkCommandBufferBeginInfo vkCommandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
+	VK_CHECK_RESULT(vkBeginCommandBuffer(vkCommandBuffer, &vkCommandBufferBeginInfo));
 
 	// With dynamic rendering there are no subpass dependencies, so we need to take care of proper layout transitions by using barriers
 	// This set of barriers prepares the color and depth images for output
 	VulkanTools::InsertImageMemoryBarrier(
-		cmdBuffer,
+		vkCommandBuffer,
 		mVulkanSwapChain.mVkImages[mCurrentImageIndex],
 		0,
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -585,7 +585,7 @@ void VulkanRenderer::BuildCommandBuffer()
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
 	VulkanTools::InsertImageMemoryBarrier(
-		cmdBuffer,
+		vkCommandBuffer,
 		mVulkanDepthStencil.mVkImage,
 		0,
 		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
@@ -624,43 +624,43 @@ void VulkanRenderer::BuildCommandBuffer()
 	renderingInfo.pStencilAttachment = &depthStencilAttachment;
 
 	// Begin dynamic rendering
-	vkCmdBeginRendering(cmdBuffer, &renderingInfo);
+	vkCmdBeginRendering(vkCommandBuffer, &renderingInfo);
 
 	VkViewport viewport = VulkanInitializers::viewport(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f);
-	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+	vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
-	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+	vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
 
 	// Draw non-instanced static models
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticPlanetWithStarfield, 0, nullptr);
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mStarfield);
-	vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticPlanetWithStarfield, 0, nullptr);
+	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mStarfield);
+	vkCmdDraw(vkCommandBuffer, 3, 1, 0, 0);
 
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
-	models.mPlanetModel->Draw(cmdBuffer);
+	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
+	models.mPlanetModel->Draw(vkCommandBuffer);
 
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
-	models.mVoyagerModel->Draw(cmdBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
+	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
+	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
+	models.mVoyagerModel->Draw(vkCommandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
 
 	// Draw instanced models
 	VkDeviceSize offsets[1] = {0};
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
-	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &models.mRockModel->vertices.mBuffer, offsets);
-	vkCmdBindVertexBuffers(cmdBuffer, 1, 1, &instanceBuffer.buffer, offsets);
-	vkCmdBindIndexBuffer(cmdBuffer, models.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdDrawIndexed(cmdBuffer, models.mRockModel->indices.mCount, gRockInstanceCount, 0, 0, 0);
+	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
+	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
+	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &models.mRockModel->vertices.mBuffer, offsets);
+	vkCmdBindVertexBuffers(vkCommandBuffer, 1, 1, &instanceBuffer.buffer, offsets);
+	vkCmdBindIndexBuffer(vkCommandBuffer, models.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdDrawIndexed(vkCommandBuffer, models.mRockModel->indices.mCount, gRockInstanceCount, 0, 0, 0);
 
-	DrawImGuiOverlay(cmdBuffer);
+	DrawImGuiOverlay(vkCommandBuffer);
 
 	// End dynamic rendering
-	vkCmdEndRendering(cmdBuffer);
+	vkCmdEndRendering(vkCommandBuffer);
 
 	// This set of barriers prepares the color image for presentation, we don't need to care for the depth image
 	VulkanTools::InsertImageMemoryBarrier(
-		cmdBuffer,
+		vkCommandBuffer,
 		mVulkanSwapChain.mVkImages[mCurrentImageIndex],
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		0,
@@ -670,7 +670,7 @@ void VulkanRenderer::BuildCommandBuffer()
 		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
-	VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffer));
+	VK_CHECK_RESULT(vkEndCommandBuffer(vkCommandBuffer));
 }
 
 void VulkanRenderer::UpdateUniformBuffers()
