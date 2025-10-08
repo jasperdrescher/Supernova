@@ -148,6 +148,8 @@ namespace VulkanTools
 
 			delete[] shaderCode;
 
+			std::cout << "Loaded shader " << aPath.filename() << std::endl;
+
 			return shaderModule;
 		}
 		else
