@@ -20,7 +20,6 @@ struct VulkanUniformData
 {
 	glm::mat4 mProjectionMatrix;
 	glm::mat4 mModelViewMatrix;
-	//glm::vec4 mViewPosition;
 	glm::vec4 lightPos = glm::vec4(0.0f, -5.0f, 0.0f, 1.0f);
 	float locSpeed = 0.0f;
 	float globSpeed = 0.0f;
