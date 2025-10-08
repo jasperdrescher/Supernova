@@ -276,7 +276,7 @@ void VulkanRenderer::CreateDescriptors()
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.rocks.mDescriptor),
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(instancedWriteDescriptorSets.size()), instancedWriteDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(instancedWriteDescriptorSets.size()), instancedWriteDescriptorSets.data(), 0, nullptr);
 
 		// Static planet
 		//	Binding 0 : Vertex shader uniform buffer
@@ -286,7 +286,7 @@ void VulkanRenderer::CreateDescriptors()
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.planet.mDescriptor),
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
 
 		// Static voyager
 		//	Binding 0 : Vertex shader uniform buffer
@@ -294,7 +294,7 @@ void VulkanRenderer::CreateDescriptors()
 		const std::vector<VkWriteDescriptorSet> staticVoyagerWriteDescriptorSets = {
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticVoyager, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<uint32_t>(staticVoyagerWriteDescriptorSets.size()), staticVoyagerWriteDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(staticVoyagerWriteDescriptorSets.size()), staticVoyagerWriteDescriptorSets.data(), 0, nullptr);
 	}
 }
 
@@ -479,8 +479,8 @@ void VulkanRenderer::CreatePipeline()
 	const std::filesystem::path rockFragmentShaderPath = "Instancing/Instancing_frag.spv";
 	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
 	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
-	inputState.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
-	inputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+	inputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(bindingDescriptions.size());
+	inputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptions.size());
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mRocks));
 
 	rasterizationState.cullMode = VK_CULL_MODE_NONE;
