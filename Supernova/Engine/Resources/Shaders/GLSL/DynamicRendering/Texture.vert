@@ -7,10 +7,15 @@ layout (location = 2) in vec2 inUV;
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
-	mat4 modelview;
+	mat4 view;
 	vec4 viewPos;
 	vec4 lightPos;
 } ubo;
+
+layout (push_constant) uniform Push
+{
+	mat4 model;
+} push;
 
 layout (location = 0) out vec2 outUV;
 layout (location = 1) out vec3 outNormal;
@@ -21,11 +26,12 @@ void main()
 {
 	outUV = inUV;
 
-	gl_Position = ubo.projection * ubo.modelview * vec4(inPos.xyz, 1.0);
+	mat4 modelView = (ubo.view * push.model);
+	gl_Position = ubo.projection * modelView * vec4(inPos.xyz, 1.0);
 
-    vec4 pos = ubo.modelview * vec4(inPos, 1.0);
-	outNormal = mat3(inverse(transpose(ubo.modelview))) * inNormal;
-	vec3 lPos = mat3(ubo.modelview) * ubo.lightPos.xyz;
+    vec4 pos = modelView * vec4(inPos, 1.0);
+	outNormal = mat3(inverse(transpose(modelView))) * inNormal;
+	vec3 lPos = mat3(modelView) * ubo.lightPos.xyz;
     outLightVec = lPos - pos.xyz;
     outViewVec = ubo.viewPos.xyz - pos.xyz;
 }

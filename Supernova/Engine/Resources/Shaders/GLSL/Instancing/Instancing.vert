@@ -15,7 +15,7 @@ layout (location = 7) in int instanceTexIndex;
 layout (binding = 0) uniform UBO 
 {
 	mat4 projection;
-	mat4 modelview;
+	mat4 view;
 	vec4 viewPos;
 	vec4 lightPos;
 	float locSpeed;
@@ -72,11 +72,11 @@ void main()
 	vec4 locPos = vec4(inPos.xyz * rotMat, 1.0);
 	vec4 pos = vec4((locPos.xyz * instanceScale) + instancePos, 1.0);
 
-	gl_Position = ubo.projection * ubo.modelview * gRotMat * pos;
-	outNormal = mat3(ubo.modelview * gRotMat) * inverse(rotMat) * inNormal;
+	gl_Position = ubo.projection * ubo.view * gRotMat * pos;
+	outNormal = mat3(ubo.view * gRotMat) * inverse(rotMat) * inNormal;
 
-	pos = ubo.modelview * vec4(inPos.xyz + instancePos, 1.0);
-	vec3 lPos = mat3(ubo.modelview) * ubo.lightPos.xyz;
+	pos = ubo.view * vec4(inPos.xyz + instancePos, 1.0);
+	vec3 lPos = mat3(ubo.view) * ubo.lightPos.xyz;
 	outLightVec = lPos - pos.xyz;
 	outViewVec = ubo.viewPos.xyz - pos.xyz;
 }

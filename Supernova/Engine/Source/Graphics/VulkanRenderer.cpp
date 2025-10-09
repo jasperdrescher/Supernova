@@ -390,11 +390,20 @@ void VulkanRenderer::CreatePipeline()
 {
 	// Layout
 	// Uses set 0 for passing vertex shader ubo and set 1 for fragment shader images (taken from glTF model)
-	const std::vector<VkDescriptorSetLayout> setLayouts = {
+	const std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
 		mVkDescriptorSetLayout,
 		vkglTF::gDescriptorSetLayoutImage,
 	};
-	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(setLayouts.data(), 2);
+	
+	const VkPushConstantRange pushConstantRange{
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+		.offset = 0,
+		.size = sizeof(VulkanPushConstant)
+	};
+
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(descriptorSetLayouts.data(), 2);
+	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mVkPipelineLayout));
 
 	// Pipeline
@@ -643,6 +652,13 @@ void VulkanRenderer::BuildCommandBuffer()
 
 	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
 	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
+
+	VulkanPushConstant vulkanPushConstant{};
+	glm::mat4 modelMatrix = glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, -2.0f, 10.0f});
+	modelMatrix = glm::scale(modelMatrix, glm::vec3{0.2f});
+	vulkanPushConstant.mModelMatrix = modelMatrix;
+	vkCmdPushConstants(vkCommandBuffer, mVkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VulkanPushConstant), &vulkanPushConstant);
+
 	mModels.mVoyagerModel->Draw(vkCommandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
 
 	// Draw instanced models
@@ -677,7 +693,7 @@ void VulkanRenderer::BuildCommandBuffer()
 void VulkanRenderer::UpdateUniformBuffers()
 {
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
-	mVulkanUniformData.mModelViewMatrix = mCamera->mMatrices.mView * glm::mat4x4{1.0f};
+	mVulkanUniformData.mViewMatrix = mCamera->mMatrices.mView;
 	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
 	mVulkanUniformData.mLocalSpeed += mFrametime * 0.35f;
 	mVulkanUniformData.mGlobalSpeed += mFrametime * 0.01f;
