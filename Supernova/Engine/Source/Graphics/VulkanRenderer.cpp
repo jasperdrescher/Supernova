@@ -678,6 +678,7 @@ void VulkanRenderer::UpdateUniformBuffers()
 {
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mModelViewMatrix = mCamera->mMatrices.mView * glm::mat4x4{1.0f};
+	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
 	mVulkanUniformData.locSpeed += mFrametime * 0.35f;
 	mVulkanUniformData.globSpeed += mFrametime * 0.01f;
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));

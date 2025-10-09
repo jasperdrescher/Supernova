@@ -16,6 +16,7 @@ layout (binding = 0) uniform UBO
 {
 	mat4 projection;
 	mat4 modelview;
+	vec4 viewPos;
 	vec4 lightPos;
 	float locSpeed;
 	float globSpeed;
@@ -77,5 +78,5 @@ void main()
 	pos = ubo.modelview * vec4(inPos.xyz + instancePos, 1.0);
 	vec3 lPos = mat3(ubo.modelview) * ubo.lightPos.xyz;
 	outLightVec = lPos - pos.xyz;
-	outViewVec = -pos.xyz;		
+	outViewVec = ubo.viewPos.xyz - pos.xyz;
 }
