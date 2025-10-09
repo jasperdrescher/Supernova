@@ -248,9 +248,10 @@ void VulkanRenderer::CreateCommandBuffers()
 
 void VulkanRenderer::CreateDescriptors()
 {
+	static constexpr std::uint32_t poolPadding = 2;
 	const std::vector<VkDescriptorPoolSize> poolSizes = {
-		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, gMaxConcurrentFrames * 3),
-		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, gMaxConcurrentFrames * 2),
+		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (gMaxConcurrentFrames * 3) + poolPadding),
+		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (gMaxConcurrentFrames * 2) + poolPadding),
 	};
 	VkDescriptorPoolCreateInfo descriptorPoolInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames * 3);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mVkDescriptorPool));
