@@ -11,6 +11,9 @@ layout (binding = 0) uniform UBO
 	mat4 view;
 	vec4 viewPos;
 	vec4 lightPos;
+	float locSpeed;
+	float globSpeed;
+	float lightIntensity;
 } ubo;
 
 layout (location = 0) out vec3 outNormal;
@@ -18,6 +21,7 @@ layout (location = 1) out vec3 outColor;
 layout (location = 2) out vec2 outUV;
 layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
+layout (location = 5) out float outLightIntensity;
 
 void main() 
 {
@@ -30,4 +34,5 @@ void main()
 	vec3 lPos = mat3(ubo.view) * ubo.lightPos.xyz;
 	outLightVec = lPos - pos.xyz;
 	outViewVec = ubo.viewPos.xyz - pos.xyz;
+	outLightIntensity = ubo.lightIntensity;
 }

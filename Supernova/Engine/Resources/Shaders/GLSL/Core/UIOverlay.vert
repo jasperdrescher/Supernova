@@ -14,7 +14,7 @@ layout (location = 1) out vec4 outColor;
 
 out gl_PerVertex 
 {
-	vec4 gl_Position;   
+	vec4 gl_Position;
 };
 
 void main() 

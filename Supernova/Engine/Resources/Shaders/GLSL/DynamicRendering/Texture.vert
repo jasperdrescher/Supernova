@@ -10,6 +10,9 @@ layout (binding = 0) uniform UBO
 	mat4 view;
 	vec4 viewPos;
 	vec4 lightPos;
+	float locSpeed;
+	float globSpeed;
+	float lightIntensity;
 } ubo;
 
 layout (push_constant) uniform Push
@@ -21,6 +24,7 @@ layout (location = 0) out vec2 outUV;
 layout (location = 1) out vec3 outNormal;
 layout (location = 2) out vec3 outViewVec;
 layout (location = 3) out vec3 outLightVec;
+layout (location = 4) out float outLightIntensity;
 
 void main() 
 {
@@ -29,9 +33,10 @@ void main()
 	mat4 modelView = (ubo.view * push.model);
 	gl_Position = ubo.projection * modelView * vec4(inPos.xyz, 1.0);
 
-    vec4 pos = modelView * vec4(inPos, 1.0);
+	vec4 pos = modelView * vec4(inPos, 1.0);
 	outNormal = mat3(inverse(transpose(modelView))) * inNormal;
 	vec3 lPos = mat3(modelView) * ubo.lightPos.xyz;
-    outLightVec = lPos - pos.xyz;
-    outViewVec = ubo.viewPos.xyz - pos.xyz;
+	outLightVec = lPos - pos.xyz;
+	outViewVec = ubo.viewPos.xyz - pos.xyz;
+	outLightIntensity = ubo.lightIntensity;
 }

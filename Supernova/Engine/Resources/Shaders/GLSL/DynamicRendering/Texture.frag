@@ -6,12 +6,13 @@ layout (location = 0) in vec2 inUV;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inViewVec;
 layout (location = 3) in vec3 inLightVec;
+layout (location = 4) in float inLightIntensity;
 
 layout (location = 0) out vec4 outFragColor;
 
 void main() 
 {
-	vec4 color = texture(samplerColor, inUV);
+	vec4 color = texture(samplerColor, inUV) * inLightIntensity;
 
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(inLightVec);
