@@ -337,7 +337,7 @@ void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQ
 	}
 }
 
-void VulkanDevice::flushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, bool aIsFree) const
+void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, bool aIsFree) const
 {
 	return FlushCommandBuffer(aCommandBuffer, aQueue, mGraphicsVkCommandPool, aIsFree);
 }

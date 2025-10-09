@@ -239,7 +239,7 @@ namespace vkglTF
 				};
 				vkCmdPipelineBarrier(copyCmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 			}
-			aDevice->flushCommandBuffer(copyCmd, aCopyQueue, true);
+			aDevice->FlushCommandBuffer(copyCmd, aCopyQueue, true);
 
 			vkDestroyBuffer(aDevice->mLogicalVkDevice, stagingBuffer, nullptr);
 			vkFreeMemory(aDevice->mLogicalVkDevice, stagingMemory, nullptr);
@@ -317,7 +317,7 @@ namespace vkglTF
 				delete[] buffer;
 			}
 
-			aDevice->flushCommandBuffer(blitCmd, aCopyQueue, true);
+			aDevice->FlushCommandBuffer(blitCmd, aCopyQueue, true);
 		}
 		else
 		{
@@ -430,7 +430,7 @@ namespace vkglTF
 			VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
 			vkCmdCopyBufferToImage(copyCmd, stagingBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<std::uint32_t>(bufferCopyRegions.size()), bufferCopyRegions.data());
 			VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange);
-			aDevice->flushCommandBuffer(copyCmd, aCopyQueue, true);
+			aDevice->FlushCommandBuffer(copyCmd, aCopyQueue, true);
 			imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			vkDestroyBuffer(aDevice->mLogicalVkDevice, stagingBuffer, nullptr);

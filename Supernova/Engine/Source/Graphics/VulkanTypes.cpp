@@ -314,7 +314,7 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 		aImageLayout,
 		subresourceRange);
 
-	mDevice->flushCommandBuffer(copyCmd, aCopyQueue);
+	mDevice->FlushCommandBuffer(copyCmd, aCopyQueue);
 
 	// Clean up staging resources
 	vkDestroyBuffer(mDevice->mLogicalVkDevice, stagingBuffer, nullptr);
@@ -470,7 +470,7 @@ void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkForm
 	// Change texture image layout to shader read after all mip levels have been copied
 	mImageLayout = aImageLayout;
 	VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, aImageLayout, subresourceRange);
-	mDevice->flushCommandBuffer(copyCmd, aCopyQueue);
+	mDevice->FlushCommandBuffer(copyCmd, aCopyQueue);
 
 	// Clean up staging resources
 	vkDestroyBuffer(mDevice->mLogicalVkDevice, stagingBuffer, nullptr);
@@ -628,7 +628,7 @@ void VulkanTexture2DArray::LoadFromFile(const std::filesystem::path& aPath, VkFo
 	// Change texture image layout to shader read after all faces have been copied
 	mImageLayout = aImageLayout;
 	VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, aImageLayout, subresourceRange);
-	mDevice->flushCommandBuffer(copyCmd, aCopyQueue);
+	mDevice->FlushCommandBuffer(copyCmd, aCopyQueue);
 
 	// Create sampler
 	VkSamplerCreateInfo samplerCreateInfo{

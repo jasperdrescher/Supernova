@@ -114,8 +114,8 @@ VulkanRenderer::~VulkanRenderer()
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptorSetLayout, nullptr);
 		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, nullptr);
 
-		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, instanceBuffer.buffer, nullptr);
-		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, instanceBuffer.memory, nullptr);
+		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mInstanceBuffer.mVkBuffer, nullptr);
+		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mInstanceBuffer.mVkDeviceMemory, nullptr);
 
 		for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
 			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
@@ -130,8 +130,8 @@ VulkanRenderer::~VulkanRenderer()
 			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
 
-		textures.rocks.Destroy();
-		textures.planet.Destroy();
+		mTextures.mRockTextureArray.Destroy();
+		mTextures.mPlanetTexture.Destroy();
 	}
 
 	mImGuiOverlay->FreeResources();
@@ -139,9 +139,9 @@ VulkanRenderer::~VulkanRenderer()
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
-	delete models.mPlanetModel;
-	delete models.mRockModel;
-	delete models.mVoyagerModel;
+	delete mModels.mPlanetModel;
+	delete mModels.mRockModel;
+	delete mModels.mVoyagerModel;
 	delete mImGuiOverlay;
 	delete mVulkanDevice;
 
@@ -189,22 +189,22 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 void VulkanRenderer::LoadAssets()
 {
 	const std::uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-	models.mVoyagerModel = new vkglTF::Model();
+	mModels.mVoyagerModel = new vkglTF::Model();
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
-	models.mVoyagerModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	mModels.mVoyagerModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 
-	models.mRockModel = new vkglTF::Model();
+	mModels.mRockModel = new vkglTF::Model();
 	const std::filesystem::path rockModelPath = "Rock01.gltf";
-	models.mRockModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / rockModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	mModels.mRockModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / rockModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 
-	models.mPlanetModel = new vkglTF::Model();
+	mModels.mPlanetModel = new vkglTF::Model();
 	const std::filesystem::path planetModelPath = "Lavaplanet.gltf";
-	models.mPlanetModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	mModels.mPlanetModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 
 	const std::filesystem::path planetTexturePath = "Lavaplanet_rgba.ktx";
-	textures.planet.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / planetTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mVkQueue);
+	mTextures.mPlanetTexture.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / planetTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mVkQueue);
 	const std::filesystem::path rockTexturePath = "Texturearray_rocks_rgba.ktx";
-	textures.rocks.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / rockTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mVkQueue, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	mTextures.mRockTextureArray.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / rockTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mVkQueue, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
@@ -275,7 +275,7 @@ void VulkanRenderer::CreateDescriptors()
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mInstancedRocks));
 		const std::vector<VkWriteDescriptorSet> instancedWriteDescriptorSets = {
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
-			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.rocks.mDescriptor),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mRockTextureArray.mDescriptor),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(instancedWriteDescriptorSets.size()), instancedWriteDescriptorSets.data(), 0, nullptr);
 
@@ -285,7 +285,7 @@ void VulkanRenderer::CreateDescriptors()
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mStaticPlanetWithStarfield));
 		const std::vector<VkWriteDescriptorSet> staticPlanetWriteDescriptorSets = {
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
-			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textures.planet.mDescriptor),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mPlanetTexture.mDescriptor),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
 
@@ -436,7 +436,7 @@ void VulkanRenderer::CreatePipeline()
 		// Binding point 0: Mesh vertex layout description at per-vertex rate
 		VulkanInitializers::vertexInputBindingDescription(0, sizeof(vkglTF::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
 		// Binding point 1: Instanced data at per-instance rate
-		VulkanInitializers::vertexInputBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE),
+		VulkanInitializers::vertexInputBindingDescription(1, sizeof(VulkanInstanceData), VK_VERTEX_INPUT_RATE_INSTANCE),
 	};
 
 	const std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {
@@ -639,20 +639,20 @@ void VulkanRenderer::BuildCommandBuffer()
 	vkCmdDraw(vkCommandBuffer, 3, 1, 0, 0);
 
 	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
-	models.mPlanetModel->Draw(vkCommandBuffer);
+	mModels.mPlanetModel->Draw(vkCommandBuffer);
 
 	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
 	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
-	models.mVoyagerModel->Draw(vkCommandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
+	mModels.mVoyagerModel->Draw(vkCommandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
 
 	// Draw instanced models
 	VkDeviceSize offsets[1] = {0};
 	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
 	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
-	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &models.mRockModel->vertices.mBuffer, offsets);
-	vkCmdBindVertexBuffers(vkCommandBuffer, 1, 1, &instanceBuffer.buffer, offsets);
-	vkCmdBindIndexBuffer(vkCommandBuffer, models.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdDrawIndexed(vkCommandBuffer, models.mRockModel->indices.mCount, gRockInstanceCount, 0, 0, 0);
+	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &mModels.mRockModel->vertices.mBuffer, offsets);
+	vkCmdBindVertexBuffers(vkCommandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
+	vkCmdBindIndexBuffer(vkCommandBuffer, mModels.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdDrawIndexed(vkCommandBuffer, mModels.mRockModel->indices.mCount, gRockInstanceCount, 0, 0, 0);
 
 	DrawImGuiOverlay(vkCommandBuffer);
 
@@ -679,8 +679,8 @@ void VulkanRenderer::UpdateUniformBuffers()
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mModelViewMatrix = mCamera->mMatrices.mView * glm::mat4x4{1.0f};
 	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
-	mVulkanUniformData.locSpeed += mFrametime * 0.35f;
-	mVulkanUniformData.globSpeed += mFrametime * 0.01f;
+	mVulkanUniformData.mLocalSpeed += mFrametime * 0.35f;
+	mVulkanUniformData.mGlobalSpeed += mFrametime * 0.01f;
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 
@@ -893,88 +893,85 @@ void VulkanRenderer::CreatePipelineCache()
 
 void VulkanRenderer::PrepareInstanceData()
 {
-	std::vector<InstanceData> instanceData;
+	std::vector<VulkanInstanceData> instanceData;
 	instanceData.resize(gRockInstanceCount);
 
-	std::default_random_engine rndGenerator((unsigned)time(nullptr));
-	std::uniform_real_distribution<float> uniformDist(0.0, 1.0);
-	std::uniform_int_distribution<uint32_t> rndTextureIndex(0, textures.rocks.mLayerCount);
+	std::default_random_engine RandomGenerator(std::random_device{}());
+	std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
+	std::uniform_int_distribution<std::uint32_t> randomTextureIndex(0, mTextures.mRockTextureArray.mLayerCount);
 
 	// Distribute rocks randomly on two different rings
-	for (auto i = 0; i < gRockInstanceCount / 2; i++)
+	for (int i = 0; i < gRockInstanceCount / 2; i++)
 	{
 		glm::vec2 ring0{7.0f, 11.0f};
 		glm::vec2 ring1{14.0f, 18.0f};
 
-		float rho, theta;
-
 		// Inner ring
-		rho = std::sqrt((std::pow(ring0[1], 2.0f) - std::pow(ring0[0], 2.0f)) * uniformDist(rndGenerator) + std::pow(ring0[0], 2.0f));
-		theta = static_cast<float>(2.0f * std::numbers::pi * uniformDist(rndGenerator));
-		instanceData[i].pos = glm::vec3(rho * std::cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho * std::sin(theta));
-		instanceData[i].rot = glm::vec3(std::numbers::pi * uniformDist(rndGenerator), std::numbers::pi * uniformDist(rndGenerator), std::numbers::pi * uniformDist(rndGenerator));
-		instanceData[i].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
-		instanceData[i].texIndex = rndTextureIndex(rndGenerator);
-		instanceData[i].scale *= 0.75f;
+		const float rhoInner = std::sqrt((std::pow(ring0[1], 2.0f) - std::pow(ring0[0], 2.0f)) * uniformDist(RandomGenerator) + std::pow(ring0[0], 2.0f));
+		const float thetaInner = static_cast<float>(2.0f * std::numbers::pi * uniformDist(RandomGenerator));
+		instanceData[i].mPosition = glm::vec3(rhoInner * std::cos(thetaInner), uniformDist(RandomGenerator) * 0.5f - 0.25f, rhoInner * std::sin(thetaInner));
+		instanceData[i].mRotation = glm::vec3(std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator));
+		instanceData[i].mScale = 1.5f + uniformDist(RandomGenerator) - uniformDist(RandomGenerator);
+		instanceData[i].mTextureIndex = randomTextureIndex(RandomGenerator);
+		instanceData[i].mScale *= 0.75f;
 
 		// Outer ring
-		rho = std::sqrt((std::pow(ring1[1], 2.0f) - std::pow(ring1[0], 2.0f)) * uniformDist(rndGenerator) + std::pow(ring1[0], 2.0f));
-		theta = static_cast<float>(2.0f * std::numbers::pi * uniformDist(rndGenerator));
-		instanceData[i + gRockInstanceCount / 2].pos = glm::vec3(rho * std::cos(theta), uniformDist(rndGenerator) * 0.5f - 0.25f, rho * std::sin(theta));
-		instanceData[i + gRockInstanceCount / 2].rot = glm::vec3(std::numbers::pi * uniformDist(rndGenerator), std::numbers::pi * uniformDist(rndGenerator), std::numbers::pi * uniformDist(rndGenerator));
-		instanceData[i + gRockInstanceCount / 2].scale = 1.5f + uniformDist(rndGenerator) - uniformDist(rndGenerator);
-		instanceData[i + gRockInstanceCount / 2].texIndex = rndTextureIndex(rndGenerator);
-		instanceData[i + gRockInstanceCount / 2].scale *= 0.75f;
+		const float rhoOuter = std::sqrt((std::pow(ring1[1], 2.0f) - std::pow(ring1[0], 2.0f)) * uniformDist(RandomGenerator) + std::pow(ring1[0], 2.0f));
+		const float thetaOuter = static_cast<float>(2.0f * std::numbers::pi * uniformDist(RandomGenerator));
+		instanceData[i + gRockInstanceCount / 2].mPosition = glm::vec3(rhoOuter * std::cos(thetaOuter), uniformDist(RandomGenerator) * 0.5f - 0.25f, rhoOuter * std::sin(thetaOuter));
+		instanceData[i + gRockInstanceCount / 2].mRotation = glm::vec3(std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator));
+		instanceData[i + gRockInstanceCount / 2].mScale = 1.5f + uniformDist(RandomGenerator) - uniformDist(RandomGenerator);
+		instanceData[i + gRockInstanceCount / 2].mTextureIndex = randomTextureIndex(RandomGenerator);
+		instanceData[i + gRockInstanceCount / 2].mScale *= 0.75f;
 	}
 
-	instanceBuffer.size = instanceData.size() * sizeof(InstanceData);
+	mInstanceBuffer.mSize = instanceData.size() * sizeof(VulkanInstanceData);
 
 	// Staging
 	// Instanced data is static, copy to device local memory
 	// This results in better performance
-
 	struct
 	{
-		VkDeviceMemory memory;
-		VkBuffer buffer;
-	} stagingBuffer;
+		VkDeviceMemory mVkDeviceMemory{VK_NULL_HANDLE};
+		VkBuffer mVkBuffer{VK_NULL_HANDLE};
+	} stagingBuffer{};
 
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		instanceBuffer.size,
-		&stagingBuffer.buffer,
-		&stagingBuffer.memory,
+		mInstanceBuffer.mSize,
+		&stagingBuffer.mVkBuffer,
+		&stagingBuffer.mVkDeviceMemory,
 		instanceData.data()));
 
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		instanceBuffer.size,
-		&instanceBuffer.buffer,
-		&instanceBuffer.memory));
+		mInstanceBuffer.mSize,
+		&mInstanceBuffer.mVkBuffer,
+		&mInstanceBuffer.mVkDeviceMemory));
 
 	// Copy to staging buffer
-	VkCommandBuffer copyCmd = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	VkCommandBuffer copyCommand = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-	VkBufferCopy copyRegion = { };
-	copyRegion.size = instanceBuffer.size;
+	VkBufferCopy copyRegion = {};
+	copyRegion.size = mInstanceBuffer.mSize;
 	vkCmdCopyBuffer(
-		copyCmd,
-		stagingBuffer.buffer,
-		instanceBuffer.buffer,
+		copyCommand,
+		stagingBuffer.mVkBuffer,
+		mInstanceBuffer.mVkBuffer,
 		1,
 		&copyRegion);
 
-	mVulkanDevice->flushCommandBuffer(copyCmd, mVkQueue, true);
+	mVulkanDevice->FlushCommandBuffer(copyCommand, mVkQueue, true);
 
-	instanceBuffer.descriptor.range = instanceBuffer.size;
-	instanceBuffer.descriptor.buffer = instanceBuffer.buffer;
-	instanceBuffer.descriptor.offset = 0;
+	mInstanceBuffer.mVkDescriptorBufferInfo.range = mInstanceBuffer.mSize;
+	mInstanceBuffer.mVkDescriptorBufferInfo.buffer = mInstanceBuffer.mVkBuffer;
+	mInstanceBuffer.mVkDescriptorBufferInfo.offset = 0;
 
 	// Destroy staging resources
-	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, stagingBuffer.buffer, nullptr);
-	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, stagingBuffer.memory, nullptr);
+	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, stagingBuffer.mVkBuffer, nullptr);
+	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, stagingBuffer.mVkDeviceMemory, nullptr);
 }
 
 void VulkanRenderer::InitializeSwapchain()

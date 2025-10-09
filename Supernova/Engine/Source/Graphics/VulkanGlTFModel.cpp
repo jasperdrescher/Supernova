@@ -773,7 +773,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 	copyRegion.size = indexBufferSize;
 	vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.mBuffer, 1, &copyRegion);
 
-	aDevice->flushCommandBuffer(copyCmd, aTransferQueue, true);
+	aDevice->FlushCommandBuffer(copyCmd, aTransferQueue, true);
 
 	vkDestroyBuffer(aDevice->mLogicalVkDevice, vertexStaging.buffer, nullptr);
 	vkFreeMemory(aDevice->mLogicalVkDevice, vertexStaging.memory, nullptr);
@@ -956,7 +956,7 @@ void vkglTF::Model::CreateEmptyTexture(VkQueue aTransferQueue)
 	VulkanTools::SetImageLayout(copyCmd, mEmptyTexture.mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
 	vkCmdCopyBufferToImage(copyCmd, stagingBuffer, mEmptyTexture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
 	VulkanTools::SetImageLayout(copyCmd, mEmptyTexture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange);
-	mVulkanDevice->flushCommandBuffer(copyCmd, aTransferQueue, true);
+	mVulkanDevice->FlushCommandBuffer(copyCmd, aTransferQueue, true);
 	mEmptyTexture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	// Clean up staging resources

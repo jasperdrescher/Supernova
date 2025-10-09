@@ -73,7 +73,36 @@ private:
 	void UpdateUIOverlay();
 	void OnUpdateUIOverlay();
 
-	VulkanUniformData mVulkanUniformData;
+	struct DescriptorSets
+	{
+		VkDescriptorSet mInstancedRocks{VK_NULL_HANDLE};
+		VkDescriptorSet mStaticPlanetWithStarfield{VK_NULL_HANDLE};
+		VkDescriptorSet mStaticVoyager{VK_NULL_HANDLE};
+	};
+
+	struct
+	{
+		VkPipeline mVoyager{VK_NULL_HANDLE};
+		VkPipeline mStarfield{VK_NULL_HANDLE};
+		VkPipeline mPlanet{VK_NULL_HANDLE};
+		VkPipeline mRocks{VK_NULL_HANDLE};
+	} mVkPipelines{}
+	;
+	struct
+	{
+		VulkanTexture2DArray mRockTextureArray;
+		VulkanTexture2D mPlanetTexture;
+	} mTextures{};
+
+	struct
+	{
+		vkglTF::Model* mVoyagerModel{nullptr};
+		vkglTF::Model* mRockModel{nullptr};
+		vkglTF::Model* mPlanetModel{nullptr};
+	} mModels{};
+
+	VulkanUniformData mVulkanUniformData{};
+	VulkanInstanceBuffer mInstanceBuffer{};
 	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
 	VulkanDepthStencil mVulkanDepthStencil;
 	VkInstance mVkInstance; // Vulkan instance, stores all per-application states
@@ -82,13 +111,6 @@ private:
 	VkPipelineCache mVkPipelineCache; // Pipeline cache object
 	VulkanSwapChain mVulkanSwapChain; // Wraps the swap chain to present images (framebuffers) to the windowing system
 	VkPipelineLayout mVkPipelineLayout;
-	struct
-	{
-		VkPipeline mVoyager{VK_NULL_HANDLE};
-		VkPipeline mStarfield{VK_NULL_HANDLE};
-		VkPipeline mPlanet{VK_NULL_HANDLE};
-		VkPipeline mRocks{VK_NULL_HANDLE};
-	} mVkPipelines;
 	VkDescriptorSetLayout mVkDescriptorSetLayout;
 	VkCommandPool mVkCommandPoolBuffer;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
@@ -104,19 +126,7 @@ private:
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
-
-	struct DescriptorSets
-	{
-		VkDescriptorSet mInstancedRocks{VK_NULL_HANDLE};
-		VkDescriptorSet mStaticPlanetWithStarfield{VK_NULL_HANDLE};
-		VkDescriptorSet mStaticVoyager{VK_NULL_HANDLE};
-	};
 	std::array<DescriptorSets, gMaxConcurrentFrames> mVkDescriptorSets{};
-	struct
-	{
-		VulkanTexture2DArray rocks;
-		VulkanTexture2D planet;
-	} textures{};
 	std::uint32_t mFramebufferWidth;
 	std::uint32_t mFramebufferHeight;
 	std::uint32_t mFrameCounter;
@@ -125,28 +135,6 @@ private:
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
-	struct
-	{
-		vkglTF::Model* mVoyagerModel{nullptr};
-		vkglTF::Model* mRockModel{nullptr};
-		vkglTF::Model* mPlanetModel{nullptr};
-	} models{};
-
-	struct InstanceBuffer
-	{
-		VkBuffer buffer{VK_NULL_HANDLE};
-		VkDeviceMemory memory{VK_NULL_HANDLE};
-		size_t size = 0;
-		VkDescriptorBufferInfo descriptor{VK_NULL_HANDLE};
-	} instanceBuffer;
-
-	struct InstanceData
-	{
-		glm::vec3 pos;
-		glm::vec3 rot;
-		float scale{0.0f};
-		uint32_t texIndex{0};
-	};
 	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;
 	EngineProperties* mEngineProperties;

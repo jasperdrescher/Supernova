@@ -157,7 +157,7 @@ void ImGuiOverlay::PrepareResources()
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_PIPELINE_STAGE_TRANSFER_BIT,
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-	mVulkanDevice->flushCommandBuffer(copyCmd, mQueue, true);
+	mVulkanDevice->FlushCommandBuffer(copyCmd, mQueue, true);
 
 	stagingBuffer.Destroy();
 
