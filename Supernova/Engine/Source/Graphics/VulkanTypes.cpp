@@ -142,6 +142,21 @@ void VulkanBuffer::Destroy()
 	}
 }
 
+VulkanTexture::VulkanTexture()
+	: mDevice{nullptr}
+	, mImage{VK_NULL_HANDLE}
+	, mImageLayout{}
+	, mDeviceMemory{VK_NULL_HANDLE}
+	, mView{VK_NULL_HANDLE}
+	, mWidth{0}
+	, mHeight{0}
+	, mMipLevels{0}
+	, mLayerCount{0}
+	, mDescriptor{VK_NULL_HANDLE}
+	, mSampler{VK_NULL_HANDLE}
+{
+}
+
 void VulkanTexture::UpdateDescriptor()
 {
 	mDescriptor.sampler = mSampler;

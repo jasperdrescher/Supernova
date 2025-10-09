@@ -20,9 +20,9 @@ struct VulkanUniformData
 {
 	VulkanUniformData() : mProjectionMatrix{}, mModelViewMatrix{}, mViewPosition{0.0f}, mLightPosition{0.0f, -5.0f, 0.0f, 1.0f}, mLocalSpeed{0.0f}, mGlobalSpeed{0.0f} {}
 
-	glm::mat4 mProjectionMatrix{};
-	glm::mat4 mModelViewMatrix{};
-	glm::vec4 mViewPosition{};
+	glm::mat4 mProjectionMatrix;
+	glm::mat4 mModelViewMatrix;
+	glm::vec4 mViewPosition;
 	glm::vec4 mLightPosition;
 	float mLocalSpeed;
 	float mGlobalSpeed;
@@ -75,6 +75,8 @@ struct VulkanBuffer
 
 struct VulkanShaderData
 {
+	VulkanShaderData() : mProjectionMatrix{}, mModelMatrix{}, mViewMatrix{} {}
+
 	glm::mat4 mProjectionMatrix;
 	glm::mat4 mModelMatrix;
 	glm::mat4 mViewMatrix;
@@ -92,6 +94,8 @@ struct VulkanDepthStencil
 class VulkanTexture
 {
 public:
+	VulkanTexture();
+
 	void UpdateDescriptor();
 	void Destroy();
 
