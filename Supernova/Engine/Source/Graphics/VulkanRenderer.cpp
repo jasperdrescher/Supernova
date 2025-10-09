@@ -14,9 +14,11 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include <algorithm>
 #include <array>
@@ -37,8 +39,6 @@
 #include <random>
 #include <numbers>
 #include <cmath>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/matrix_decompose.hpp>
 
 VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	Window* aWindow)
@@ -308,45 +308,55 @@ void VulkanRenderer::CreateDescriptors()
 void VulkanRenderer::SetupDepthStencil()
 {
 	// Create an optimal tiled image used as the depth stencil attachment
-	VkImageCreateInfo vkImageCreateInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-	vkImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-	vkImageCreateInfo.format = mVkDepthFormat;
-	vkImageCreateInfo.extent = {mFramebufferWidth, mFramebufferHeight, 1};
-	vkImageCreateInfo.mipLevels = 1;
-	vkImageCreateInfo.arrayLayers = 1;
-	vkImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	vkImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	vkImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	vkImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	const VkImageCreateInfo vkImageCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = mVkDepthFormat,
+		.extent = { mFramebufferWidth, mFramebufferHeight, 1 },
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+	};
 	VK_CHECK_RESULT(vkCreateImage(mVulkanDevice->mLogicalVkDevice, &vkImageCreateInfo, nullptr, &mVulkanDepthStencil.mVkImage));
 
 	// Allocate memory for the image (device local) and bind it to our image
-	VkMemoryAllocateInfo vkMemoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
 	VkMemoryRequirements vkMemoryRequirements;
 	vkGetImageMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, &vkMemoryRequirements);
-	vkMemoryAllocateInfo.allocationSize = vkMemoryRequirements.size;
-	vkMemoryAllocateInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	const VkMemoryAllocateInfo vkMemoryAllocateInfo{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = vkMemoryRequirements.size,
+		.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(vkMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+	};
 	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &vkMemoryAllocateInfo, nullptr, &mVulkanDepthStencil.mVkDeviceMemory));
 	VK_CHECK_RESULT(vkBindImageMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, mVulkanDepthStencil.mVkDeviceMemory, 0));
 
 	// Create a view for the depth stencil image
 	// Images aren't directly accessed in Vulkan, but rather through views described by a subresource range
 	// This allows for multiple views of one image with differing ranges (e.g. for different layers)
-	VkImageViewCreateInfo vkImageViewCreateInfo{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-	vkImageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	vkImageViewCreateInfo.format = mVkDepthFormat;
-	vkImageViewCreateInfo.subresourceRange = {};
-	vkImageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	VkImageViewCreateInfo vkImageViewCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = mVulkanDepthStencil.mVkImage,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = mVkDepthFormat,
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		}
+	};
+	
 	// Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT)
 	if (mVkDepthFormat >= VK_FORMAT_D16_UNORM_S8_UINT)
 	{
 		vkImageViewCreateInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
-	vkImageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-	vkImageViewCreateInfo.subresourceRange.levelCount = 1;
-	vkImageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-	vkImageViewCreateInfo.subresourceRange.layerCount = 1;
-	vkImageViewCreateInfo.image = mVulkanDepthStencil.mVkImage;
+	
 	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &vkImageViewCreateInfo, nullptr, &mVulkanDepthStencil.mVkImageView));
 }
 
@@ -374,9 +384,11 @@ VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::filesystem::path& aPat
 	if (shaderCode)
 	{
 		// Create a new shader module that will be used for pipeline creation
-		VkShaderModuleCreateInfo shaderModuleCI{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-		shaderModuleCI.codeSize = shaderSize;
-		shaderModuleCI.pCode = reinterpret_cast<std::uint32_t*>(shaderCode);
+		const VkShaderModuleCreateInfo shaderModuleCI{
+			.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+			.codeSize = shaderSize,
+			.pCode = reinterpret_cast<std::uint32_t*>(shaderCode)
+		};
 
 		VkShaderModule shaderModule;
 		VK_CHECK_RESULT(vkCreateShaderModule(mVulkanDevice->mLogicalVkDevice, &shaderModuleCI, nullptr, &shaderModule));
@@ -413,15 +425,15 @@ void VulkanRenderer::CreatePipeline()
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mVkPipelineLayout));
 
 	// Pipeline
-	VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+	const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 	VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
-	VkPipelineColorBlendAttachmentState blendAttachmentState = VulkanInitializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
-	VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+	const VkPipelineColorBlendAttachmentState blendAttachmentState = VulkanInitializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+	const VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 	VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-	VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::pipelineViewportStateCreateInfo(1, 1, 0);
-	VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+	const VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::pipelineViewportStateCreateInfo(1, 1, 0);
+	const VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 	const std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-	VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+	const VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 	// We no longer need to set a renderpass for the pipeline create info
@@ -438,12 +450,13 @@ void VulkanRenderer::CreatePipeline()
 	pipelineCI.pStages = shaderStages.data();
 
 	// New create info to define color, depth and stencil attachments at pipeline create time
-	VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo{};
-	pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-	pipelineRenderingCreateInfo.colorAttachmentCount = 1;
-	pipelineRenderingCreateInfo.pColorAttachmentFormats = &mVulkanSwapChain.mColorVkFormat;
-	pipelineRenderingCreateInfo.depthAttachmentFormat = mVkDepthFormat;
-	pipelineRenderingCreateInfo.stencilAttachmentFormat = mVkDepthFormat;
+	const VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+		.colorAttachmentCount = 1,
+		.pColorAttachmentFormats = &mVulkanSwapChain.mColorVkFormat,
+		.depthAttachmentFormat = mVkDepthFormat,
+		.stencilAttachmentFormat = mVkDepthFormat,
+	};
 	pipelineCI.pNext = &pipelineRenderingCreateInfo;
 	
 	// Vertex input bindings
@@ -794,15 +807,17 @@ void VulkanRenderer::CreateVkInstance()
 		}
 	}
 
-	VkApplicationInfo vkApplicationInfo{};
-	vkApplicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	vkApplicationInfo.pApplicationName = mEngineProperties->mApplicationName.c_str();
-	vkApplicationInfo.pEngineName = mEngineProperties->mEngineName.c_str();
-	vkApplicationInfo.apiVersion = mEngineProperties->mAPIVersion;
+	const VkApplicationInfo vkApplicationInfo{
+		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+		.pApplicationName = mEngineProperties->mApplicationName.c_str(),
+		.pEngineName = mEngineProperties->mEngineName.c_str(),
+		.apiVersion = mEngineProperties->mAPIVersion,
+	};
 
-	VkInstanceCreateInfo vkInstanceCreateInfo{};
-	vkInstanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	vkInstanceCreateInfo.pApplicationInfo = &vkApplicationInfo;
+	VkInstanceCreateInfo vkInstanceCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+		.pApplicationInfo = &vkApplicationInfo
+	};
 
 	VkDebugUtilsMessengerCreateInfoEXT vkDebugUtilsMessengerCreateInfo{};
 	if (mEngineProperties->mIsValidationEnabled)
@@ -844,13 +859,15 @@ void VulkanRenderer::CreateVkInstance()
 
 	if (mEngineProperties->mIsValidationEnabled)
 	{
-		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 		std::uint32_t instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
+
 		std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
+
+		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 		bool isValidationLayerPresent = false;
-		for (VkLayerProperties& layer : instanceLayerProperties)
+		for (const VkLayerProperties& layer : instanceLayerProperties)
 		{
 			if (std::strcmp(layer.layerName, validationLayerName) == 0)
 			{
@@ -881,7 +898,7 @@ void VulkanRenderer::CreateVkInstance()
 		vkInstanceCreateInfo.pNext = &layerSettingsCreateInfo;
 	}
 
-	VkResult result = vkCreateInstance(&vkInstanceCreateInfo, nullptr, &mVkInstance);
+	const VkResult result = vkCreateInstance(&vkInstanceCreateInfo, nullptr, &mVkInstance);
 	if (result != VK_SUCCESS)
 	{
 		throw std::runtime_error(std::format("Could not create Vulkan instance: {}", VulkanTools::GetErrorString(result)));
@@ -917,8 +934,9 @@ void VulkanRenderer::CreateVulkanDevice()
 
 void VulkanRenderer::CreatePipelineCache()
 {
-	VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo = {};
-	vkPipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+	VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
+	};
 	VK_CHECK_RESULT(vkCreatePipelineCache(mVulkanDevice->mLogicalVkDevice, &vkPipelineCacheCreateInfo, nullptr, &mVkPipelineCache));
 }
 
@@ -1012,11 +1030,12 @@ void VulkanRenderer::InitializeSwapchain()
 
 VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem::path& aPath, VkShaderStageFlagBits aVkShaderStageMask)
 {
-	VkPipelineShaderStageCreateInfo shaderStage = {};
-	shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shaderStage.stage = aVkShaderStageMask;
-	shaderStage.module = VulkanTools::LoadShader(aPath, mVulkanDevice->mLogicalVkDevice);
-	shaderStage.pName = "main";
+	VkPipelineShaderStageCreateInfo shaderStage{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.stage = aVkShaderStageMask,
+		.module = VulkanTools::LoadShader(aPath, mVulkanDevice->mLogicalVkDevice),
+		.pName = "main"
+	};
 
 	if (shaderStage.module == VK_NULL_HANDLE)
 	{
@@ -1080,10 +1099,11 @@ void VulkanRenderer::InitializeVulkan()
 
 void VulkanRenderer::CreateCommandPool()
 {
-	VkCommandPoolCreateInfo vkCommandPoolCreateInfo = {};
-	vkCommandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	vkCommandPoolCreateInfo.queueFamilyIndex = mVulkanSwapChain.mQueueNodeIndex;
-	vkCommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	VkCommandPoolCreateInfo vkCommandPoolCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = mVulkanSwapChain.mQueueNodeIndex,
+	};
 	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPoolBuffer));
 }
 
