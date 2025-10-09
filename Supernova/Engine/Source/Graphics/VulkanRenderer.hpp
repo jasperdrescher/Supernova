@@ -42,6 +42,7 @@ private:
 	void PrepareVulkanResources();
 	void PrepareFrame();
 	void BuildCommandBuffer();
+	void UpdateModelMatrix();
 	void UpdateUniformBuffers();
 	void SubmitFrame();
 	void SetupDepthStencil();
@@ -113,6 +114,7 @@ private:
 	VkPipelineLayout mVkPipelineLayout;
 	VkDescriptorSetLayout mVkDescriptorSetLayout;
 	VkCommandPool mVkCommandPoolBuffer;
+	VulkanPushConstant mVulkanPushConstant{};
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
 	std::array<VulkanBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
@@ -135,6 +137,7 @@ private:
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
+	glm::mat4 mVoyagerModelMatrix;
 	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;
 	EngineProperties* mEngineProperties;

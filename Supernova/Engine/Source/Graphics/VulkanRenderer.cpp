@@ -37,6 +37,8 @@
 #include <random>
 #include <numbers>
 #include <cmath>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
 
 VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	Window* aWindow)
@@ -64,6 +66,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
 	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
+	, mVoyagerModelMatrix{1.0f}
 {
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
 	mEngineProperties->mIsValidationEnabled = true;
@@ -84,6 +87,9 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	mCamera->SetPosition(glm::vec3(5.5f, -1.85f, -18.5f));
 	mCamera->SetRotation(glm::vec3(-17.2f, -4.7f, 0.0f));
 	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 1.0f, 256.0f);
+
+	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, glm::vec3{1.0f, -2.0f, 10.0f});
+	mVoyagerModelMatrix = glm::scale(mVoyagerModelMatrix, glm::vec3{0.2f});
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -653,11 +659,8 @@ void VulkanRenderer::BuildCommandBuffer()
 	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
 	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
 
-	VulkanPushConstant vulkanPushConstant{};
-	glm::mat4 modelMatrix = glm::translate(glm::mat4{1.0f}, glm::vec3{1.0f, -2.0f, 10.0f});
-	modelMatrix = glm::scale(modelMatrix, glm::vec3{0.2f});
-	vulkanPushConstant.mModelMatrix = modelMatrix;
-	vkCmdPushConstants(vkCommandBuffer, mVkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VulkanPushConstant), &vulkanPushConstant);
+	mVulkanPushConstant.mModelMatrix = mVoyagerModelMatrix;
+	vkCmdPushConstants(vkCommandBuffer, mVkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VulkanPushConstant), &mVulkanPushConstant);
 
 	mModels.mVoyagerModel->Draw(vkCommandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
 
@@ -688,6 +691,18 @@ void VulkanRenderer::BuildCommandBuffer()
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
 	VK_CHECK_RESULT(vkEndCommandBuffer(vkCommandBuffer));
+}
+
+void VulkanRenderer::UpdateModelMatrix()
+{
+	const glm::vec3 pivotPoint = glm::vec3{20.0f, 0.0f, 80.0f};
+	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, -pivotPoint);
+
+	static constexpr float angle = glm::radians(-5.0f);
+	glm::vec3 rotationAxis = glm::vec3{0.0f, 1.0f, 0.0f};
+	mVoyagerModelMatrix = glm::rotate(mVoyagerModelMatrix, angle * mFrametime, rotationAxis);
+
+	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, pivotPoint);
 }
 
 void VulkanRenderer::UpdateUniformBuffers()
@@ -1018,6 +1033,7 @@ void VulkanRenderer::NextFrame()
 	
 	PrepareFrame();
 	UpdateUniformBuffers();
+	UpdateModelMatrix();
 	BuildCommandBuffer();
 	SubmitFrame();
 
@@ -1166,4 +1182,13 @@ void VulkanRenderer::UpdateUIOverlay()
 void VulkanRenderer::OnUpdateUIOverlay()
 {
 	mImGuiOverlay->text("Rock instances: %d", gRockInstanceCount);
+
+	glm::vec3 scale;
+	glm::quat rotation;
+	glm::vec3 translation;
+	glm::vec3 skew;
+	glm::vec4 perspective;
+	glm::decompose(mVoyagerModelMatrix, scale, rotation, translation, skew, perspective);
+	ImGui::InputFloat3("Voyager position", &translation.x, "%.1f");
+	ImGui::InputFloat3("Voyager rotation", &rotation.x, "%.1f");
 }
