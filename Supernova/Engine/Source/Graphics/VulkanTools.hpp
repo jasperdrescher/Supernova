@@ -21,14 +21,6 @@ constexpr int gVkFlagsNone = 0;
 
 namespace VulkanTools
 {
-	enum class ShaderType
-	{
-		GLSL,
-		Slang
-	};
-
-	static ShaderType gShaderType{ShaderType::GLSL};
-
 	/** @brief Returns an error code as a string */
 	std::string GetErrorString(VkResult aErrorCode);
 
