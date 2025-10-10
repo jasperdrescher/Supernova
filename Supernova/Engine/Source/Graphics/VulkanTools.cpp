@@ -58,7 +58,7 @@ namespace VulkanTools
 	{
 		// Since all depth formats may be optional, we need to find a suitable depth format to use
 		// Start with the highest precision packed format
-		std::vector<VkFormat> formatList = {
+		const std::vector<VkFormat> formatList = {
 			VK_FORMAT_D32_SFLOAT_S8_UINT,
 			VK_FORMAT_D32_SFLOAT,
 			VK_FORMAT_D24_UNORM_S8_UINT,
@@ -66,7 +66,7 @@ namespace VulkanTools
 			VK_FORMAT_D16_UNORM
 		};
 
-		for (VkFormat& format : formatList)
+		for (const VkFormat& format : formatList)
 		{
 			VkFormatProperties formatProps;
 			vkGetPhysicalDeviceFormatProperties(aVkPhysicalDevice, format, &formatProps);
@@ -82,13 +82,13 @@ namespace VulkanTools
 
 	VkBool32 GetSupportedDepthStencilFormat(VkPhysicalDevice aVkPhysicalDevice, VkFormat* aVkStencilFormat)
 	{
-		std::vector<VkFormat> formatList = {
+		const std::vector<VkFormat> formatList = {
 			VK_FORMAT_D32_SFLOAT_S8_UINT,
 			VK_FORMAT_D24_UNORM_S8_UINT,
 			VK_FORMAT_D16_UNORM_S8_UINT,
 		};
 
-		for (VkFormat& format : formatList)
+		for (const VkFormat& format : formatList)
 		{
 			VkFormatProperties formatProps;
 			vkGetPhysicalDeviceFormatProperties(aVkPhysicalDevice, format, &formatProps);
@@ -126,32 +126,36 @@ namespace VulkanTools
 			aSourceVkPipelineStageMask,
 			aDestinationVkPipelineStageMask,
 			0,
-			0, nullptr,
-			0, nullptr,
-			1, &imageMemoryBarrier);
+			0,
+			nullptr,
+			0,
+			nullptr,
+			1,
+			&imageMemoryBarrier);
 	}
 
 	VkShaderModule LoadShader(const std::filesystem::path& aPath, VkDevice aVkDevice)
 	{
-		std::ifstream is(aPath, std::ios::binary | std::ios::in | std::ios::ate);
+		std::ifstream inStream(aPath, std::ios::binary | std::ios::in | std::ios::ate);
 
-		if (is.is_open())
+		if (inStream.is_open())
 		{
-			size_t size = is.tellg();
-			is.seekg(0, std::ios::beg);
+			const std::size_t size = inStream.tellg();
+			inStream.seekg(0, std::ios::beg);
 			char* shaderCode = new char[size];
-			is.read(shaderCode, size);
-			is.close();
+			inStream.read(shaderCode, size);
+			inStream.close();
 
 			assert(size > 0);
 
 			VkShaderModule shaderModule;
-			VkShaderModuleCreateInfo moduleCreateInfo{};
-			moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-			moduleCreateInfo.codeSize = size;
-			moduleCreateInfo.pCode = (std::uint32_t*)shaderCode;
+			VkShaderModuleCreateInfo shaderModuleCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+				.codeSize = size,
+				.pCode = reinterpret_cast<std::uint32_t*>(shaderCode)
+			};
 
-			VK_CHECK_RESULT(vkCreateShaderModule(aVkDevice, &moduleCreateInfo, nullptr, &shaderModule));
+			VK_CHECK_RESULT(vkCreateShaderModule(aVkDevice, &shaderModuleCreateInfo, nullptr, &shaderModule));
 
 			delete[] shaderCode;
 
@@ -161,7 +165,7 @@ namespace VulkanTools
 		}
 		else
 		{
-			std::cerr << "Error: Could not open shader file \"" << aPath << "\"" << "\n";
+			std::cerr << "Error: Could not open shader file \"" << aPath << "\"" << std::endl;
 			return VK_NULL_HANDLE;
 		}
 	}
@@ -285,9 +289,12 @@ namespace VulkanTools
 			srcStageMask,
 			dstStageMask,
 			0,
-			0, nullptr,
-			0, nullptr,
-			1, &imageMemoryBarrier);
+			0,
+			nullptr,
+			0,
+			nullptr,
+			1,
+			&imageMemoryBarrier);
 	}
 
 	// Fixed sub resource on first mip level and layer
@@ -300,11 +307,13 @@ namespace VulkanTools
 		VkPipelineStageFlags srcStageMask,
 		VkPipelineStageFlags dstStageMask)
 	{
-		VkImageSubresourceRange subresourceRange = {};
-		subresourceRange.aspectMask = aspectMask;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = 1;
-		subresourceRange.layerCount = 1;
-		SetImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
+		VkImageSubresourceRange imageSubresourceRange{
+			.aspectMask = aspectMask,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.layerCount = 1,
+		};
+		
+		SetImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, imageSubresourceRange, srcStageMask, dstStageMask);
 	}
 }

@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <cstring>
 
 VulkanDevice::VulkanDevice()
 	: mVkPhysicalDevice{VK_NULL_HANDLE}
@@ -135,18 +136,20 @@ void VulkanDevice::CreateLogicalDevice(std::vector<const char*> aEnabledExtensio
 	// Get queue family indices for the requested queue family types
 	// Note that the indices may overlap depending on the implementation
 
-	const float defaultQueuePriority(0.0f);
+	const float defaultQueuePriority = 0.0f;
 
 	// Graphics queue
 	if (aRequestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
 	{
 		mQueueFamilyIndices.mGraphics = GetQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
-		VkDeviceQueueCreateInfo queueInfo{};
-		queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueInfo.queueFamilyIndex = mQueueFamilyIndices.mGraphics;
-		queueInfo.queueCount = 1;
-		queueInfo.pQueuePriorities = &defaultQueuePriority;
-		queueCreateInfos.push_back(queueInfo);
+
+		const VkDeviceQueueCreateInfo deviceQueueCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.queueFamilyIndex = mQueueFamilyIndices.mGraphics,
+			.queueCount = 1,
+			.pQueuePriorities = &defaultQueuePriority
+		};
+		queueCreateInfos.push_back(deviceQueueCreateInfo);
 	}
 	else
 	{
@@ -160,12 +163,13 @@ void VulkanDevice::CreateLogicalDevice(std::vector<const char*> aEnabledExtensio
 		if (mQueueFamilyIndices.mCompute != mQueueFamilyIndices.mGraphics)
 		{
 			// If compute family index differs, we need an additional queue create info for the compute queue
-			VkDeviceQueueCreateInfo queueInfo{};
-			queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueInfo.queueFamilyIndex = mQueueFamilyIndices.mCompute;
-			queueInfo.queueCount = 1;
-			queueInfo.pQueuePriorities = &defaultQueuePriority;
-			queueCreateInfos.push_back(queueInfo);
+			const VkDeviceQueueCreateInfo deviceQueueCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				.queueFamilyIndex = mQueueFamilyIndices.mCompute,
+				.queueCount = 1,
+				.pQueuePriorities = &defaultQueuePriority
+			};
+			queueCreateInfos.push_back(deviceQueueCreateInfo);
 		}
 	}
 	else
@@ -181,12 +185,13 @@ void VulkanDevice::CreateLogicalDevice(std::vector<const char*> aEnabledExtensio
 		if ((mQueueFamilyIndices.mTransfer != mQueueFamilyIndices.mGraphics) && (mQueueFamilyIndices.mTransfer != mQueueFamilyIndices.mCompute))
 		{
 			// If transfer family index differs, we need an additional queue create info for the transfer queue
-			VkDeviceQueueCreateInfo queueInfo{};
-			queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-			queueInfo.queueFamilyIndex = mQueueFamilyIndices.mTransfer;
-			queueInfo.queueCount = 1;
-			queueInfo.pQueuePriorities = &defaultQueuePriority;
-			queueCreateInfos.push_back(queueInfo);
+			VkDeviceQueueCreateInfo deviceQueueCreateInfo{
+				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				.queueFamilyIndex = mQueueFamilyIndices.mTransfer,
+				.queueCount = 1,
+				.pQueuePriorities = &defaultQueuePriority
+			};
+			queueCreateInfos.push_back(deviceQueueCreateInfo);
 		}
 	}
 	else
@@ -196,26 +201,28 @@ void VulkanDevice::CreateLogicalDevice(std::vector<const char*> aEnabledExtensio
 	}
 
 	// Create the logical device representation
-	std::vector<const char*> deviceExtensions(aEnabledExtensions);
+	std::vector<const char*> deviceExtensions{aEnabledExtensions};
 	if (aUseSwapChain)
 	{
 		// If the device will be used for presenting to a display via a swapchain we need to request the swapchain extension
 		deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 	}
 
-	VkDeviceCreateInfo deviceCreateInfo = {};
-	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size());;
-	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-	deviceCreateInfo.pEnabledFeatures = &mEnabledVkPhysicalDeviceFeatures;
+	VkDeviceCreateInfo deviceCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+		.queueCreateInfoCount = static_cast<std::uint32_t>(queueCreateInfos.size()),
+		.pQueueCreateInfos = queueCreateInfos.data(),
+		.pEnabledFeatures = &mEnabledVkPhysicalDeviceFeatures
+	};
 
 	// If a pNext(Chain) has been passed, we need to add it to the device creation info
-	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 	if (aNextChain)
 	{
-		physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		physicalDeviceFeatures2.features = mEnabledVkPhysicalDeviceFeatures;
-		physicalDeviceFeatures2.pNext = aNextChain;
+		const VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+			.pNext = aNextChain,
+			.features = mEnabledVkPhysicalDeviceFeatures,
+		};
 		deviceCreateInfo.pEnabledFeatures = nullptr;
 		deviceCreateInfo.pNext = &physicalDeviceFeatures2;
 	}
@@ -236,12 +243,12 @@ void VulkanDevice::CreateLogicalDevice(std::vector<const char*> aEnabledExtensio
 
 	VK_CHECK_RESULT(vkCreateDevice(mVkPhysicalDevice, &deviceCreateInfo, nullptr, &mLogicalVkDevice));
 
-	VkCommandPoolCreateInfo cmdPoolInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-			.queueFamilyIndex = mQueueFamilyIndices.mGraphics
+	const VkCommandPoolCreateInfo commandPoolInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = mQueueFamilyIndices.mGraphics
 	};
-	VK_CHECK_RESULT(vkCreateCommandPool(mLogicalVkDevice, &cmdPoolInfo, nullptr, &mGraphicsVkCommandPool));
+	VK_CHECK_RESULT(vkCreateCommandPool(mLogicalVkDevice, &commandPoolInfo, nullptr, &mGraphicsVkCommandPool));
 }
 
 void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
@@ -293,16 +300,16 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 
 VkCommandBuffer VulkanDevice::CreateCommandBuffer(VkCommandBufferLevel aLevel, VkCommandPool aPool, bool aIsBeginBuffer) const
 {
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::commandBufferAllocateInfo(aPool, aLevel, 1);
-	VkCommandBuffer cmdBuffer;
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(mLogicalVkDevice, &cmdBufAllocateInfo, &cmdBuffer));
+	VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::commandBufferAllocateInfo(aPool, aLevel, 1);
+	VkCommandBuffer commandBuffer;
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(mLogicalVkDevice, &commandBufferAllocateInfo, &commandBuffer));
 	// If requested, also start recording for the new command buffer
 	if (aIsBeginBuffer)
 	{
 		VkCommandBufferBeginInfo cmdBufInfo = VulkanInitializers::commandBufferBeginInfo();
-		VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
+		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 	}
-	return cmdBuffer;
+	return commandBuffer;
 }
 
 VkCommandBuffer VulkanDevice::CreateCommandBuffer(VkCommandBufferLevel aLevel, bool aIsBeginBuffer) const
@@ -317,15 +324,15 @@ void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQ
 
 	VK_CHECK_RESULT(vkEndCommandBuffer(aCommandBuffer));
 
-	VkSubmitInfo submitInfo{
+	const VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.commandBufferCount = 1,
 		.pCommandBuffers = &aCommandBuffer
 	};
 	// Create fence to ensure that the command buffer has finished executing
-	VkFenceCreateInfo fenceInfo = VulkanInitializers::fenceCreateInfo(gVkFlagsNone);
+	const VkFenceCreateInfo fenceCreateInfo = VulkanInitializers::fenceCreateInfo(gVkFlagsNone);
 	VkFence fence;
-	VK_CHECK_RESULT(vkCreateFence(mLogicalVkDevice, &fenceInfo, nullptr, &fence));
+	VK_CHECK_RESULT(vkCreateFence(mLogicalVkDevice, &fenceCreateInfo, nullptr, &fence));
 	// Submit to the queue
 	VK_CHECK_RESULT(vkQueueSubmit(aQueue, 1, &submitInfo, fence));
 	// Wait for the fence to signal that command buffer has finished executing
@@ -366,8 +373,8 @@ bool VulkanDevice::IsExtensionSupported(const std::string& aExtension) const
 VkFormat VulkanDevice::GetSupportedDepthFormat(bool aCheckSamplingSupport) const
 {
 	// All depth formats may be optional, so we need to find a suitable depth format to use
-	std::vector<VkFormat> depthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
-	for (VkFormat& format : depthFormats)
+	const std::vector<VkFormat> depthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
+	for (const VkFormat& format : depthFormats)
 	{
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(mVkPhysicalDevice, format, &formatProperties);
@@ -407,37 +414,41 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 	VK_CHECK_RESULT(vkCreateBuffer(mLogicalVkDevice, &bufferCreateInfo, nullptr, aBuffer));
 
 	// Create the memory backing up the buffer handle
-	VkMemoryRequirements memReqs;
-	VkMemoryAllocateInfo memAlloc = VulkanInitializers::memoryAllocateInfo();
-	vkGetBufferMemoryRequirements(mLogicalVkDevice, *aBuffer, &memReqs);
-	memAlloc.allocationSize = memReqs.size;
-	// Find a memory type index that fits the properties of the buffer
-	memAlloc.memoryTypeIndex = GetMemoryTypeIndex(memReqs.memoryTypeBits, aMemoryPropertyFlags);
-	// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
-	VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+	VkMemoryRequirements memoryRequirements;
+	VkMemoryAllocateInfo memoryAllocateInfo = VulkanInitializers::memoryAllocateInfo();
+	vkGetBufferMemoryRequirements(mLogicalVkDevice, *aBuffer, &memoryRequirements);
+
+	memoryAllocateInfo.allocationSize = memoryRequirements.size;
+	memoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(memoryRequirements.memoryTypeBits, aMemoryPropertyFlags); // Find a memory type index that fits the properties of the buffer
+	
 	if (aUsageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
 	{
-		allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
-		allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
-		memAlloc.pNext = &allocFlagsInfo;
+		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+		const VkMemoryAllocateFlagsInfoKHR memoryAllocateFlagsInfo{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR,
+			.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
+		};
+		memoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
 	}
-	VK_CHECK_RESULT(vkAllocateMemory(mLogicalVkDevice, &memAlloc, nullptr, aMemory));
+	VK_CHECK_RESULT(vkAllocateMemory(mLogicalVkDevice, &memoryAllocateInfo, nullptr, aMemory));
 
 	// If a pointer to the buffer data has been passed, map the buffer and copy over the data
 	if (aData != nullptr)
 	{
 		void* mapped;
 		VK_CHECK_RESULT(vkMapMemory(mLogicalVkDevice, *aMemory, 0, aSize, 0, &mapped));
+
 		std::memcpy(mapped, aData, aSize);
+
 		// If host coherency hasn't been requested, do a manual flush to make writes visible
 		if ((aMemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
 		{
-			VkMappedMemoryRange mappedRange{
+			const VkMappedMemoryRange mappedMemoryRange{
 				.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
 				.memory = *aMemory,
 				.size = aSize
 			};
-			vkFlushMappedMemoryRanges(mLogicalVkDevice, 1, &mappedRange);
+			vkFlushMappedMemoryRanges(mLogicalVkDevice, 1, &mappedMemoryRange);
 		}
 		vkUnmapMemory(mLogicalVkDevice, *aMemory);
 	}
@@ -457,23 +468,25 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 	VK_CHECK_RESULT(vkCreateBuffer(mLogicalVkDevice, &bufferCreateInfo, nullptr, &aBuffer->mVkBuffer));
 
 	// Create the memory backing up the buffer handle
-	VkMemoryRequirements memReqs;
-	VkMemoryAllocateInfo memAlloc = VulkanInitializers::memoryAllocateInfo();
-	vkGetBufferMemoryRequirements(mLogicalVkDevice, aBuffer->mVkBuffer, &memReqs);
-	memAlloc.allocationSize = memReqs.size;
-	// Find a memory type index that fits the properties of the buffer
-	memAlloc.memoryTypeIndex = GetMemoryTypeIndex(memReqs.memoryTypeBits, aMemoryPropertyFlags);
-	// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
-	VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+	VkMemoryRequirements memoryRequirements;
+	VkMemoryAllocateInfo MemoryAllocateInfo = VulkanInitializers::memoryAllocateInfo();
+	vkGetBufferMemoryRequirements(mLogicalVkDevice, aBuffer->mVkBuffer, &memoryRequirements);
+
+	MemoryAllocateInfo.allocationSize = memoryRequirements.size;
+	MemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(memoryRequirements.memoryTypeBits, aMemoryPropertyFlags); // Find a memory type index that fits the properties of the buffer
+	
 	if (aUsageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
 	{
-		allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
-		allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
-		memAlloc.pNext = &allocFlagsInfo;
+		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+		const VkMemoryAllocateFlagsInfoKHR memoryAllocateFlagsInfo{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR,
+			.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
+		};
+		MemoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
 	}
-	VK_CHECK_RESULT(vkAllocateMemory(mLogicalVkDevice, &memAlloc, nullptr, &aBuffer->mVkDeviceMemory));
+	VK_CHECK_RESULT(vkAllocateMemory(mLogicalVkDevice, &MemoryAllocateInfo, nullptr, &aBuffer->mVkDeviceMemory));
 
-	aBuffer->mVkDeviceAlignment = memReqs.alignment;
+	aBuffer->mVkDeviceAlignment = memoryRequirements.alignment;
 	aBuffer->mVkDeviceSize = aSize;
 	aBuffer->mUsageFlags = aUsageFlags;
 	aBuffer->mMemoryPropertyFlags = aMemoryPropertyFlags;
@@ -482,7 +495,9 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 	if (aData != nullptr)
 	{
 		VK_CHECK_RESULT(aBuffer->Map(VK_WHOLE_SIZE, 0));
+
 		std::memcpy(aBuffer->mMappedData, aData, aSize);
+
 		if ((aMemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
 			aBuffer->Flush(VK_WHOLE_SIZE, 0);
 

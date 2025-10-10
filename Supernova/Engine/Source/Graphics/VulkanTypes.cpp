@@ -11,11 +11,11 @@
 #include <cstring>
 #include <filesystem>
 #include <format>
+#include <iostream>
 #include <ktx.h>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <iostream>
 
 /**
 * Map a memory range of this buffer. If successful, mapped points to the specified buffer range.

@@ -5,6 +5,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <stdexcept>
+#include <vector>
 
 VulkanSwapChain::VulkanSwapChain()
 	: mActiveVulkanDevice{nullptr}
@@ -151,7 +153,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 
 	// Select a present mode for the swapchain
 	std::uint32_t presentModeCount;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, NULL));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, nullptr));
 	assert(presentModeCount > 0);
 
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
@@ -165,7 +167,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 	// It's the lowest latency non-tearing present mode available
 	if (!aUseVSync)
 	{
-		for (size_t i = 0; i < presentModeCount; i++)
+		for (std::size_t i = 0; i < presentModeCount; i++)
 		{
 			if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
 			{
@@ -202,13 +204,14 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 	// Find a supported composite alpha format (not all devices support alpha opaque)
 	VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	// Simply select the first composite alpha format available
-	std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
+	const std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
 		VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
 		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
 		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
 	};
-	for (VkCompositeAlphaFlagBitsKHR& compositeAlphaFlag : compositeAlphaFlags)
+
+	for (const VkCompositeAlphaFlagBitsKHR& compositeAlphaFlag : compositeAlphaFlags)
 	{
 		if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag)
 		{
@@ -217,43 +220,42 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 		};
 	}
 
-	VkSwapchainCreateInfoKHR swapchainCI = {};
-	swapchainCI.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swapchainCI.surface = mVkSurfaceKHR;
-	swapchainCI.minImageCount = desiredNumberOfSwapchainImages;
-	swapchainCI.imageFormat = mColorVkFormat;
-	swapchainCI.imageColorSpace = mVkColorSpaceKHR;
-	swapchainCI.imageExtent = {swapchainExtent.width, swapchainExtent.height};
-	swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
-	swapchainCI.imageArrayLayers = 1;
-	swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	swapchainCI.queueFamilyIndexCount = 0;
-	swapchainCI.presentMode = swapchainPresentMode;
-	// Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
-	swapchainCI.oldSwapchain = oldSwapchain;
-	// Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
-	swapchainCI.clipped = VK_TRUE;
-	swapchainCI.compositeAlpha = compositeAlpha;
+	VkSwapchainCreateInfoKHR swapchainCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+		.surface = mVkSurfaceKHR,
+		.minImageCount = desiredNumberOfSwapchainImages,
+		.imageFormat = mColorVkFormat,
+		.imageColorSpace = mVkColorSpaceKHR,
+		.imageExtent = {swapchainExtent.width, swapchainExtent.height},
+		.imageArrayLayers = 1,
+		.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.queueFamilyIndexCount = 0,
+		.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform,
+		.compositeAlpha = compositeAlpha,
+		.presentMode = swapchainPresentMode, // Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
+		.clipped = VK_TRUE, // Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
+		.oldSwapchain = oldSwapchain,
+	};
 
 	// Enable transfer source on swap chain images if supported
 	if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 	{
-		swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		swapchainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	}
 
 	// Enable transfer destination on swap chain images if supported
 	if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 	{
-		swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		swapchainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
 
-	VK_CHECK_RESULT(vkCreateSwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, &swapchainCI, nullptr, &mVkSwapchainKHR));
+	VK_CHECK_RESULT(vkCreateSwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, &swapchainCreateInfo, nullptr, &mVkSwapchainKHR));
 
 	// If an existing swap chain is re-created, destroy the old swap chain and the ressources owned by the application (image views, images are owned by the swap chain)
 	if (oldSwapchain != VK_NULL_HANDLE)
 	{
-		for (size_t i = 0; i < mVkImages.size(); i++)
+		for (std::size_t i = 0; i < mVkImages.size(); i++)
 			vkDestroyImageView(mActiveVulkanDevice->mLogicalVkDevice, mVkImageViews[i], nullptr);
 		
 		vkDestroySwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, oldSwapchain, nullptr);
@@ -267,27 +269,30 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 
 	// Get the swap chain buffers containing the image and imageview
 	mVkImageViews.resize(mImageCount);
-	for (size_t i = 0; i < mVkImages.size(); i++)
+	for (std::size_t i = 0; i < mVkImages.size(); i++)
 	{
-		VkImageViewCreateInfo colorAttachmentView = {};
-		colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		colorAttachmentView.pNext = NULL;
-		colorAttachmentView.format = mColorVkFormat;
-		colorAttachmentView.components = {
-			VK_COMPONENT_SWIZZLE_R,
-			VK_COMPONENT_SWIZZLE_G,
-			VK_COMPONENT_SWIZZLE_B,
-			VK_COMPONENT_SWIZZLE_A
+		const VkImageViewCreateInfo colorAttachmentViewCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.image = mVkImages[i],
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = mColorVkFormat,
+			.components = {
+				VK_COMPONENT_SWIZZLE_R,
+				VK_COMPONENT_SWIZZLE_G,
+				VK_COMPONENT_SWIZZLE_B,
+				VK_COMPONENT_SWIZZLE_A
+			},
+			.subresourceRange = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			}
 		};
-		colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		colorAttachmentView.subresourceRange.baseMipLevel = 0;
-		colorAttachmentView.subresourceRange.levelCount = 1;
-		colorAttachmentView.subresourceRange.baseArrayLayer = 0;
-		colorAttachmentView.subresourceRange.layerCount = 1;
-		colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		colorAttachmentView.flags = 0;
-		colorAttachmentView.image = mVkImages[i];
-		VK_CHECK_RESULT(vkCreateImageView(mActiveVulkanDevice->mLogicalVkDevice, &colorAttachmentView, nullptr, &mVkImageViews[i]));
+		VK_CHECK_RESULT(vkCreateImageView(mActiveVulkanDevice->mLogicalVkDevice, &colorAttachmentViewCreateInfo, nullptr, &mVkImageViews[i]));
 	}
 }
 
@@ -302,7 +307,7 @@ void VulkanSwapChain::CleanUp()
 {
 	if (mVkSwapchainKHR != VK_NULL_HANDLE)
 	{
-		for (size_t i = 0; i < mVkImages.size(); i++)
+		for (std::size_t i = 0; i < mVkImages.size(); i++)
 			vkDestroyImageView(mActiveVulkanDevice->mLogicalVkDevice, mVkImageViews[i], nullptr);
 
 		vkDestroySwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, nullptr);
