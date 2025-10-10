@@ -138,6 +138,7 @@ private:
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
 	glm::mat4 mVoyagerModelMatrix;
+	glm::mat4 mPlanetModelMatrix;
 	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;
 	EngineProperties* mEngineProperties;

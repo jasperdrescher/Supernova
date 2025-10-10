@@ -66,6 +66,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mVoyagerModelMatrix{1.0f}
+	, mPlanetModelMatrix{1.0f}
 {
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
 	mEngineProperties->mIsValidationEnabled = true;
@@ -670,6 +671,10 @@ void VulkanRenderer::BuildCommandBuffer()
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
+
+	mVulkanPushConstant.mModelMatrix = mPlanetModelMatrix;
+	vkCmdPushConstants(commandBuffer, mVkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VulkanPushConstant), &mVulkanPushConstant);
+
 	mModels.mPlanetModel->Draw(commandBuffer);
 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
@@ -1229,4 +1234,8 @@ void VulkanRenderer::OnUpdateUIOverlay()
 	ImGui::NewLine();
 
 	mImGuiOverlay->Mat4Text("Voyager", mVoyagerModelMatrix);
+
+	ImGui::NewLine();
+
+	mImGuiOverlay->Mat4Text("Planet", mPlanetModelMatrix);
 }

@@ -16,6 +16,11 @@ layout (binding = 0) uniform UBO
 	float lightIntensity;
 } ubo;
 
+layout (push_constant) uniform Push
+{
+	mat4 model;
+} push;
+
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
 layout (location = 2) out vec2 outUV;
@@ -27,11 +32,13 @@ void main()
 {
 	outColor = inColor;
 	outUV = inUV;
-	gl_Position = ubo.projection * ubo.view * vec4(inPos.xyz, 1.0);
+
+	mat4 modelView = (ubo.view * push.model);
+	gl_Position = ubo.projection * modelView * vec4(inPos.xyz, 1.0);
 	
-	vec4 pos = ubo.view * vec4(inPos, 1.0);
-	outNormal = mat3(ubo.view) * inNormal;
-	vec3 lPos = mat3(ubo.view) * ubo.lightPos.xyz;
+	vec4 pos = modelView * vec4(inPos, 1.0);
+	outNormal = mat3(modelView) * inNormal;
+	vec3 lPos = mat3(modelView) * ubo.lightPos.xyz;
 	outLightVec = lPos - pos.xyz;
 	outViewVec = ubo.viewPos.xyz - pos.xyz;
 	outLightIntensity = ubo.lightIntensity;
