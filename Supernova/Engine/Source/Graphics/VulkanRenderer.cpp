@@ -927,13 +927,13 @@ void VulkanRenderer::PrepareIndirectData()
 {
 	mDrawIndexedIndirectCommands.clear();
 
-	// Create on indirect command for node in the scene with a mesh attached to it
+	// Create an indirect command for a node in the scene with a mesh attached to it
 	std::uint32_t meshNodeIndex = 0;
 	for (const vkglTF::Node* node : mModels.mRockModel->nodes)
 	{
 		if (node->mMesh)
 		{
-			// A glTF node may consist of multiple primitives, but for this saample we only care for the first primitive
+			// A glTF node may consist of multiple primitives, but for now we only care about the first primitive
 			const VkDrawIndexedIndirectCommand drawIndexedIndirectCommand{
 				.indexCount = node->mMesh->mPrimitives[0]->indexCount,
 				.instanceCount = gRockInstanceCount,
