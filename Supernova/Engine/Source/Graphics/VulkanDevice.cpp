@@ -6,11 +6,11 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <cstring>
 
 VulkanDevice::VulkanDevice()
 	: mVkPhysicalDevice{VK_NULL_HANDLE}
@@ -185,7 +185,7 @@ void VulkanDevice::CreateLogicalDevice(std::vector<const char*> aEnabledExtensio
 		if ((mQueueFamilyIndices.mTransfer != mQueueFamilyIndices.mGraphics) && (mQueueFamilyIndices.mTransfer != mQueueFamilyIndices.mCompute))
 		{
 			// If transfer family index differs, we need an additional queue create info for the transfer queue
-			VkDeviceQueueCreateInfo deviceQueueCreateInfo{
+			const VkDeviceQueueCreateInfo deviceQueueCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 				.queueFamilyIndex = mQueueFamilyIndices.mTransfer,
 				.queueCount = 1,
@@ -300,7 +300,7 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 
 VkCommandBuffer VulkanDevice::CreateCommandBuffer(VkCommandBufferLevel aLevel, VkCommandPool aPool, bool aIsBeginBuffer) const
 {
-	VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::commandBufferAllocateInfo(aPool, aLevel, 1);
+	const VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::commandBufferAllocateInfo(aPool, aLevel, 1);
 	VkCommandBuffer commandBuffer;
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mLogicalVkDevice, &commandBufferAllocateInfo, &commandBuffer));
 	// If requested, also start recording for the new command buffer
@@ -408,7 +408,6 @@ VkFormat VulkanDevice::GetSupportedDepthFormat(bool aCheckSamplingSupport) const
 	*/
 VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VkDeviceSize aSize, VkBuffer* aBuffer, VkDeviceMemory* aMemory, void* aData)
 {
-	// Create the buffer handle
 	VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::bufferCreateInfo(aUsageFlags, aSize);
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VK_CHECK_RESULT(vkCreateBuffer(mLogicalVkDevice, &bufferCreateInfo, nullptr, aBuffer));
@@ -463,8 +462,7 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 {
 	aBuffer->mLogicalVkDevice = mLogicalVkDevice;
 
-	// Create the buffer handle
-	VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::bufferCreateInfo(aUsageFlags, aSize);
+	const VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::bufferCreateInfo(aUsageFlags, aSize);
 	VK_CHECK_RESULT(vkCreateBuffer(mLogicalVkDevice, &bufferCreateInfo, nullptr, &aBuffer->mVkBuffer));
 
 	// Create the memory backing up the buffer handle
