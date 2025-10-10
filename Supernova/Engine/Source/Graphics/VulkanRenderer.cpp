@@ -1237,6 +1237,7 @@ void VulkanRenderer::UpdateUIOverlay()
 	ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
 	ImGui::TextUnformatted(std::format("{}/{}", mFramebufferWidth, mFramebufferHeight).c_str());
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mLastFPS), mLastFPS);
+	mImGuiOverlay->Vec2Text("Cursor position", inputManager.GetMousePosition());
 
 	ImGui::PushItemWidth(110.0f * mImGuiOverlay->GetScale());
 
@@ -1275,29 +1276,29 @@ void VulkanRenderer::OnUpdateUIOverlay()
 		}
 	}
 
-	ImGui::Text("Rock instances: %d", mIndirectInstanceCount);
-
 	ImGui::NewLine();
 
-	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
-	mImGuiOverlay->Vec2Text("Cursor position", inputManager.GetMousePosition());
+	if (ImGui::CollapsingHeader("Scene Details", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		ImGui::Text("Rock instances: %d", mIndirectInstanceCount);
 
-	ImGui::NewLine();
+		ImGui::NewLine();
 
-	const glm::vec3& cameraPosition = mCamera->GetPosition();
-	mImGuiOverlay->Vec3Text("Camera position", cameraPosition);
+		const glm::vec3& cameraPosition = mCamera->GetPosition();
+		mImGuiOverlay->Vec3Text("Camera position", cameraPosition);
 
-	const glm::vec3& cameraRotaiton = mCamera->GetRotation();
-	mImGuiOverlay->Vec3Text("Camera rotation", cameraRotaiton);
+		const glm::vec3& cameraRotaiton = mCamera->GetRotation();
+		mImGuiOverlay->Vec3Text("Camera rotation", cameraRotaiton);
 
-	const glm::vec4& cameraViewPosition = mCamera->GetViewPosition();
-	mImGuiOverlay->Vec4Text("Camera view position", cameraViewPosition);
+		const glm::vec4& cameraViewPosition = mCamera->GetViewPosition();
+		mImGuiOverlay->Vec4Text("Camera view position", cameraViewPosition);
 
-	ImGui::NewLine();
+		ImGui::NewLine();
 
-	mImGuiOverlay->Mat4Text("Voyager", mVoyagerModelMatrix);
+		mImGuiOverlay->Mat4Text("Voyager", mVoyagerModelMatrix);
 
-	ImGui::NewLine();
+		ImGui::NewLine();
 
-	mImGuiOverlay->Mat4Text("Planet", mPlanetModelMatrix);
+		mImGuiOverlay->Mat4Text("Planet", mPlanetModelMatrix);
+	}
 }
