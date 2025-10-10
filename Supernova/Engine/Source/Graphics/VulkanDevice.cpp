@@ -469,11 +469,11 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 
 	// Create the memory backing up the buffer handle
 	VkMemoryRequirements memoryRequirements;
-	VkMemoryAllocateInfo MemoryAllocateInfo = VulkanInitializers::memoryAllocateInfo();
+	VkMemoryAllocateInfo memoryAllocateInfo = VulkanInitializers::memoryAllocateInfo();
 	vkGetBufferMemoryRequirements(mLogicalVkDevice, aBuffer->mVkBuffer, &memoryRequirements);
 
-	MemoryAllocateInfo.allocationSize = memoryRequirements.size;
-	MemoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(memoryRequirements.memoryTypeBits, aMemoryPropertyFlags); // Find a memory type index that fits the properties of the buffer
+	memoryAllocateInfo.allocationSize = memoryRequirements.size;
+	memoryAllocateInfo.memoryTypeIndex = GetMemoryTypeIndex(memoryRequirements.memoryTypeBits, aMemoryPropertyFlags); // Find a memory type index that fits the properties of the buffer
 	
 	if (aUsageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
 	{
@@ -482,9 +482,9 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR,
 			.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR
 		};
-		MemoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
+		memoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
 	}
-	VK_CHECK_RESULT(vkAllocateMemory(mLogicalVkDevice, &MemoryAllocateInfo, nullptr, &aBuffer->mVkDeviceMemory));
+	VK_CHECK_RESULT(vkAllocateMemory(mLogicalVkDevice, &memoryAllocateInfo, nullptr, &aBuffer->mVkDeviceMemory));
 
 	aBuffer->mVkDeviceAlignment = memoryRequirements.alignment;
 	aBuffer->mVkDeviceSize = aSize;
