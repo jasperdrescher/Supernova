@@ -19,6 +19,7 @@ Camera::Camera()
 	, mZFar{0.0f}
 	, mRotationSpeed{1.0f}
 	, mMovementSpeed{1.0f}
+	, mFastMovementSpeedMultiplier{4.0f}
 	, mIsUpdated{false}
 	, mFlipY{false}
 {
@@ -152,7 +153,8 @@ void Camera::Update(float aDeltaTime)
 			cameraFront.z = std::cos(glm::radians(mRotation.x)) * std::cos(glm::radians(mRotation.y));
 			cameraFront = glm::normalize(cameraFront);
 
-			const float moveSpeed = aDeltaTime * mMovementSpeed;
+			const float speedMultiplier = mKeys.mIsShiftDown ? mFastMovementSpeedMultiplier : 1.0f;
+			const float moveSpeed = (aDeltaTime * mMovementSpeed) * speedMultiplier;
 
 			if (mKeys.mIsUpDown)
 				mPosition += cameraFront * moveSpeed;
@@ -166,7 +168,8 @@ void Camera::Update(float aDeltaTime)
 	}
 	else if (mType == CameraType::LookAt)
 	{
-		const float moveSpeed = aDeltaTime * mMovementSpeed;
+		const float speedMultiplier = mKeys.mIsShiftDown ? mFastMovementSpeedMultiplier : 1.0f;
+		const float moveSpeed = (aDeltaTime * mMovementSpeed) * speedMultiplier;
 
 		if (mKeys.mIsUpDown)
 			mPosition.y += moveSpeed;

@@ -22,12 +22,13 @@ public:
 
 	struct Keys
 	{
-		Keys() : mIsLeftDown{false}, mIsRightDown{false}, mIsUpDown{false}, mIsDownDown{false} {}
+		Keys() : mIsLeftDown{false}, mIsRightDown{false}, mIsUpDown{false}, mIsDownDown{false}, mIsShiftDown{false} {}
 
 		bool mIsLeftDown;
 		bool mIsRightDown;
 		bool mIsUpDown;
 		bool mIsDownDown;
+		bool mIsShiftDown;
 	} mKeys;
 
 	void SetType(CameraType aType);
@@ -59,6 +60,7 @@ private:
 	float mZFar;
 	float mRotationSpeed;
 	float mMovementSpeed;
+	float mFastMovementSpeedMultiplier;
 	bool mIsUpdated;
 	bool mFlipY;
 };
