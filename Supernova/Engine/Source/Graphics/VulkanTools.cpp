@@ -2,11 +2,12 @@
 
 #include "VulkanInitializers.hpp"
 
-#include <cassert>
 #include <cstdint>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -146,15 +147,18 @@ namespace VulkanTools
 			inStream.read(shaderCode, size);
 			inStream.close();
 
-			assert(size > 0);
+			if (size <= 0)
+			{
+				throw std::runtime_error(std::format("Invalid size for shader {}", aPath.generic_string()));
+			}
 
-			VkShaderModule shaderModule;
-			VkShaderModuleCreateInfo shaderModuleCreateInfo{
+			const VkShaderModuleCreateInfo shaderModuleCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 				.codeSize = size,
 				.pCode = reinterpret_cast<std::uint32_t*>(shaderCode)
 			};
 
+			VkShaderModule shaderModule;
 			VK_CHECK_RESULT(vkCreateShaderModule(aVkDevice, &shaderModuleCreateInfo, nullptr, &shaderModule));
 
 			delete[] shaderCode;
