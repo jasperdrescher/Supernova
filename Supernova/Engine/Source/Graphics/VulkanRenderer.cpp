@@ -178,19 +178,22 @@ void VulkanRenderer::EndUpdate()
 
 void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 {
-	if (mEngineProperties->mIsRendererPrepared)
+	if (!mEngineProperties->mIsMinimized)
 	{
-		NextFrame();
+		if (mEngineProperties->mIsRendererPrepared)
+		{
+			NextFrame();
+		}
+
+		const Input::InputManager& inputManager = Input::InputManager::GetInstance();
+		mCamera->mKeys.mIsRightDown = inputManager.GetIsKeyDown(Input::Key::Right) || inputManager.GetIsKeyDown(Input::Key::D);
+		mCamera->mKeys.mIsUpDown = inputManager.GetIsKeyDown(Input::Key::Up) || inputManager.GetIsKeyDown(Input::Key::W);
+		mCamera->mKeys.mIsDownDown = inputManager.GetIsKeyDown(Input::Key::Down) || inputManager.GetIsKeyDown(Input::Key::S);
+		mCamera->mKeys.mIsLeftDown = inputManager.GetIsKeyDown(Input::Key::Left) || inputManager.GetIsKeyDown(Input::Key::A);
+		mCamera->mKeys.mIsShiftDown = inputManager.GetIsKeyDown(Input::Key::LeftShift);
+
+		mCamera->Update(mFrametime);
 	}
-
-	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
-	mCamera->mKeys.mIsRightDown = inputManager.GetIsKeyDown(Input::Key::Right) || inputManager.GetIsKeyDown(Input::Key::D);
-	mCamera->mKeys.mIsUpDown = inputManager.GetIsKeyDown(Input::Key::Up) || inputManager.GetIsKeyDown(Input::Key::W);
-	mCamera->mKeys.mIsDownDown = inputManager.GetIsKeyDown(Input::Key::Down) || inputManager.GetIsKeyDown(Input::Key::S);
-	mCamera->mKeys.mIsLeftDown = inputManager.GetIsKeyDown(Input::Key::Left) || inputManager.GetIsKeyDown(Input::Key::A);
-	mCamera->mKeys.mIsShiftDown = inputManager.GetIsKeyDown(Input::Key::LeftShift);
-
-	mCamera->Update(mFrametime);
 
 	mWindow->UpdateWindow();
 }
