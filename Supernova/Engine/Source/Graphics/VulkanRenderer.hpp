@@ -65,6 +65,7 @@ private:
 
 	void NextFrame();
 	void CreatePipelineCache();
+	void PrepareIndirectData();
 	void PrepareInstanceData();
 	void InitializeSwapchain();
 	void CreateCommandPool();
@@ -102,7 +103,8 @@ private:
 	} mModels{};
 
 	VulkanUniformData mVulkanUniformData{};
-	VulkanInstanceBuffer mInstanceBuffer{};
+	VulkanBuffer mInstanceBuffer{};
+	VulkanBuffer mIndirectCommandsBuffer{};
 	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
 	VulkanDepthStencil mVulkanDepthStencil;
 	VkInstance mVkInstance; // Vulkan instance, stores all per-application states
@@ -116,7 +118,7 @@ private:
 	VulkanPushConstant mVulkanPushConstant{};
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
-	std::array<VulkanBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
+	std::vector<VkDrawIndexedIndirectCommand> mDrawIndexedIndirectCommands; // Store the indirect draw commands containing index offsets and instance count per object
 	std::vector<std::string> mSupportedInstanceExtensions{};
 	std::vector<const char*> mEnabledDeviceExtensions{}; // Set of device extensions to be enabled for this example
 	std::vector<const char*> mRequestedInstanceExtensions{}; // Set of instance extensions to be enabled for this example
@@ -125,6 +127,7 @@ private:
 	std::vector<VkShaderModule> mVkShaderModules{}; // List of shader modules created (stored for cleanup)
 	std::vector<VkSemaphore> mVkPresentCompleteSemaphores{};
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
+	std::array<VulkanBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
 	std::array<DescriptorSets, gMaxConcurrentFrames> mVkDescriptorSets{};
@@ -136,6 +139,8 @@ private:
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
+	std::uint32_t mIndirectDrawCount;
+	std::uint32_t mIndirectInstanceCount;
 	glm::mat4 mVoyagerModelMatrix;
 	glm::mat4 mPlanetModelMatrix;
 	Camera* mCamera;

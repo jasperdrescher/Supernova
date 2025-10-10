@@ -61,6 +61,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mBufferIndexCount{0}
 	, mCurrentImageIndex{0}
 	, mCurrentBufferIndex{0}
+	, mIndirectDrawCount{0}
+	, mIndirectInstanceCount{0}
 	, mVkPipelineLayout{VK_NULL_HANDLE}
 	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
 	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
@@ -120,8 +122,8 @@ VulkanRenderer::~VulkanRenderer()
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptorSetLayout, nullptr);
 		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, nullptr);
 
-		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mInstanceBuffer.mVkBuffer, nullptr);
-		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mInstanceBuffer.mVkDeviceMemory, nullptr);
+		mInstanceBuffer.Destroy();
+		mIndirectCommandsBuffer.Destroy();
 
 		for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
 			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
@@ -516,6 +518,7 @@ void VulkanRenderer::PrepareVulkanResources()
 
 	LoadAssets();
 	
+	PrepareIndirectData();
 	PrepareInstanceData();
 	CreateUniformBuffers();
 	CreateDescriptors();
@@ -641,14 +644,28 @@ void VulkanRenderer::BuildCommandBuffer()
 
 	mModels.mVoyagerModel->Draw(commandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
 
-	// Draw instanced models
+	// Draw instanced multi draw models
 	VkDeviceSize offsets[1] = {0};
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModels.mRockModel->vertices.mBuffer, offsets);
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
 	vkCmdBindIndexBuffer(commandBuffer, mModels.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdDrawIndexed(commandBuffer, mModels.mRockModel->indices.mCount, gRockInstanceCount, 0, 0, 0);
+	
+	// One draw call for an arbitrary number of objects
+	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
+	{
+		// Index offsets and instance count are taken from the indirect buffer
+		vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffer.mVkBuffer, 0, mIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand));
+	}
+	else
+	{
+		// Issue separate draw commands
+		for (std::size_t j = 0; j < mDrawIndexedIndirectCommands.size(); j++)
+		{
+			vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffer.mVkBuffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+		}
+	}
 
 	DrawImGuiOverlay(commandBuffer);
 
@@ -906,17 +923,67 @@ void VulkanRenderer::CreatePipelineCache()
 	VK_CHECK_RESULT(vkCreatePipelineCache(mVulkanDevice->mLogicalVkDevice, &vkPipelineCacheCreateInfo, nullptr, &mVkPipelineCache));
 }
 
+void VulkanRenderer::PrepareIndirectData()
+{
+	mDrawIndexedIndirectCommands.clear();
+
+	// Create on indirect command for node in the scene with a mesh attached to it
+	std::uint32_t meshNodeIndex = 0;
+	for (const vkglTF::Node* node : mModels.mRockModel->nodes)
+	{
+		if (node->mMesh)
+		{
+			// A glTF node may consist of multiple primitives, but for this saample we only care for the first primitive
+			const VkDrawIndexedIndirectCommand drawIndexedIndirectCommand{
+				.indexCount = node->mMesh->mPrimitives[0]->indexCount,
+				.instanceCount = gRockInstanceCount,
+				.firstIndex = node->mMesh->mPrimitives[0]->firstIndex,
+				.firstInstance = meshNodeIndex * gRockInstanceCount,
+			};
+			mDrawIndexedIndirectCommands.push_back(drawIndexedIndirectCommand);
+
+			meshNodeIndex++;
+		}
+	}
+
+	mIndirectDrawCount = static_cast<std::uint32_t>(mDrawIndexedIndirectCommands.size());
+
+	mIndirectInstanceCount = 0;
+	for (const VkDrawIndexedIndirectCommand& indirectCmd : mDrawIndexedIndirectCommands)
+	{
+		mIndirectInstanceCount += indirectCmd.instanceCount;
+	}
+
+	VulkanBuffer stagingBuffer;
+	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&stagingBuffer,
+		mDrawIndexedIndirectCommands.size() * sizeof(VkDrawIndexedIndirectCommand),
+		mDrawIndexedIndirectCommands.data()));
+
+	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+		VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&mIndirectCommandsBuffer,
+		stagingBuffer.mVkDeviceSize));
+
+	mVulkanDevice->CopyBuffer(&stagingBuffer, &mIndirectCommandsBuffer, mVkQueue);
+
+	stagingBuffer.Destroy();
+}
+
 void VulkanRenderer::PrepareInstanceData()
 {
 	std::vector<VulkanInstanceData> instanceData;
-	instanceData.resize(gRockInstanceCount);
+	instanceData.resize(mIndirectInstanceCount);
 
 	std::default_random_engine RandomGenerator(std::random_device{}());
 	std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
 	std::uniform_int_distribution<std::uint32_t> randomTextureIndex(0, mTextures.mRockTextureArray.mLayerCount);
 
 	// Distribute rocks randomly on two different rings
-	for (int i = 0; i < gRockInstanceCount / 2; i++)
+	for (std::uint32_t i = 0; i < mIndirectInstanceCount / 2; i++)
 	{
 		glm::vec2 ring0{7.0f, 11.0f};
 		glm::vec2 ring1{14.0f, 18.0f};
@@ -933,60 +1000,78 @@ void VulkanRenderer::PrepareInstanceData()
 		// Outer ring
 		const float rhoOuter = std::sqrt((std::pow(ring1[1], 2.0f) - std::pow(ring1[0], 2.0f)) * uniformDist(RandomGenerator) + std::pow(ring1[0], 2.0f));
 		const float thetaOuter = static_cast<float>(2.0f * std::numbers::pi * uniformDist(RandomGenerator));
-		instanceData[i + gRockInstanceCount / 2].mPosition = glm::vec3(rhoOuter * std::cos(thetaOuter), uniformDist(RandomGenerator) * 0.5f - 0.25f, rhoOuter * std::sin(thetaOuter));
-		instanceData[i + gRockInstanceCount / 2].mRotation = glm::vec3(std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator));
-		instanceData[i + gRockInstanceCount / 2].mScale = 1.5f + uniformDist(RandomGenerator) - uniformDist(RandomGenerator);
-		instanceData[i + gRockInstanceCount / 2].mTextureIndex = randomTextureIndex(RandomGenerator);
-		instanceData[i + gRockInstanceCount / 2].mScale *= 0.75f;
+		instanceData[i + mIndirectInstanceCount / 2].mPosition = glm::vec3(rhoOuter * std::cos(thetaOuter), uniformDist(RandomGenerator) * 0.5f - 0.25f, rhoOuter * std::sin(thetaOuter));
+		instanceData[i + mIndirectInstanceCount / 2].mRotation = glm::vec3(std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator));
+		instanceData[i + mIndirectInstanceCount / 2].mScale = 1.5f + uniformDist(RandomGenerator) - uniformDist(RandomGenerator);
+		instanceData[i + mIndirectInstanceCount / 2].mTextureIndex = randomTextureIndex(RandomGenerator);
+		instanceData[i + mIndirectInstanceCount / 2].mScale *= 0.75f;
 	}
 
-	mInstanceBuffer.mSize = instanceData.size() * sizeof(VulkanInstanceData);
+	//mInstanceBuffer.mSize = instanceData.size() * sizeof(VulkanInstanceData);
 
-	// Staging
-	// Instanced data is static, copy to device local memory
-	// This results in better performance
-	struct
-	{
-		VkDeviceMemory mVkDeviceMemory{VK_NULL_HANDLE};
-		VkBuffer mVkBuffer{VK_NULL_HANDLE};
-	} stagingBuffer{};
+	//// Staging
+	//// Instanced data is static, copy to device local memory
+	//// This results in better performance
+	//struct
+	//{
+	//	VkDeviceMemory mVkDeviceMemory{VK_NULL_HANDLE};
+	//	VkBuffer mVkBuffer{VK_NULL_HANDLE};
+	//} stagingBuffer{}
 
+	//VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+	//	VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	//	VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	//	mInstanceBuffer.mSize,
+	//	&stagingBuffer.mVkBuffer,
+	//	&stagingBuffer.mVkDeviceMemory,
+	//	instanceData.data()));
+
+	//VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+	//	VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+	//	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+	//	mInstanceBuffer.mSize,
+	//	&mInstanceBuffer.mVkBuffer,
+	//	&mInstanceBuffer.mVkDeviceMemory));
+
+	//// Copy to staging buffer
+	//VkCommandBuffer copyCommand = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+	//VkBufferCopy copyRegion = {};
+	//copyRegion.size = mInstanceBuffer.mSize;
+	//vkCmdCopyBuffer(
+	//	copyCommand,
+	//	stagingBuffer.mVkBuffer,
+	//	mInstanceBuffer.mVkBuffer,
+	//	1,
+	//	&copyRegion);
+
+	//mVulkanDevice->FlushCommandBuffer(copyCommand, mVkQueue, true);
+
+	//mInstanceBuffer.mVkDescriptorBufferInfo.range = mInstanceBuffer.mSize;
+	//mInstanceBuffer.mVkDescriptorBufferInfo.buffer = mInstanceBuffer.mVkBuffer;
+	//mInstanceBuffer.mVkDescriptorBufferInfo.offset = 0;
+
+	//// Destroy staging resources
+	//vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, stagingBuffer.mVkBuffer, nullptr);
+	//vkFreeMemory(mVulkanDevice->mLogicalVkDevice, stagingBuffer.mVkDeviceMemory, nullptr);
+
+	VulkanBuffer stagingBuffer;
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		mInstanceBuffer.mSize,
-		&stagingBuffer.mVkBuffer,
-		&stagingBuffer.mVkDeviceMemory,
+		&stagingBuffer,
+		instanceData.size() * sizeof(VulkanInstanceData),
 		instanceData.data()));
 
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		mInstanceBuffer.mSize,
-		&mInstanceBuffer.mVkBuffer,
-		&mInstanceBuffer.mVkDeviceMemory));
+		&mInstanceBuffer,
+		stagingBuffer.mVkDeviceSize));
 
-	// Copy to staging buffer
-	VkCommandBuffer copyCommand = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	mVulkanDevice->CopyBuffer(&stagingBuffer, &mInstanceBuffer, mVkQueue);
 
-	VkBufferCopy copyRegion = {};
-	copyRegion.size = mInstanceBuffer.mSize;
-	vkCmdCopyBuffer(
-		copyCommand,
-		stagingBuffer.mVkBuffer,
-		mInstanceBuffer.mVkBuffer,
-		1,
-		&copyRegion);
-
-	mVulkanDevice->FlushCommandBuffer(copyCommand, mVkQueue, true);
-
-	mInstanceBuffer.mVkDescriptorBufferInfo.range = mInstanceBuffer.mSize;
-	mInstanceBuffer.mVkDescriptorBufferInfo.buffer = mInstanceBuffer.mVkBuffer;
-	mInstanceBuffer.mVkDescriptorBufferInfo.offset = 0;
-
-	// Destroy staging resources
-	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, stagingBuffer.mVkBuffer, nullptr);
-	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, stagingBuffer.mVkDeviceMemory, nullptr);
+	stagingBuffer.Destroy();
 }
 
 void VulkanRenderer::InitializeSwapchain()
@@ -1169,7 +1254,28 @@ void VulkanRenderer::UpdateUIOverlay()
 
 void VulkanRenderer::OnUpdateUIOverlay()
 {
-	ImGui::Text("Rock instances: %d", gRockInstanceCount);
+	if (ImGui::CollapsingHeader("Render Settings", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy)
+		{
+			ImGui::Text("samplerAnisotropy is enabled");
+		}
+		else
+		{
+			ImGui::Text("samplerAnisotropy is not enabled");
+		}
+
+		if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
+		{
+			ImGui::Text("multiDrawIndirect is enabled");
+		}
+		else
+		{
+			ImGui::Text("multiDrawIndirect is not enabled");
+		}
+	}
+
+	ImGui::Text("Rock instances: %d", mIndirectInstanceCount);
 
 	ImGui::NewLine();
 
