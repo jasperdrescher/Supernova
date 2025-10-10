@@ -13,6 +13,11 @@
 #include <cstring>
 #include <filesystem>
 #include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
 #include <imgui.h>
 #include <string>
 #include <vector>
@@ -358,7 +363,7 @@ void ImGuiOverlay::Draw(const VkCommandBuffer aVkCommandBuffer, std::uint32_t aC
 	ImGuiIO& io = ImGui::GetIO();
 
 	vkCmdBindPipeline(aVkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
-	vkCmdBindDescriptorSets(aVkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSet, 0, NULL);
+	vkCmdBindDescriptorSets(aVkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSet, 0, nullptr);
 
 	mPushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
 	mPushConstBlock.translate = glm::vec2(-1.0f);
@@ -412,74 +417,30 @@ void ImGuiOverlay::FreeResources()
 	vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mPipeline, nullptr);
 }
 
-bool ImGuiOverlay::header(const char* caption)
+void ImGuiOverlay::Vec2Text(const char* aLabel, const glm::vec2& aVec2)
 {
-	return ImGui::CollapsingHeader(caption, ImGuiTreeNodeFlags_DefaultOpen);
+	ImGui::Text("%s %.1f, %.1f", aLabel, aVec2.x, aVec2.y);
 }
 
-bool ImGuiOverlay::checkBox(const char* caption, bool* value)
+void ImGuiOverlay::Vec3Text(const char* aLabel, const glm::vec3& aVec3)
 {
-	return ImGui::Checkbox(caption, value);
+	ImGui::Text("%s %.1f, %.1f, %.1f", aLabel, aVec3.x, aVec3.y, aVec3.z);
 }
 
-bool ImGuiOverlay::checkBox(const char* caption, std::int32_t* value)
+void ImGuiOverlay::Vec4Text(const char* aLabel, const glm::vec4& aVec4)
 {
-	bool val = (*value == 1);
-	bool res = ImGui::Checkbox(caption, &val);
-	*value = val;
-	return res;
+	ImGui::Text("%s %.1f, %.1f, %.1f, %.1f", aLabel, aVec4.x, aVec4.y, aVec4.z, aVec4.w);
 }
 
-bool ImGuiOverlay::radioButton(const char* caption, bool value)
+void ImGuiOverlay::Mat4Text(const char* aLabel, const glm::mat4& aMat4)
 {
-	return ImGui::RadioButton(caption, value);
-}
-
-bool ImGuiOverlay::inputFloat(const char* caption, float* value, float step, const char* format)
-{
-	return ImGui::InputFloat(caption, value, step, step * 10.0f, format);
-}
-
-bool ImGuiOverlay::sliderFloat(const char* caption, float* value, float min, float max)
-{
-	return ImGui::SliderFloat(caption, value, min, max);
-}
-
-bool ImGuiOverlay::sliderInt(const char* caption, std::int32_t* value, std::int32_t min, std::int32_t max)
-{
-	return ImGui::SliderInt(caption, value, min, max);
-}
-
-bool ImGuiOverlay::comboBox(const char* caption, std::int32_t* itemindex, std::vector<std::string> items)
-{
-	if (items.empty())
-	{
-		return false;
-	}
-	std::vector<const char*> charitems;
-	charitems.reserve(items.size());
-	for (size_t i = 0; i < items.size(); i++)
-	{
-		charitems.push_back(items[i].c_str());
-	}
-	std::uint32_t itemCount = static_cast<std::uint32_t>(charitems.size());
-	return ImGui::Combo(caption, itemindex, &charitems[0], itemCount, itemCount);
-}
-
-bool ImGuiOverlay::button(const char* caption)
-{
-	return ImGui::Button(caption);
-}
-
-bool ImGuiOverlay::colorPicker(const char* caption, float* color)
-{
-	return ImGui::ColorEdit4(caption, color, ImGuiColorEditFlags_NoInputs);
-}
-
-void ImGuiOverlay::text(const char* formatstr, ...)
-{
-	va_list args;
-	va_start(args, formatstr);
-	ImGui::TextV(formatstr, args);
-	va_end(args);
+	glm::vec3 scale;
+	glm::quat rotation;
+	glm::vec3 translation;
+	glm::vec3 skew;
+	glm::vec4 perspective;
+	glm::decompose(aMat4, scale, rotation, translation, skew, perspective);
+	ImGui::Text("%s position %.1f, %.1f, %.1f", aLabel, translation.x, translation.y, translation.z);
+	ImGui::Text("%s rotation %.1f, %.1f, %.1f", aLabel, rotation.x, rotation.y, rotation.z);
+	ImGui::Text("%s scale %.1f, %.1f, %.1f", aLabel, scale.x, scale.y, scale.z);
 }

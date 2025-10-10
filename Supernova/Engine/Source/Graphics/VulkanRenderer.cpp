@@ -14,11 +14,10 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 
 #include <algorithm>
 #include <array>
@@ -1174,7 +1173,7 @@ void VulkanRenderer::UpdateUIOverlay()
 	io.DeltaTime = mFrametime;
 
 	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
-	io.MousePos = ImVec2(inputManager.GetMousePosition().mX, inputManager.GetMousePosition().mY);
+	io.MousePos = ImVec2(inputManager.GetMousePosition().x, inputManager.GetMousePosition().y);
 	io.MouseDown[0] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left) && mImGuiOverlay->IsVisible();
 	io.MouseDown[1] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Right) && mImGuiOverlay->IsVisible();
 	io.MouseDown[2] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle) && mImGuiOverlay->IsVisible();
@@ -1187,8 +1186,10 @@ void VulkanRenderer::UpdateUIOverlay()
 	ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
 	ImGui::TextUnformatted(std::format("{}/{}", mFramebufferWidth, mFramebufferHeight).c_str());
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mLastFPS), mLastFPS);
-	ImGui::Text("X %.f Y %.f", io.MousePos.x, io.MousePos.y);
+
 	ImGui::PushItemWidth(110.0f * mImGuiOverlay->GetScale());
+
+	ImGui::NewLine();
 
 	OnUpdateUIOverlay();
 
@@ -1202,14 +1203,25 @@ void VulkanRenderer::UpdateUIOverlay()
 
 void VulkanRenderer::OnUpdateUIOverlay()
 {
-	mImGuiOverlay->text("Rock instances: %d", gRockInstanceCount);
+	ImGui::Text("Rock instances: %d", gRockInstanceCount);
 
-	glm::vec3 scale;
-	glm::quat rotation;
-	glm::vec3 translation;
-	glm::vec3 skew;
-	glm::vec4 perspective;
-	glm::decompose(mVoyagerModelMatrix, scale, rotation, translation, skew, perspective);
-	ImGui::InputFloat3("Voyager position", &translation.x, "%.1f");
-	ImGui::InputFloat3("Voyager rotation", &rotation.x, "%.1f");
+	ImGui::NewLine();
+
+	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
+	mImGuiOverlay->Vec2Text("Cursor position", inputManager.GetMousePosition());
+
+	ImGui::NewLine();
+
+	const glm::vec3& cameraPosition = mCamera->GetPosition();
+	mImGuiOverlay->Vec3Text("Camera position", cameraPosition);
+
+	const glm::vec3& cameraRotaiton = mCamera->GetRotation();
+	mImGuiOverlay->Vec3Text("Camera rotation", cameraRotaiton);
+
+	const glm::vec4& cameraViewPosition = mCamera->GetViewPosition();
+	mImGuiOverlay->Vec4Text("Camera view position", cameraViewPosition);
+
+	ImGui::NewLine();
+
+	mImGuiOverlay->Mat4Text("Voyager", mVoyagerModelMatrix);
 }

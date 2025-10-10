@@ -5,6 +5,9 @@
 
 #include <cstdint>
 #include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -30,17 +33,10 @@ public:
 	bool IsVisible() const { return mIsVisible;}
 	float GetScale() const { return mScale; }
 
-	bool header(const char* caption);
-	bool checkBox(const char* caption, bool* value);
-	bool checkBox(const char* caption, std::int32_t* value);
-	bool radioButton(const char* caption, bool value);
-	bool inputFloat(const char* caption, float* value, float step, const char* format);
-	bool sliderFloat(const char* caption, float* value, float min, float max);
-	bool sliderInt(const char* caption, std::int32_t* value, std::int32_t min, std::int32_t max);
-	bool comboBox(const char* caption, std::int32_t* itemindex, std::vector<std::string> items);
-	bool button(const char* caption);
-	bool colorPicker(const char* caption, float* color);
-	void text(const char* formatstr, ...);
+	void Vec2Text(const char* aLabel, const glm::vec2& aVec2);
+	void Vec3Text(const char* aLabel, const glm::vec3& aVec3);
+	void Vec4Text(const char* aLabel, const glm::vec4& aVec4);
+	void Mat4Text(const char* aLabel, const glm::mat4& aMat4);
 
 private:
 	struct Buffers

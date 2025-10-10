@@ -3,6 +3,7 @@
 #include "InputKeys.hpp"
 
 #include <map>
+#include <glm/vec2.hpp>
 
 namespace Input
 {
@@ -12,14 +13,6 @@ namespace Input
 		Left,
 		Right,
 		Middle
-	};
-
-	struct MouseVec2
-	{
-		MouseVec2() : mX{0.0f}, mY{0.0f} {}
-
-		float mX;
-		float mY;
 	};
 
 	class InputManager
@@ -39,8 +32,8 @@ namespace Input
 		void OnScrollAction(double aXOffset, double aYOffset);
 		void OnMouseButtonAction(int aButton, int aAction, int aModifier);
 
-		const MouseVec2& GetMousePosition() const { return mMousePosition; }
-		const MouseVec2& GetScrollOffset() const { return mMousePosition; }
+		const glm::vec2& GetMousePosition() const { return mMousePosition; }
+		const glm::vec2& GetScrollOffset() const { return mMousePosition; }
 		bool GetIsKeyDown(Key aKey) const;
 		bool GetIsMouseButtonDown(MouseButtons aMouseButton) const;
 
@@ -53,7 +46,7 @@ namespace Input
 	private:
 		std::map<Key, bool> myKeys{};
 		std::map<MouseButtons, bool> myMouseButtons{};
-		MouseVec2 mMousePosition{};
-		MouseVec2 mScrollOffset{};
+		glm::vec2 mMousePosition{};
+		glm::vec2 mScrollOffset{};
 	};
 }

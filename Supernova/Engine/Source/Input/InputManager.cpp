@@ -31,14 +31,14 @@ namespace Input
 
 	void InputManager::OnCursorAction(double aXPosition, double aYPosition)
 	{
-		mMousePosition.mX = static_cast<float>(aXPosition);
-		mMousePosition.mY = static_cast<float>(aYPosition);
+		mMousePosition.x = static_cast<float>(aXPosition);
+		mMousePosition.y = static_cast<float>(aYPosition);
 	}
 
 	void InputManager::OnScrollAction(double aXOffset, double aYOffset)
 	{
-		mScrollOffset.mX = static_cast<float>(aXOffset);
-		mScrollOffset.mY = static_cast<float>(aYOffset);
+		mScrollOffset.x = static_cast<float>(aXOffset);
+		mScrollOffset.y = static_cast<float>(aYOffset);
 	}
 
 	void InputManager::OnMouseButtonAction(int aButton, int aAction, int /*aModifier*/)

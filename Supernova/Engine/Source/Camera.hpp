@@ -43,6 +43,8 @@ public:
 	void SetMovementSpeed(float aMovementSpeed);
 	void Update(float aDeltaTime);
 
+	const glm::vec3& GetPosition() const { return mPosition; }
+	const glm::vec3& GetRotation() const { return mRotation; }
 	const glm::vec4& GetViewPosition() const { return mViewPosition; }
 	bool IsMoving() const;
 	float GetNearClip() const;
