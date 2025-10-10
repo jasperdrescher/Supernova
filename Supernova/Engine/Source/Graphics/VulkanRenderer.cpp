@@ -1010,54 +1010,6 @@ void VulkanRenderer::PrepareInstanceData()
 		instanceData[i + mIndirectInstanceCount / 2].mScale *= 0.75f;
 	}
 
-	//mInstanceBuffer.mSize = instanceData.size() * sizeof(VulkanInstanceData);
-
-	//// Staging
-	//// Instanced data is static, copy to device local memory
-	//// This results in better performance
-	//struct
-	//{
-	//	VkDeviceMemory mVkDeviceMemory{VK_NULL_HANDLE};
-	//	VkBuffer mVkBuffer{VK_NULL_HANDLE};
-	//} stagingBuffer{}
-
-	//VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
-	//	VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	//	VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	//	mInstanceBuffer.mSize,
-	//	&stagingBuffer.mVkBuffer,
-	//	&stagingBuffer.mVkDeviceMemory,
-	//	instanceData.data()));
-
-	//VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
-	//	VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-	//	VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-	//	mInstanceBuffer.mSize,
-	//	&mInstanceBuffer.mVkBuffer,
-	//	&mInstanceBuffer.mVkDeviceMemory));
-
-	//// Copy to staging buffer
-	//VkCommandBuffer copyCommand = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-	//VkBufferCopy copyRegion = {};
-	//copyRegion.size = mInstanceBuffer.mSize;
-	//vkCmdCopyBuffer(
-	//	copyCommand,
-	//	stagingBuffer.mVkBuffer,
-	//	mInstanceBuffer.mVkBuffer,
-	//	1,
-	//	&copyRegion);
-
-	//mVulkanDevice->FlushCommandBuffer(copyCommand, mVkQueue, true);
-
-	//mInstanceBuffer.mVkDescriptorBufferInfo.range = mInstanceBuffer.mSize;
-	//mInstanceBuffer.mVkDescriptorBufferInfo.buffer = mInstanceBuffer.mVkBuffer;
-	//mInstanceBuffer.mVkDescriptorBufferInfo.offset = 0;
-
-	//// Destroy staging resources
-	//vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, stagingBuffer.mVkBuffer, nullptr);
-	//vkFreeMemory(mVulkanDevice->mLogicalVkDevice, stagingBuffer.mVkDeviceMemory, nullptr);
-
 	VulkanBuffer stagingBuffer;
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
