@@ -97,13 +97,13 @@ void VulkanSwapChain::InitializeSurface()
 	// We want to get a format that best suits our needs, so we try to get one from a set of preferred formats
 	// Initialize the format to the first one returned by the implementation in case we can't find one of the preffered formats
 	VkSurfaceFormatKHR selectedFormat = surfaceFormats[0];
-	std::vector<VkFormat> preferredImageFormats = {
+	const std::vector<VkFormat> preferredImageFormats = {
 		VK_FORMAT_B8G8R8A8_UNORM,
 		VK_FORMAT_R8G8B8A8_UNORM,
 		VK_FORMAT_A8B8G8R8_UNORM_PACK32
 	};
 
-	for (VkSurfaceFormatKHR& availableFormat : surfaceFormats)
+	for (const VkSurfaceFormatKHR& availableFormat : surfaceFormats)
 	{
 		if (std::find(preferredImageFormats.begin(), preferredImageFormats.end(), availableFormat.format) != preferredImageFormats.end())
 		{
@@ -131,12 +131,12 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 	VkSwapchainKHR oldSwapchain = mVkSwapchainKHR;
 
 	// Get physical device surface properties and formats
-	VkSurfaceCapabilitiesKHR surfCaps;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &surfCaps));
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &surfaceCapabilities));
 
 	VkExtent2D swapchainExtent = {};
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
-	if (surfCaps.currentExtent.width == static_cast<std::uint32_t>(-1))
+	if (surfaceCapabilities.currentExtent.width == static_cast<std::uint32_t>(-1))
 	{
 		// If the surface size is undefined, the size is set to the size of the images requested
 		swapchainExtent.width = aWidth;
@@ -145,9 +145,9 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 	else
 	{
 		// If the surface size is defined, the swap chain size must match
-		swapchainExtent = surfCaps.currentExtent;
-		aWidth = surfCaps.currentExtent.width;
-		aHeight = surfCaps.currentExtent.height;
+		swapchainExtent = surfaceCapabilities.currentExtent;
+		aWidth = surfaceCapabilities.currentExtent.width;
+		aHeight = surfaceCapabilities.currentExtent.height;
 	}
 
 
@@ -183,22 +183,22 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 	}
 
 	// Determine the number of images
-	std::uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
-	if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
+	std::uint32_t desiredNumberOfSwapchainImages = surfaceCapabilities.minImageCount + 1;
+	if ((surfaceCapabilities.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfaceCapabilities.maxImageCount))
 	{
-		desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
+		desiredNumberOfSwapchainImages = surfaceCapabilities.maxImageCount;
 	}
 
 	// Find the transformation of the surface
 	VkSurfaceTransformFlagsKHR preTransform;
-	if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+	if (surfaceCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
 	{
 		// We prefer a non-rotated transform
 		preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	}
 	else
 	{
-		preTransform = surfCaps.currentTransform;
+		preTransform = surfaceCapabilities.currentTransform;
 	}
 
 	// Find a supported composite alpha format (not all devices support alpha opaque)
@@ -213,7 +213,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 
 	for (const VkCompositeAlphaFlagBitsKHR& compositeAlphaFlag : compositeAlphaFlags)
 	{
-		if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag)
+		if (surfaceCapabilities.supportedCompositeAlpha & compositeAlphaFlag)
 		{
 			compositeAlpha = compositeAlphaFlag;
 			break;
@@ -239,13 +239,13 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 	};
 
 	// Enable transfer source on swap chain images if supported
-	if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+	if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 	{
 		swapchainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	}
 
 	// Enable transfer destination on swap chain images if supported
-	if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+	if (surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 	{
 		swapchainCreateInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
