@@ -1,5 +1,14 @@
 # Supernova
-The goal is to develop a small game engine that can render 2D and 3D scenes using Vulkan. This also includes systems for glTF scenes, physics, entities, and input.
+The goal is to develop a small game engine along with a level editor that can render 2D and 3D scenes using Vulkan.
+The engine includes several systems:
+- Entity-component system
+- Physics
+- Animation
+- User input
+- Renderer
+- glTF model loading
+- Scenes
+- Event system
 
 ## Demo
 <a href='https://postimg.cc/TpmbDpzs' target='_blank'><img src='https://i.postimg.cc/TpmbDpzs/Supernova-Rendering.gif' border='0' alt='Supernova-Rendering'/></a>
