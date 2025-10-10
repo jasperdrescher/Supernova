@@ -267,6 +267,11 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 		mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
 	}
 
+	if (mVkPhysicalDeviceFeatures.multiDrawIndirect)
+	{
+		mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect = VK_TRUE;
+	}
+
 	// Memory properties are used regularly for creating all kinds of buffers
 	vkGetPhysicalDeviceMemoryProperties(aVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);
 
@@ -347,6 +352,37 @@ void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQ
 void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, bool aIsFree) const
 {
 	return FlushCommandBuffer(aCommandBuffer, aQueue, mGraphicsVkCommandPool, aIsFree);
+}
+
+/**
+* Copy buffer data from src to dst using VkCmdCopyBuffer
+*
+* @param src Pointer to the source buffer to copy from
+* @param dst Pointer to the destination buffer to copy to
+* @param queue Pointer
+* @param copyRegion (Optional) Pointer to a copy region, if NULL, the whole buffer is copied
+*
+* @note Source and destination pointers must have the appropriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
+*/
+void VulkanDevice::CopyBuffer(VulkanBuffer* aSource, VulkanBuffer* aDestination, VkQueue aQueue, VkBufferCopy* aCopyRegion) const
+{
+	assert(aDestination->mVkDeviceSize >= aSource->mVkDeviceSize);
+	assert(aSource->mVkBuffer);
+
+	VkCommandBuffer copyCommandBuffer = CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+	VkBufferCopy bufferCopy{};
+	if (aCopyRegion == nullptr)
+	{
+		bufferCopy.size = aSource->mVkDeviceSize;
+	}
+	else
+	{
+		bufferCopy = *aCopyRegion;
+	}
+
+	vkCmdCopyBuffer(copyCommandBuffer, aSource->mVkBuffer, aDestination->mVkBuffer, 1, &bufferCopy);
+
+	FlushCommandBuffer(copyCommandBuffer, aQueue);
 }
 
 /**
