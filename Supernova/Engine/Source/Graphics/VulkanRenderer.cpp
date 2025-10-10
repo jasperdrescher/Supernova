@@ -595,15 +595,15 @@ void VulkanRenderer::PrepareFrame()
 
 void VulkanRenderer::BuildCommandBuffer()
 {
-	VkCommandBuffer vkCommandBuffer = mVkCommandBuffers[mCurrentBufferIndex];
+	VkCommandBuffer commandBuffer = mVkCommandBuffers[mCurrentBufferIndex];
 
-	VkCommandBufferBeginInfo vkCommandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
-	VK_CHECK_RESULT(vkBeginCommandBuffer(vkCommandBuffer, &vkCommandBufferBeginInfo));
+	VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
+	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
 
 	// With dynamic rendering there are no subpass dependencies, so we need to take care of proper layout transitions by using barriers
 	// This set of barriers prepares the color and depth images for output
 	VulkanTools::InsertImageMemoryBarrier(
-		vkCommandBuffer,
+		commandBuffer,
 		mVulkanSwapChain.mVkImages[mCurrentImageIndex],
 		0,
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -614,7 +614,7 @@ void VulkanRenderer::BuildCommandBuffer()
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
 	VulkanTools::InsertImageMemoryBarrier(
-		vkCommandBuffer,
+		commandBuffer,
 		mVulkanDepthStencil.mVkImage,
 		0,
 		VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
@@ -625,75 +625,78 @@ void VulkanRenderer::BuildCommandBuffer()
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1});
 
 	// New structures are used to define the attachments used in dynamic rendering
-	VkRenderingAttachmentInfoKHR colorAttachment{};
-	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-	colorAttachment.imageView = mVulkanSwapChain.mVkImageViews[mCurrentImageIndex];
-	colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.clearValue.color = {0.0f,0.0f,0.0f,0.0f};
+	const VkRenderingAttachmentInfoKHR colorAttachmentInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+		.imageView = mVulkanSwapChain.mVkImageViews[mCurrentImageIndex],
+		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.clearValue = { .color = {0.0f,0.0f,0.0f,0.0f} }
+	};
 
 	// A single depth stencil attachment info can be used, but they can also be specified separately.
 	// When both are specified separately, the only requirement is that the image view is identical.			
-	VkRenderingAttachmentInfoKHR depthStencilAttachment{};
-	depthStencilAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
-	depthStencilAttachment.imageView = mVulkanDepthStencil.mVkImageView;
-	depthStencilAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	depthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	depthStencilAttachment.clearValue.depthStencil = {1.0f,  0};
+	const VkRenderingAttachmentInfoKHR depthStencilAttachmentInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+		.imageView = mVulkanDepthStencil.mVkImageView,
+		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+		.clearValue = { .depthStencil = {1.0f, 0} }
+	};
 
-	VkRenderingInfoKHR renderingInfo{};
-	renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
-	renderingInfo.renderArea = {0, 0, mFramebufferWidth, mFramebufferHeight};
-	renderingInfo.layerCount = 1;
-	renderingInfo.colorAttachmentCount = 1;
-	renderingInfo.pColorAttachments = &colorAttachment;
-	renderingInfo.pDepthAttachment = &depthStencilAttachment;
-	renderingInfo.pStencilAttachment = &depthStencilAttachment;
+	const VkRenderingInfoKHR renderingInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+		.renderArea = {0, 0, mFramebufferWidth, mFramebufferHeight},
+		.layerCount = 1,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorAttachmentInfo,
+		.pDepthAttachment = &depthStencilAttachmentInfo,
+		.pStencilAttachment = &depthStencilAttachmentInfo
+	};
 
 	// Begin dynamic rendering
-	vkCmdBeginRendering(vkCommandBuffer, &renderingInfo);
+	vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
 	VkViewport viewport = VulkanInitializers::viewport(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f);
-	vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
-	vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissor);
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	// Draw non-instanced static models
-	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticPlanetWithStarfield, 0, nullptr);
-	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mStarfield);
-	vkCmdDraw(vkCommandBuffer, 3, 1, 0, 0);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticPlanetWithStarfield, 0, nullptr);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mStarfield);
+	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
-	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
-	mModels.mPlanetModel->Draw(vkCommandBuffer);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
+	mModels.mPlanetModel->Draw(commandBuffer);
 
-	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
-	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
 
 	mVulkanPushConstant.mModelMatrix = mVoyagerModelMatrix;
-	vkCmdPushConstants(vkCommandBuffer, mVkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VulkanPushConstant), &mVulkanPushConstant);
+	vkCmdPushConstants(commandBuffer, mVkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VulkanPushConstant), &mVulkanPushConstant);
 
-	mModels.mVoyagerModel->Draw(vkCommandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
+	mModels.mVoyagerModel->Draw(commandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
 
 	// Draw instanced models
 	VkDeviceSize offsets[1] = {0};
-	vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
-	vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
-	vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &mModels.mRockModel->vertices.mBuffer, offsets);
-	vkCmdBindVertexBuffers(vkCommandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
-	vkCmdBindIndexBuffer(vkCommandBuffer, mModels.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdDrawIndexed(vkCommandBuffer, mModels.mRockModel->indices.mCount, gRockInstanceCount, 0, 0, 0);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModels.mRockModel->vertices.mBuffer, offsets);
+	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
+	vkCmdBindIndexBuffer(commandBuffer, mModels.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdDrawIndexed(commandBuffer, mModels.mRockModel->indices.mCount, gRockInstanceCount, 0, 0, 0);
 
-	DrawImGuiOverlay(vkCommandBuffer);
+	DrawImGuiOverlay(commandBuffer);
 
 	// End dynamic rendering
-	vkCmdEndRendering(vkCommandBuffer);
+	vkCmdEndRendering(commandBuffer);
 
 	// This set of barriers prepares the color image for presentation, we don't need to care for the depth image
 	VulkanTools::InsertImageMemoryBarrier(
-		vkCommandBuffer,
+		commandBuffer,
 		mVulkanSwapChain.mVkImages[mCurrentImageIndex],
 		VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 		0,
@@ -703,7 +706,7 @@ void VulkanRenderer::BuildCommandBuffer()
 		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
-	VK_CHECK_RESULT(vkEndCommandBuffer(vkCommandBuffer));
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
 void VulkanRenderer::UpdateModelMatrix()
@@ -819,12 +822,12 @@ void VulkanRenderer::CreateVkInstance()
 		.pApplicationInfo = &vkApplicationInfo
 	};
 
-	VkDebugUtilsMessengerCreateInfoEXT vkDebugUtilsMessengerCreateInfo{};
 	if (mEngineProperties->mIsValidationEnabled)
 	{
-		VulkanDebug::SetupDebugingMessengerCreateInfo(vkDebugUtilsMessengerCreateInfo);
-		vkDebugUtilsMessengerCreateInfo.pNext = vkInstanceCreateInfo.pNext;
-		vkInstanceCreateInfo.pNext = &vkDebugUtilsMessengerCreateInfo;
+		VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo{};
+		VulkanDebug::SetupDebugingMessengerCreateInfo(debugUtilsMessengerCreateInfo);
+		debugUtilsMessengerCreateInfo.pNext = vkInstanceCreateInfo.pNext;
+		vkInstanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
 	}
 
 	if (mEngineProperties->mIsValidationEnabled || std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
@@ -889,12 +892,14 @@ void VulkanRenderer::CreateVkInstance()
 	// If layer settings are defined, then activate the sample's required layer settings during instance creation.
 	// Layer settings are typically used to activate specific features of a layer, such as the Validation Layer's
 	// printf feature, or to configure specific capabilities of drivers such as MoltenVK on macOS and/or iOS.
-	VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo{VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT};
 	if (mEnabledLayerSettings.size() > 0)
 	{
-		layerSettingsCreateInfo.settingCount = static_cast<std::uint32_t>(mEnabledLayerSettings.size());
-		layerSettingsCreateInfo.pSettings = mEnabledLayerSettings.data();
-		layerSettingsCreateInfo.pNext = vkInstanceCreateInfo.pNext;
+		const VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT,
+			.pNext = vkInstanceCreateInfo.pNext,
+			.settingCount = static_cast<std::uint32_t>(mEnabledLayerSettings.size()),
+			.pSettings = mEnabledLayerSettings.data(),
+		};
 		vkInstanceCreateInfo.pNext = &layerSettingsCreateInfo;
 	}
 
@@ -934,7 +939,7 @@ void VulkanRenderer::CreateVulkanDevice()
 
 void VulkanRenderer::CreatePipelineCache()
 {
-	VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo{
+	const VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO
 	};
 	VK_CHECK_RESULT(vkCreatePipelineCache(mVulkanDevice->mLogicalVkDevice, &vkPipelineCacheCreateInfo, nullptr, &mVkPipelineCache));
@@ -1099,7 +1104,7 @@ void VulkanRenderer::InitializeVulkan()
 
 void VulkanRenderer::CreateCommandPool()
 {
-	VkCommandPoolCreateInfo vkCommandPoolCreateInfo{
+	const VkCommandPoolCreateInfo vkCommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 		.queueFamilyIndex = mVulkanSwapChain.mQueueNodeIndex,
