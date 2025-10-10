@@ -361,50 +361,6 @@ void VulkanRenderer::SetupDepthStencil()
 	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &vkImageViewCreateInfo, nullptr, &mVulkanDepthStencil.mVkImageView));
 }
 
-VkShaderModule VulkanRenderer::LoadSPIRVShader(const std::filesystem::path& aPath) const
-{
-	std::size_t shaderSize{0};
-	char* shaderCode{nullptr};
-
-	std::ifstream is(aPath, std::ios::binary | std::ios::in | std::ios::ate);
-
-	if (is.is_open())
-	{
-		shaderSize = is.tellg();
-		is.seekg(0, std::ios::beg);
-		// Copy file contents into a buffer
-		shaderCode = new char[shaderSize];
-		is.read(shaderCode, shaderSize);
-		is.close();
-		if (shaderSize <= 0)
-		{
-			throw std::runtime_error("Incorrect shader size");
-		}
-	}
-
-	if (shaderCode)
-	{
-		// Create a new shader module that will be used for pipeline creation
-		const VkShaderModuleCreateInfo shaderModuleCI{
-			.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-			.codeSize = shaderSize,
-			.pCode = reinterpret_cast<std::uint32_t*>(shaderCode)
-		};
-
-		VkShaderModule shaderModule;
-		VK_CHECK_RESULT(vkCreateShaderModule(mVulkanDevice->mLogicalVkDevice, &shaderModuleCI, nullptr, &shaderModule));
-
-		delete[] shaderCode;
-
-		return shaderModule;
-	}
-	else
-	{
-		std::cerr << "Error: Could not open shader file \"" << aPath.generic_string() << "\"" << std::endl;
-		return VK_NULL_HANDLE;
-	}
-}
-
 void VulkanRenderer::CreatePipeline()
 {
 	// Layout

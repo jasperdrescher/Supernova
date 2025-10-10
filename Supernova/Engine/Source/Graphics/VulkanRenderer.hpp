@@ -51,7 +51,6 @@ private:
 	void CreateSynchronizationPrimitives();
 	void CreateCommandBuffers();
 	void CreateDescriptors();
-	VkShaderModule LoadSPIRVShader(const std::filesystem::path& aPath) const;
 	void CreatePipeline();
 	void CreateUniformBuffers();
 	void CreateUIOverlay();
