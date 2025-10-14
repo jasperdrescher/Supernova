@@ -424,4 +424,22 @@ namespace VulkanInitializers
 		vInputAttribDescription.offset = offset;
 		return vInputAttribDescription;
 	}
+
+	inline VkComputePipelineCreateInfo computePipelineCreateInfo(
+		VkPipelineLayout layout,
+		VkPipelineCreateFlags flags = 0)
+	{
+		VkComputePipelineCreateInfo computePipelineCreateInfo{};
+		computePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		computePipelineCreateInfo.layout = layout;
+		computePipelineCreateInfo.flags = flags;
+		return computePipelineCreateInfo;
+	}
+
+	inline VkMemoryBarrier memoryBarrier()
+	{
+		VkMemoryBarrier memoryBarrier{};
+		memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		return memoryBarrier;
+	}
 }
