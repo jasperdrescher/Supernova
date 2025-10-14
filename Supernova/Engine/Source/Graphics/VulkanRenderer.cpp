@@ -180,7 +180,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 	{
 		if (mEngineProperties->mIsRendererPrepared)
 		{
-			NextFrame();
+			RenderFrame();
 		}
 
 		const Input::InputManager& inputManager = Input::InputManager::GetInstance();
@@ -1050,7 +1050,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem
 	return shaderStage;
 }
 
-void VulkanRenderer::NextFrame()
+void VulkanRenderer::RenderFrame()
 {
 	const std::chrono::steady_clock::time_point frameTimeStart = std::chrono::high_resolution_clock::now();
 	

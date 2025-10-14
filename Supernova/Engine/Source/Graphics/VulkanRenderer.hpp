@@ -63,7 +63,7 @@ private:
 
 	void OnResizeWindow();
 
-	void NextFrame();
+	void RenderFrame();
 	void CreatePipelineCache();
 	void PrepareIndirectData();
 	void PrepareInstanceData();
