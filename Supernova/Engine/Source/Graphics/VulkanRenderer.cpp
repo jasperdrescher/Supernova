@@ -1213,23 +1213,9 @@ void VulkanRenderer::OnUpdateUIOverlay()
 {
 	if (ImGui::CollapsingHeader("Render Settings", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy)
-		{
-			ImGui::Text("samplerAnisotropy is enabled");
-		}
-		else
-		{
-			ImGui::Text("samplerAnisotropy is not enabled");
-		}
-
-		if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
-		{
-			ImGui::Text("multiDrawIndirect is enabled");
-		}
-		else
-		{
-			ImGui::Text("multiDrawIndirect is not enabled");
-		}
+		ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
+		ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
+		ImGui::Text("VSync is %s", mEngineProperties->mIsVSyncEnabled ? "enabled" : "disabled");
 	}
 
 	ImGui::NewLine();
