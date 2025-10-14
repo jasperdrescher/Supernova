@@ -1063,12 +1063,11 @@ void VulkanRenderer::RenderFrame()
 	BuildCommandBuffer();
 	SubmitFrame();
 
-	mFrameCounter++;
-
 	mFrameTimer->EndTimer();
 
 	mFrametime = static_cast<float>(mFrameTimer->GetDurationSeconds());
 
+	mFrameCounter++;
 	const float fpsTimer = static_cast<float>(Time::GetDurationMilliseconds(mFrameTimer->GetEndTime(), mLastTimestamp));
 	if (fpsTimer > mFPSTimerInterval)
 	{
@@ -1190,7 +1189,7 @@ void VulkanRenderer::UpdateUIOverlay()
 	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
 	ImGui::Begin(mEngineProperties->mApplicationName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
-	ImGui::TextUnformatted(std::format("{}/{}", mFramebufferWidth, mFramebufferHeight).c_str());
+	ImGui::Text("%i/%i", mFramebufferWidth, mFramebufferHeight);
 	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mAverageFPS), mAverageFPS);
 	mImGuiOverlay->Vec2Text("Cursor position", inputManager.GetMousePosition());
 
