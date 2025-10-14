@@ -38,5 +38,15 @@ for /R %%f in (*.vert) do (
     )
 )
 
+:: Recursively find all .comp files
+for /R %%f in (*.comp) do (
+    set "COMP_PATH=%%f"
+    set "BASENAME=%%~nf"
+    set "DIR=%%~dpf"
+
+    :: Compile compute shader
+    %GLSLANG_VALIDATOR% -V "!COMP_PATH!" -o "!DIR!!BASENAME!_comp.spv"
+)
+
 echo Finished compiling shaders.
 pause
