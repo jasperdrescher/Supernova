@@ -37,6 +37,7 @@
 #include <random>
 #include <numbers>
 #include <cmath>
+#include <cstddef>
 
 VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	Window* aWindow)
@@ -435,16 +436,16 @@ void VulkanRenderer::CreatePipeline()
 	const std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {
 		// Per-vertex attributes
 		// These are advanced for each vertex fetched by the vertex shader
-		VulkanInitializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0), // Location 0: Position
-		VulkanInitializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3), // Location 1: Normal
-		VulkanInitializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6), // Location 2: Texture coordinates
-		VulkanInitializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8), // Location 3: Color
+		VulkanInitializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mPosition)), // Location 0: Position
+		VulkanInitializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mNormal)), // Location 1: Normal
+		VulkanInitializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(vkglTF::Vertex, mUV)), // Location 2: Texture coordinates
+		VulkanInitializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mColor)), // Location 3: Color
 		// Per-Instance attributes
 		// These are advanced for each instance rendered
-		VulkanInitializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0), // Location 4: Position
-		VulkanInitializers::vertexInputAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3), // Location 5: Rotation
-		VulkanInitializers::vertexInputAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT,sizeof(float) * 6), // Location 6: Scale
-		VulkanInitializers::vertexInputAttributeDescription(1, 7, VK_FORMAT_R32_SINT, sizeof(float) * 7), // Location 7: Texture array layer index
+		VulkanInitializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanInstanceData, mPosition)), // Location 4: Position
+		VulkanInitializers::vertexInputAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanInstanceData, mRotation)), // Location 5: Rotation
+		VulkanInitializers::vertexInputAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, offsetof(VulkanInstanceData, mScale)), // Location 6: Scale
+		VulkanInitializers::vertexInputAttributeDescription(1, 7, VK_FORMAT_R32_SINT, offsetof(VulkanInstanceData, mTextureIndex)), // Location 7: Texture array layer index
 	};
 
 	VkPipelineVertexInputStateCreateInfo inputState = VulkanInitializers::pipelineVertexInputStateCreateInfo();
