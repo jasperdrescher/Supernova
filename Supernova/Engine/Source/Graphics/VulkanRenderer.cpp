@@ -1216,6 +1216,7 @@ void VulkanRenderer::OnUpdateUIOverlay()
 		ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
 		ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
 		ImGui::Text("VSync is %s", mEngineProperties->mIsVSyncEnabled ? "enabled" : "disabled");
+		ImGui::Text("Validation Layers is %s", mEngineProperties->mIsValidationEnabled ? "enabled" : "disabled");
 	}
 
 	ImGui::NewLine();
