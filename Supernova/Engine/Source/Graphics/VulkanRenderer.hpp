@@ -46,7 +46,7 @@ public:
 private:
 	void PrepareVulkanResources();
 	void PrepareFrame();
-	void BuildCommandBuffer();
+	void BuildGraphicsCommandBuffer();
 	void UpdateModelMatrix();
 	void UpdateUniformBuffers();
 	void SubmitFrame();
@@ -55,8 +55,10 @@ private:
 	void LoadAssets();
 	void CreateSynchronizationPrimitives();
 	void CreateCommandBuffers();
-	void CreateDescriptors();
-	void CreatePipeline();
+	void CreateDescriptorPool();
+	void CreateDescriptorSetLayout();
+	void CreateDescriptorSets();
+	void CreateGraphicsPipelines();
 	void CreateUniformBuffers();
 	void CreateUIOverlay();
 

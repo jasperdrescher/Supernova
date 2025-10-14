@@ -258,31 +258,37 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 void VulkanRenderer::CreateCommandBuffers()
 {
 	// Allocate one command buffer per max. concurrent frame from above pool
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPoolBuffer, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
+	const VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPoolBuffer, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &cmdBufAllocateInfo, mVkCommandBuffers.data()));
 }
 
-void VulkanRenderer::CreateDescriptors()
+void VulkanRenderer::CreateDescriptorPool()
 {
 	static constexpr std::uint32_t poolPadding = 2;
 	const std::vector<VkDescriptorPoolSize> poolSizes = {
 		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (gMaxConcurrentFrames * 3) + poolPadding),
 		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (gMaxConcurrentFrames * 2) + poolPadding),
 	};
-	VkDescriptorPoolCreateInfo descriptorPoolInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames * 3);
-	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mVkDescriptorPool));
+	const VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames * 3);
+	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolCreateInfo, nullptr, &mVkDescriptorPool));
+}
 
+void VulkanRenderer::CreateDescriptorSetLayout()
+{
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		// Binding 0 : Vertex shader uniform buffer
 		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 		// Binding 1 : Fragment shader combined sampler
 		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 	};
-	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+	const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mVkDescriptorSetLayout));
+}
 
+void VulkanRenderer::CreateDescriptorSets()
+{
 	// Sets per frame, just like the buffers themselves
-	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
+	const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
 	for (std::size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
 		// Instanced models
@@ -370,7 +376,7 @@ void VulkanRenderer::SetupDepthStencil()
 	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &vkImageViewCreateInfo, nullptr, &mVulkanDepthStencil.mVkImageView));
 }
 
-void VulkanRenderer::CreatePipeline()
+void VulkanRenderer::CreateGraphicsPipelines()
 {
 	// Layout
 	// Uses set 0 for passing vertex shader ubo and set 1 for fragment shader images (taken from glTF model)
@@ -494,7 +500,7 @@ void VulkanRenderer::CreateUniformBuffers()
 	for (VulkanBuffer& buffer : mVulkanUniformBuffers)
 	{
 		VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer, sizeof(VulkanUniformData), &mVulkanUniformData));
-		VK_CHECK_RESULT(buffer.Map(VK_WHOLE_SIZE, 0));
+		VK_CHECK_RESULT(buffer.Map());
 	}
 }
 
@@ -528,8 +534,10 @@ void VulkanRenderer::PrepareVulkanResources()
 	PrepareIndirectData();
 	PrepareInstanceData();
 	CreateUniformBuffers();
-	CreateDescriptors();
-	CreatePipeline();
+	CreateDescriptorPool();
+	CreateDescriptorSetLayout();
+	CreateDescriptorSets();
+	CreateGraphicsPipelines();
 
 	mEngineProperties->mIsRendererPrepared = true;
 }
@@ -560,11 +568,11 @@ void VulkanRenderer::PrepareFrame()
 	}
 }
 
-void VulkanRenderer::BuildCommandBuffer()
+void VulkanRenderer::BuildGraphicsCommandBuffer()
 {
 	VkCommandBuffer commandBuffer = mVkCommandBuffers[mCurrentBufferIndex];
 
-	VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
+	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
 
 	// With dynamic rendering there are no subpass dependencies, so we need to take care of proper layout transitions by using barriers
@@ -1040,20 +1048,20 @@ void VulkanRenderer::InitializeSwapchain()
 
 VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem::path& aPath, VkShaderStageFlagBits aVkShaderStageMask)
 {
-	VkPipelineShaderStageCreateInfo shaderStage{
+	const VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 		.stage = aVkShaderStageMask,
 		.module = VulkanTools::LoadShader(aPath, mVulkanDevice->mLogicalVkDevice),
 		.pName = "main"
 	};
 
-	if (shaderStage.module == VK_NULL_HANDLE)
+	if (pipelineShaderStageCreateInfo.module == VK_NULL_HANDLE)
 	{
 		throw std::runtime_error(std::format("Incorrect shader module for shader {}", aPath.generic_string()));
 	}
 
-	mVkShaderModules.push_back(shaderStage.module);
-	return shaderStage;
+	mVkShaderModules.push_back(pipelineShaderStageCreateInfo.module);
+	return pipelineShaderStageCreateInfo;
 }
 
 void VulkanRenderer::RenderFrame()
@@ -1063,7 +1071,7 @@ void VulkanRenderer::RenderFrame()
 	PrepareFrame();
 	UpdateUniformBuffers();
 	UpdateModelMatrix();
-	BuildCommandBuffer();
+	BuildGraphicsCommandBuffer();
 	SubmitFrame();
 
 	mFrameTimer->EndTimer();
