@@ -4,14 +4,13 @@
 #include "FileLoader.hpp"
 #include "Graphics/VulkanRenderer.hpp"
 #include "Graphics/Window.hpp"
-
-#include <chrono>
-#include <ratio>
+#include "Timer.hpp"
 
 Engine::Engine()
 	: mEngineProperties{nullptr}
 	, mVulkanWindow{nullptr}
 	, mVulkanRenderer{nullptr}
+	, mTimer{nullptr}
 	, mFixedDeltaTime{0.0f}
 	, mTimeScale{0.25f}
 	, mDeltaTime{0.0f}
@@ -19,6 +18,7 @@ Engine::Engine()
 	mEngineProperties = new EngineProperties();
 	mVulkanWindow = new Window(mEngineProperties);
 	mVulkanRenderer = new VulkanRenderer(mEngineProperties, mVulkanWindow);
+	mTimer = new Time::Timer();
 }
 
 Engine::~Engine()
@@ -42,13 +42,13 @@ void Engine::Run()
 
 	while (!mVulkanWindow->ShouldClose())
 	{
-		const std::chrono::steady_clock::time_point startTime = std::chrono::high_resolution_clock::now();
+		mTimer->StartTimer();
 
 		mVulkanRenderer->UpdateRenderer(mDeltaTime);
 
-		const std::chrono::steady_clock::time_point endTime = std::chrono::high_resolution_clock::now();
-		const float deltaTimeMs = std::chrono::duration<float, std::milli>(endTime - startTime).count();
-		mDeltaTime = deltaTimeMs / 1000.0f;
+		mTimer->EndTimer();
+
+		mDeltaTime = static_cast<float>(mTimer->GetDurationSeconds());
 
 		if (!mEngineProperties->mIsPaused)
 		{

@@ -33,6 +33,8 @@
     <ClCompile Include="Source\Graphics\VulkanTypes.cpp" />
     <ClCompile Include="Source\Graphics\Window.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
+    <ClCompile Include="Source\Time.cpp" />
+    <ClCompile Include="Source\Timer.cpp" />
     <ClCompile Include="Source\UniqueIdentifier.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -57,7 +59,11 @@
     <ClInclude Include="Source\Graphics\Window.hpp" />
     <ClInclude Include="Source\Input\InputKeys.hpp" />
     <ClInclude Include="Source\Input\InputManager.hpp" />
+    <ClInclude Include="Source\Time.hpp" />
     <ClInclude Include="Source\UniqueIdentifier.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Source\Timer.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

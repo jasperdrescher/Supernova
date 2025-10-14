@@ -5,6 +5,8 @@
 #include "FileLoader.hpp"
 #include "ImGuiOverlay.hpp"
 #include "Input/InputManager.hpp"
+#include "Time.hpp"
+#include "Timer.hpp"
 #include "VulkanDebug.hpp"
 #include "VulkanGlTFModel.hpp"
 #include "VulkanInitializers.hpp"
@@ -25,13 +27,10 @@
 #include <cstdint>
 #include <cstring>
 #include <format>
-#include <fstream>
 #include <stdexcept>
 #include <iostream>
-#include <ratio>
 #include <string>
 #include <vector>
-#include <numeric>
 #include <vulkan/vulkan_core.h>
 #include <imgui.h>
 #include <filesystem>
@@ -51,7 +50,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mImGuiOverlay{nullptr}
 	, mCamera{nullptr}
 	, mFrameCounter{0}
-	, mLastFPS{0}
+	, mAverageFPS{0}
+	, mFPSTimerInterval{1000.0f}
 	, mVkInstance{VK_NULL_HANDLE}
 	, mVkQueue{VK_NULL_HANDLE}
 	, mVkDepthFormat{VK_FORMAT_UNDEFINED}
@@ -1052,7 +1052,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem
 
 void VulkanRenderer::RenderFrame()
 {
-	const std::chrono::steady_clock::time_point frameTimeStart = std::chrono::high_resolution_clock::now();
+	mFrameTimer.StartTimer();
 	
 	PrepareFrame();
 	UpdateUniformBuffers();
@@ -1061,16 +1061,17 @@ void VulkanRenderer::RenderFrame()
 	SubmitFrame();
 
 	mFrameCounter++;
-	const std::chrono::steady_clock::time_point frameTimeEnd = std::chrono::high_resolution_clock::now();
-	const float frameTimeDelta = std::chrono::duration<float, std::milli>(frameTimeEnd - frameTimeStart).count();
-	mFrametime = frameTimeDelta / 1000.0f;
 
-	const float fpsTimer = std::chrono::duration<float, std::milli>(frameTimeEnd - mLastTimestamp).count();
-	if (fpsTimer > 1000.0f)
+	mFrameTimer.EndTimer();
+
+	mFrametime = static_cast<float>(mFrameTimer.GetDurationSeconds());
+
+	const float fpsTimer = static_cast<float>(Time::GetDurationMilliseconds(mFrameTimer.GetEndTime(), mLastTimestamp));
+	if (fpsTimer > mFPSTimerInterval)
 	{
-		mLastFPS = static_cast<std::uint32_t>(static_cast<float>(mFrameCounter) * (1000.0f / fpsTimer));
+		mAverageFPS = static_cast<std::uint32_t>(static_cast<float>(mFrameCounter) * (mFPSTimerInterval / fpsTimer));
 		mFrameCounter = 0;
-		mLastTimestamp = frameTimeEnd;
+		mLastTimestamp = mFrameTimer.GetEndTime();
 	}
 }
 
@@ -1187,7 +1188,7 @@ void VulkanRenderer::UpdateUIOverlay()
 	ImGui::Begin(mEngineProperties->mApplicationName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
 	ImGui::TextUnformatted(std::format("{}/{}", mFramebufferWidth, mFramebufferHeight).c_str());
-	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mLastFPS), mLastFPS);
+	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mAverageFPS), mAverageFPS);
 	mImGuiOverlay->Vec2Text("Cursor position", inputManager.GetMousePosition());
 
 	ImGui::PushItemWidth(110.0f * mImGuiOverlay->GetScale());
