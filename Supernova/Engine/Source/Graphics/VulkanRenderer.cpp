@@ -152,6 +152,7 @@ VulkanRenderer::~VulkanRenderer()
 	delete mModels.mPlanetModel;
 	delete mModels.mRockModel;
 	delete mModels.mVoyagerModel;
+	delete mFrameTimer;
 	delete mImGuiOverlay;
 	delete mVulkanDevice;
 

@@ -23,6 +23,7 @@ Engine::Engine()
 
 Engine::~Engine()
 {
+	delete mTimer;
 	delete mVulkanRenderer;
 	delete mVulkanWindow;
 	delete mEngineProperties;
