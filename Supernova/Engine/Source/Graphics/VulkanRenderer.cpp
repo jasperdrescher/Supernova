@@ -49,6 +49,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVulkanDevice{nullptr}
 	, mImGuiOverlay{nullptr}
 	, mCamera{nullptr}
+	, mFrameTimer{nullptr}
 	, mFrameCounter{0}
 	, mAverageFPS{0}
 	, mFPSTimerInterval{1000.0f}
@@ -69,6 +70,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVoyagerModelMatrix{1.0f}
 	, mPlanetModelMatrix{1.0f}
 {
+	mFrameTimer = new Time::Timer();
+	
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
 	mEngineProperties->mIsValidationEnabled = true;
 	mEngineProperties->mApplicationName = "Supernova Editor";
@@ -1052,7 +1055,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem
 
 void VulkanRenderer::RenderFrame()
 {
-	mFrameTimer.StartTimer();
+	mFrameTimer->StartTimer();
 	
 	PrepareFrame();
 	UpdateUniformBuffers();
@@ -1062,16 +1065,16 @@ void VulkanRenderer::RenderFrame()
 
 	mFrameCounter++;
 
-	mFrameTimer.EndTimer();
+	mFrameTimer->EndTimer();
 
-	mFrametime = static_cast<float>(mFrameTimer.GetDurationSeconds());
+	mFrametime = static_cast<float>(mFrameTimer->GetDurationSeconds());
 
-	const float fpsTimer = static_cast<float>(Time::GetDurationMilliseconds(mFrameTimer.GetEndTime(), mLastTimestamp));
+	const float fpsTimer = static_cast<float>(Time::GetDurationMilliseconds(mFrameTimer->GetEndTime(), mLastTimestamp));
 	if (fpsTimer > mFPSTimerInterval)
 	{
 		mAverageFPS = static_cast<std::uint32_t>(static_cast<float>(mFrameCounter) * (mFPSTimerInterval / fpsTimer));
 		mFrameCounter = 0;
-		mLastTimestamp = mFrameTimer.GetEndTime();
+		mLastTimestamp = mFrameTimer->GetEndTime();
 	}
 }
 

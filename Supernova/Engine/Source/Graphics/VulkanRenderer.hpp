@@ -1,16 +1,14 @@
 #pragma once
 
+#include "Time.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanTypes.hpp"
-#include "Time.hpp"
-#include "Timer.hpp"
 
 #include <glm/fwd.hpp>
 #include <vulkan/vulkan_core.h>
 
 #include <array>
-#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <string>
@@ -22,6 +20,11 @@ constexpr std::uint32_t gRockInstanceCount = 8192;
 namespace vkglTF
 {
 	class Model;
+}
+
+namespace Time
+{
+	struct Timer;
 }
 
 struct EngineProperties;
@@ -118,7 +121,6 @@ private:
 	VkDescriptorSetLayout mVkDescriptorSetLayout;
 	VkCommandPool mVkCommandPoolBuffer;
 	VulkanPushConstant mVulkanPushConstant{};
-	Time::Timer mFrameTimer;
 	Time::TimePoint mLastTimestamp;
 	std::vector<VkDrawIndexedIndirectCommand> mDrawIndexedIndirectCommands; // Store the indirect draw commands containing index offsets and instance count per object
 	std::vector<std::string> mSupportedInstanceExtensions{};
@@ -144,6 +146,7 @@ private:
 	std::uint32_t mIndirectInstanceCount;
 	glm::mat4 mVoyagerModelMatrix;
 	glm::mat4 mPlanetModelMatrix;
+	Time::Timer* mFrameTimer;
 	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;
 	EngineProperties* mEngineProperties;
