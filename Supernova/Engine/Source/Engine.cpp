@@ -11,10 +11,10 @@
 Engine::Engine()
 	: mEngineProperties{nullptr}
 	, mVulkanWindow{nullptr}
-	, mVulkanRenderer(nullptr)
-	, mFixedDeltaTime(0.0f)
-	, mTimeScale(0.25f)
-	, mDeltaTime(0.0f)
+	, mVulkanRenderer{nullptr}
+	, mFixedDeltaTime{0.0f}
+	, mTimeScale{0.25f}
+	, mDeltaTime{0.0f}
 {
 	mEngineProperties = new EngineProperties();
 	mVulkanWindow = new Window(mEngineProperties);

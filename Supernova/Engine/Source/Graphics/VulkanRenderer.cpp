@@ -46,7 +46,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkCommandBuffers{VK_NULL_HANDLE}
 	, mFramebufferWidth{0}
 	, mFramebufferHeight{0}
-	, mMaxFrametimes{10}
 	, mFrametime{1.0f}
 	, mVulkanDevice{nullptr}
 	, mImGuiOverlay{nullptr}
@@ -165,7 +164,6 @@ void VulkanRenderer::InitializeRenderer()
 void VulkanRenderer::PrepareUpdate()
 {
 	mLastTimestamp = std::chrono::high_resolution_clock::now();
-	mPreviousEndTime = mLastTimestamp;
 }
 
 void VulkanRenderer::EndUpdate()
@@ -1074,8 +1072,6 @@ void VulkanRenderer::NextFrame()
 		mFrameCounter = 0;
 		mLastTimestamp = frameTimeEnd;
 	}
-
-	mPreviousEndTime = frameTimeEnd;
 }
 
 void VulkanRenderer::InitializeVulkan()

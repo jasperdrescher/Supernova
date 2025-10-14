@@ -117,7 +117,6 @@ private:
 	VkCommandPool mVkCommandPoolBuffer;
 	VulkanPushConstant mVulkanPushConstant{};
 	std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimestamp;
-	std::chrono::time_point<std::chrono::high_resolution_clock> mPreviousEndTime;
 	std::vector<VkDrawIndexedIndirectCommand> mDrawIndexedIndirectCommands; // Store the indirect draw commands containing index offsets and instance count per object
 	std::vector<std::string> mSupportedInstanceExtensions{};
 	std::vector<const char*> mEnabledDeviceExtensions{}; // Set of device extensions to be enabled for this example
@@ -135,7 +134,6 @@ private:
 	std::uint32_t mFramebufferHeight;
 	std::uint32_t mFrameCounter;
 	std::uint32_t mLastFPS;
-	std::uint32_t mMaxFrametimes;
 	std::uint32_t mBufferIndexCount;
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
