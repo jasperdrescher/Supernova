@@ -74,6 +74,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
 	mEngineProperties->mIsValidationEnabled = true;
+	mEngineProperties->mIsVSyncEnabled = true;
 	mEngineProperties->mApplicationName = "Supernova Editor";
 	mEngineProperties->mEngineName = "Supernova Engine";
 
