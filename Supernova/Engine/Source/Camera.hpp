@@ -33,12 +33,16 @@ public:
 		bool mIsCtrlDown;
 	} mKeys;
 
-	struct Cursor
+	struct Mouse
 	{
-		Cursor() : mScrollWheelDelta{0.0f} {}
+		Mouse() : mScrollWheelDelta{0.0f}, mDeltaX{0.0f}, mDeltaY{0.0f}, mIsLeftDown { false }, mIsMiddleDown{false} {}
 
 		float mScrollWheelDelta;
-	} mCursor;
+		float mDeltaX;
+		float mDeltaY;
+		bool mIsLeftDown;
+		bool mIsMiddleDown;
+	} mMouse;
 
 	void SetType(CameraType aType);
 	void SetPerspective(float aFoV, float aAspectRatio, float aZNear, float aZFar);
@@ -50,6 +54,7 @@ public:
 	void Translate(glm::vec3 aDelta);
 	void SetRotationSpeed(float aRotationSpeed);
 	void SetMovementSpeed(float aMovementSpeed);
+	void SetZoomSpeed(float aZoomSpeed);
 	void Update(float aDeltaTime);
 
 	const glm::vec3& GetPosition() const { return mPosition; }
@@ -71,6 +76,7 @@ private:
 	float mZFar;
 	float mRotationSpeed;
 	float mMovementSpeed;
+	float mZoomSpeed;
 	float mFastMovementSpeedMultiplier;
 	bool mFlipY;
 };

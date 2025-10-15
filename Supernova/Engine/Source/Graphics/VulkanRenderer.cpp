@@ -89,9 +89,11 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 
 	// Setup a default look-at camera
 	mCamera = new Camera();
-	mCamera->SetType(CameraType::FirstPerson);
+	mCamera->SetType(CameraType::LookAt);
 	mCamera->SetPosition(glm::vec3(5.5f, -1.85f, -18.5f));
 	mCamera->SetRotation(glm::vec3(-17.2f, -4.7f, 0.0f));
+	mCamera->SetRotationSpeed(2.0f);
+	mCamera->SetZoomSpeed(15.0f);
 	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 0.1f, 256.0f);
 
 	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, glm::vec3{1.0f, -2.0f, 10.0f});
@@ -189,7 +191,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 			RenderFrame();
 		}
 
-		const Input::InputManager& inputManager = Input::InputManager::GetInstance();
+		Input::InputManager& inputManager = Input::InputManager::GetInstance();
 		mCamera->mKeys.mIsRightDown = inputManager.GetIsKeyDown(Input::Key::Right) || inputManager.GetIsKeyDown(Input::Key::D);
 		mCamera->mKeys.mIsUpDown = inputManager.GetIsKeyDown(Input::Key::Up) || inputManager.GetIsKeyDown(Input::Key::W);
 		mCamera->mKeys.mIsDownDown = inputManager.GetIsKeyDown(Input::Key::Down) || inputManager.GetIsKeyDown(Input::Key::S);
@@ -197,7 +199,13 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 		mCamera->mKeys.mIsShiftDown = inputManager.GetIsKeyDown(Input::Key::LeftShift);
 		mCamera->mKeys.mIsSpaceDown = inputManager.GetIsKeyDown(Input::Key::Spacebar);
 		mCamera->mKeys.mIsCtrlDown = inputManager.GetIsKeyDown(Input::Key::LeftControl);
-		mCamera->mCursor.mScrollWheelDelta = inputManager.GetScrollOffset().y;
+		mCamera->mMouse.mScrollWheelDelta = inputManager.GetScrollOffset().y;
+		mCamera->mMouse.mIsLeftDown = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left);
+		mCamera->mMouse.mIsMiddleDown = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle);
+		mCamera->mMouse.mDeltaX = inputManager.GetMousePositionDelta().x;
+		mCamera->mMouse.mDeltaY = inputManager.GetMousePositionDelta().y;
+
+		inputManager.FlushInput(); // TODO: Fix this is bad solution to having frame-based offsets
 
 		mCamera->Update(mFrametime);
 	}

@@ -27,6 +27,8 @@ namespace Input
 		InputManager(InputManager const&) = delete;
 		void operator=(InputManager const&) = delete;
 
+		void FlushInput();
+
 		void OnKeyAction(int aKey, int aScancode, bool aIsKeyDown, int aMode);
 		void OnCursorAction(double aXPosition, double aYPosition);
 		void OnScrollAction(double aXOffset, double aYOffset);
@@ -34,6 +36,7 @@ namespace Input
 
 		const glm::vec2& GetMousePosition() const { return mMousePosition; }
 		const glm::vec2& GetScrollOffset() const { return mScrollOffset; }
+		glm::vec2 GetMousePositionDelta() const { return mMousePosition - mPreviousMousePosition; }
 		bool GetIsKeyDown(Key aKey) const;
 		bool GetIsMouseButtonDown(MouseButtons aMouseButton) const;
 
@@ -46,6 +49,7 @@ namespace Input
 	private:
 		std::map<Key, bool> myKeys{};
 		std::map<MouseButtons, bool> myMouseButtons{};
+		glm::vec2 mPreviousMousePosition{};
 		glm::vec2 mMousePosition{};
 		glm::vec2 mScrollOffset{};
 	};

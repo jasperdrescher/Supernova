@@ -24,6 +24,11 @@ namespace Input
 		return iterator->second;
 	}
 
+	void InputManager::FlushInput()
+	{
+		mScrollOffset = glm::vec2{};
+	}
+
 	void InputManager::OnKeyAction(int aKey, int /*aScancode*/, bool aIsKeyDown, int /*aMode*/)
 	{
 		myKeys[GetTranslatedKey(aKey)] = aIsKeyDown;
@@ -31,6 +36,8 @@ namespace Input
 
 	void InputManager::OnCursorAction(double aXPosition, double aYPosition)
 	{
+		mPreviousMousePosition = mMousePosition;
+
 		mMousePosition.x = static_cast<float>(aXPosition);
 		mMousePosition.y = static_cast<float>(aYPosition);
 	}

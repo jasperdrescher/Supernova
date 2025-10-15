@@ -19,6 +19,7 @@ Camera::Camera()
 	, mZFar{0.0f}
 	, mRotationSpeed{1.0f}
 	, mMovementSpeed{1.0f}
+	, mZoomSpeed{1.0f}
 	, mFastMovementSpeedMultiplier{4.0f}
 	, mFlipY{false}
 {
@@ -124,6 +125,11 @@ void Camera::SetMovementSpeed(float aMovementSpeed)
 	mMovementSpeed = aMovementSpeed;
 }
 
+void Camera::SetZoomSpeed(float aZoomSpeed)
+{
+	mZoomSpeed = aZoomSpeed;
+}
+
 void Camera::Update(float aDeltaTime)
 {
 	if (mType == CameraType::FirstPerson)
@@ -160,10 +166,14 @@ void Camera::Update(float aDeltaTime)
 	}
 	else if (mType == CameraType::LookAt)
 	{
-		if (mCursor.mScrollWheelDelta != 0.0f)
-		{
-			Translate(glm::vec3(0.0f, 0.0f, mCursor.mScrollWheelDelta * 0.005f));
-		}
+		if (mMouse.mScrollWheelDelta != 0.0f)
+			Translate(glm::vec3(0.0f, 0.0f, mMouse.mScrollWheelDelta * mZoomSpeed * aDeltaTime));
+
+		if (mMouse.mIsLeftDown)
+			Rotate(glm::vec3(mMouse.mDeltaY * mRotationSpeed * aDeltaTime, -mMouse.mDeltaX * mRotationSpeed * aDeltaTime, 0.0f));
+		
+		if (mMouse.mIsMiddleDown)
+			Translate(glm::vec3(-mMouse.mDeltaX * mMovementSpeed * aDeltaTime, -mMouse.mDeltaY * mMovementSpeed * aDeltaTime, 0.0f));
 	}
 
 	UpdateViewMatrix();
