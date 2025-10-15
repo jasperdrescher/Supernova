@@ -19,6 +19,10 @@ Engine::Engine()
 	mVulkanWindow = new Window(mEngineProperties);
 	mVulkanRenderer = new VulkanRenderer(mEngineProperties, mVulkanWindow);
 	mTimer = new Time::Timer();
+
+	mEngineProperties->mApplicationName = "Supernova Editor";
+	mEngineProperties->mEngineName = "Supernova Engine";
+	mEngineProperties->mEngineMinorVersion = 1;
 }
 
 Engine::~Engine()
@@ -31,10 +35,6 @@ Engine::~Engine()
 
 void Engine::Start()
 {
-	mEngineProperties->mApplicationName = "Supernova Editor";
-	mEngineProperties->mEngineName = "Supernova Engine";
-	mEngineProperties->mEngineMinorVersion = 1;
-
 	FileLoader::PrintWorkingDirectory();
 
 	mVulkanWindow->InitializeWindow();
