@@ -76,8 +76,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
 	mEngineProperties->mIsValidationEnabled = true;
 	mEngineProperties->mIsVSyncEnabled = true;
-	mEngineProperties->mApplicationName = "Supernova Editor";
-	mEngineProperties->mEngineName = "Supernova Engine";
 
 	mFramebufferWidth = mEngineProperties->mWindowWidth;
 	mFramebufferHeight = mEngineProperties->mWindowHeight;
@@ -814,24 +812,25 @@ void VulkanRenderer::CreateVkInstance()
 		}
 	}
 
-	const VkApplicationInfo vkApplicationInfo{
+	const VkApplicationInfo applicationInfo{
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.pApplicationName = mEngineProperties->mApplicationName.c_str(),
 		.pEngineName = mEngineProperties->mEngineName.c_str(),
-		.apiVersion = mEngineProperties->mAPIVersion,
+		.engineVersion = VK_MAKE_VERSION(mEngineProperties->mEngineMajorVersion, mEngineProperties->mEngineMinorVersion, mEngineProperties->mEnginePatchVersion),
+		.apiVersion = mEngineProperties->mAPIVersion
 	};
 
-	VkInstanceCreateInfo vkInstanceCreateInfo{
+	VkInstanceCreateInfo instanceCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		.pApplicationInfo = &vkApplicationInfo
+		.pApplicationInfo = &applicationInfo
 	};
 
 	if (mEngineProperties->mIsValidationEnabled)
 	{
 		VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo{};
 		VulkanDebug::SetupDebugingMessengerCreateInfo(debugUtilsMessengerCreateInfo);
-		debugUtilsMessengerCreateInfo.pNext = vkInstanceCreateInfo.pNext;
-		vkInstanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
+		debugUtilsMessengerCreateInfo.pNext = instanceCreateInfo.pNext;
+		instanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
 	}
 
 	if (mEngineProperties->mIsValidationEnabled || std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
@@ -853,8 +852,8 @@ void VulkanRenderer::CreateVkInstance()
 
 	if (!mInstanceExtensions.empty())
 	{
-		vkInstanceCreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(mInstanceExtensions.size());
-		vkInstanceCreateInfo.ppEnabledExtensionNames = mInstanceExtensions.data();
+		instanceCreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(mInstanceExtensions.size());
+		instanceCreateInfo.ppEnabledExtensionNames = mInstanceExtensions.data();
 
 #ifndef NDEBUG
 		for (const char* instanceExtension : mInstanceExtensions)
@@ -884,8 +883,8 @@ void VulkanRenderer::CreateVkInstance()
 		}
 		if (isValidationLayerPresent)
 		{
-			vkInstanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
-			vkInstanceCreateInfo.enabledLayerCount = 1;
+			instanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
+			instanceCreateInfo.enabledLayerCount = 1;
 		}
 		else
 		{
@@ -900,14 +899,14 @@ void VulkanRenderer::CreateVkInstance()
 	{
 		const VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT,
-			.pNext = vkInstanceCreateInfo.pNext,
+			.pNext = instanceCreateInfo.pNext,
 			.settingCount = static_cast<std::uint32_t>(mEnabledLayerSettings.size()),
 			.pSettings = mEnabledLayerSettings.data(),
 		};
-		vkInstanceCreateInfo.pNext = &layerSettingsCreateInfo;
+		instanceCreateInfo.pNext = &layerSettingsCreateInfo;
 	}
 
-	const VkResult result = vkCreateInstance(&vkInstanceCreateInfo, nullptr, &mVkInstance);
+	const VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &mVkInstance);
 	if (result != VK_SUCCESS)
 	{
 		throw std::runtime_error(std::format("Could not create Vulkan instance: {}", VulkanTools::GetErrorString(result)));

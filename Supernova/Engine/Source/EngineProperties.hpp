@@ -11,6 +11,9 @@ struct EngineProperties
 	std::string mApplicationName;
 	std::string mEngineName;
 	std::uint32_t mAPIVersion;
+	std::uint32_t mEngineMajorVersion;
+	std::uint32_t mEngineMinorVersion;
+	std::uint32_t mEnginePatchVersion;
 	int mWindowWidth;
 	int mWindowHeight;
 	bool mIsMinimized;
