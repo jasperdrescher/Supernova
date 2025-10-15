@@ -33,7 +33,7 @@ namespace Input
 		void OnMouseButtonAction(int aButton, int aAction, int aModifier);
 
 		const glm::vec2& GetMousePosition() const { return mMousePosition; }
-		const glm::vec2& GetScrollOffset() const { return mMousePosition; }
+		const glm::vec2& GetScrollOffset() const { return mScrollOffset; }
 		bool GetIsKeyDown(Key aKey) const;
 		bool GetIsMouseButtonDown(MouseButtons aMouseButton) const;
 

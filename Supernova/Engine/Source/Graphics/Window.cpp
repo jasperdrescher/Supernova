@@ -62,6 +62,7 @@ void Window::InitializeWindow()
 	glfwSetKeyCallback(mGLFWWindow, KeyCallback);
 	glfwSetMouseButtonCallback(mGLFWWindow, MouseButtonCallback);
 	glfwSetCursorPosCallback(mGLFWWindow, CursorPositionCallback);
+	glfwSetScrollCallback(mGLFWWindow, ScrollCallback);
 	glfwSetFramebufferSizeCallback(mGLFWWindow, FramebufferResizeCallback);
 	glfwSetWindowSizeCallback(mGLFWWindow, WindowResizeCallback);
 	glfwSetWindowIconifyCallback(mGLFWWindow, WindowMinimizedCallback);
@@ -136,6 +137,11 @@ void Window::MouseButtonCallback(GLFWwindow* /*window*/, int aButton, int aActio
 void Window::CursorPositionCallback(GLFWwindow* /*aWindow*/, double aX, double aY)
 {
 	Input::InputManager::GetInstance().OnCursorAction(aX, aY);
+}
+
+void Window::ScrollCallback(GLFWwindow* /*aWindow*/, double aX, double aY)
+{
+	Input::InputManager::GetInstance().OnScrollAction(aX, aY);
 }
 
 void Window::FramebufferResizeCallback(GLFWwindow* aWindow, int /*aWidth*/, int /*aHeight*/)

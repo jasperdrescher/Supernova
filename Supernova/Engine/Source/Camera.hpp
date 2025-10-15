@@ -33,6 +33,13 @@ public:
 		bool mIsCtrlDown;
 	} mKeys;
 
+	struct Cursor
+	{
+		Cursor() : mScrollWheelDelta{0.0f} {}
+
+		float mScrollWheelDelta;
+	} mCursor;
+
 	void SetType(CameraType aType);
 	void SetPerspective(float aFoV, float aAspectRatio, float aZNear, float aZFar);
 	void UpdateAspectRatio(float aAspectRatio);

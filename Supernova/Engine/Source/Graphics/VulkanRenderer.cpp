@@ -197,6 +197,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 		mCamera->mKeys.mIsShiftDown = inputManager.GetIsKeyDown(Input::Key::LeftShift);
 		mCamera->mKeys.mIsSpaceDown = inputManager.GetIsKeyDown(Input::Key::Spacebar);
 		mCamera->mKeys.mIsCtrlDown = inputManager.GetIsKeyDown(Input::Key::LeftControl);
+		mCamera->mCursor.mScrollWheelDelta = inputManager.GetScrollOffset().y;
 
 		mCamera->Update(mFrametime);
 	}

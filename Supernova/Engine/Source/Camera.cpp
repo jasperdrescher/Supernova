@@ -160,7 +160,10 @@ void Camera::Update(float aDeltaTime)
 	}
 	else if (mType == CameraType::LookAt)
 	{
-		
+		if (mCursor.mScrollWheelDelta != 0.0f)
+		{
+			Translate(glm::vec3(0.0f, 0.0f, mCursor.mScrollWheelDelta * 0.005f));
+		}
 	}
 
 	UpdateViewMatrix();
