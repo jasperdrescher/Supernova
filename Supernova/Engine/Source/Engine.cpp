@@ -6,6 +6,9 @@
 #include "Graphics/Window.hpp"
 #include "Timer.hpp"
 
+#include <format>
+#include <iostream>
+
 Engine::Engine()
 	: mEngineProperties{nullptr}
 	, mVulkanWindow{nullptr}
@@ -35,6 +38,8 @@ Engine::~Engine()
 
 void Engine::Start()
 {
+	std::cout << std::format("{} v{}.{}.{}", mEngineProperties->mEngineName, mEngineProperties->mEngineMajorVersion, mEngineProperties->mEngineMinorVersion, mEngineProperties->mEnginePatchVersion) << std::endl;
+
 	FileLoader::PrintWorkingDirectory();
 
 	mVulkanWindow->InitializeWindow();
