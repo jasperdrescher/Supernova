@@ -89,10 +89,10 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 
 	// Setup a default look-at camera
 	mCamera = new Camera();
-	mCamera->SetType(CameraType::LookAt);
+	mCamera->SetType(CameraType::FirstPerson);
 	mCamera->SetPosition(glm::vec3(5.5f, -1.85f, -18.5f));
 	mCamera->SetRotation(glm::vec3(-17.2f, -4.7f, 0.0f));
-	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 1.0f, 256.0f);
+	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 0.1f, 256.0f);
 
 	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, glm::vec3{1.0f, -2.0f, 10.0f});
 	mVoyagerModelMatrix = glm::scale(mVoyagerModelMatrix, glm::vec3{0.2f});
@@ -195,6 +195,8 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 		mCamera->mKeys.mIsDownDown = inputManager.GetIsKeyDown(Input::Key::Down) || inputManager.GetIsKeyDown(Input::Key::S);
 		mCamera->mKeys.mIsLeftDown = inputManager.GetIsKeyDown(Input::Key::Left) || inputManager.GetIsKeyDown(Input::Key::A);
 		mCamera->mKeys.mIsShiftDown = inputManager.GetIsKeyDown(Input::Key::LeftShift);
+		mCamera->mKeys.mIsSpaceDown = inputManager.GetIsKeyDown(Input::Key::Spacebar);
+		mCamera->mKeys.mIsCtrlDown = inputManager.GetIsKeyDown(Input::Key::LeftControl);
 
 		mCamera->Update(mFrametime);
 	}
