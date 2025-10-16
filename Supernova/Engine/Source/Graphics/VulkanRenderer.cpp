@@ -169,7 +169,7 @@ void VulkanRenderer::InitializeRenderer()
 
 void VulkanRenderer::PrepareUpdate()
 {
-	mLastTimestamp = std::chrono::high_resolution_clock::now();
+	mLastTimestamp = std::chrono::steady_clock::now();
 }
 
 void VulkanRenderer::EndUpdate()
