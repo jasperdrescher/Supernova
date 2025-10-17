@@ -73,7 +73,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 {
 	mFrameTimer = new Time::Timer();
 	
-	mEngineProperties->mAPIVersion = VK_API_VERSION_1_3;
+	mEngineProperties->mAPIVersion = VK_API_VERSION_1_4;
 	mEngineProperties->mIsValidationEnabled = true;
 	mEngineProperties->mIsVSyncEnabled = true;
 
@@ -81,7 +81,6 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	mFramebufferHeight = mEngineProperties->mWindowHeight;
 
 	mVkPhysicalDevice13Features.dynamicRendering = VK_TRUE;
-	mVkPhysicalDevice13Features.synchronization2 = VK_TRUE;
 
 	mImGuiOverlay = new ImGuiOverlay();
 
