@@ -129,7 +129,7 @@ std::uint32_t VulkanDevice::GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) cons
 *
 * @return VkResult of the device creation call
 */
-void VulkanDevice::CreateLogicalDevice(std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain, VkQueueFlags aRequestedQueueTypes)
+void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& aEnabledExtensions, void* aNextChain, bool aUseSwapChain, VkQueueFlags aRequestedQueueTypes)
 {
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 

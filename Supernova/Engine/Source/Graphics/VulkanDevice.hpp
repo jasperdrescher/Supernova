@@ -27,7 +27,7 @@ struct VulkanDevice
 	VulkanDevice();
 	~VulkanDevice();
 
-	void CreateLogicalDevice(std::vector<const char*> aEnabledExtensions, void* aNextChain, bool aUseSwapChain = true, VkQueueFlags aRequestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+	void CreateLogicalDevice(const std::vector<const char*>& aEnabledExtensions, void* aNextChain, bool aUseSwapChain = true, VkQueueFlags aRequestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
 	void CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice);
 	void FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, VkCommandPool aPool, bool aIsFree = true) const;
 	void FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, bool aIsFree = true) const;
