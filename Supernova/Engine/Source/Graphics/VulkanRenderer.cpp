@@ -930,11 +930,11 @@ void VulkanRenderer::CreateVulkanDevice()
 		throw std::runtime_error(std::format("No device with Vulkan support found: {}", VulkanTools::GetErrorString(VK_ERROR_DEVICE_LOST)));
 	}
 
-	std::vector<VkPhysicalDevice> vkPhysicalDevices(physicalDeviceCount);
-	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, vkPhysicalDevices.data()));
+	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, physicalDevices.data()));
 
 	std::uint32_t selectedDevice = 0;
-	VkPhysicalDevice vkPhysicalDevice = vkPhysicalDevices[selectedDevice];
+	VkPhysicalDevice vkPhysicalDevice = physicalDevices[selectedDevice];
 	mVulkanDevice = new VulkanDevice();
 	mVulkanDevice->CreatePhysicalDevice(vkPhysicalDevice);
 	mVulkanDevice->CreateLogicalDevice(mEnabledDeviceExtensions, &mVkPhysicalDevice13Features, true, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);

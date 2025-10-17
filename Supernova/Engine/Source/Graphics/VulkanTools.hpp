@@ -24,6 +24,8 @@ namespace VulkanTools
 	/** @brief Returns an error code as a string */
 	std::string GetErrorString(VkResult aErrorCode);
 
+	std::string GetPhysicalDeviceTypeString(VkPhysicalDeviceType aType);
+
 	// Selected a suitable supported depth format starting with 32 bit down to 16 bit
 	// Returns false if none of the depth formats in the list is supported by the device
 	VkBool32 GetSupportedDepthFormat(VkPhysicalDevice aVkPhysicalDevice, VkFormat* aVkDepthFormat);

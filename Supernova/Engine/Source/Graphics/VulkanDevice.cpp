@@ -259,6 +259,10 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 	// Device properties also contain limits and sparse properties
 	vkGetPhysicalDeviceProperties(aVkPhysicalDevice, &mVkPhysicalDeviceProperties);
 
+	std::cout << "Device: " << mVkPhysicalDeviceProperties.deviceName << std::endl;
+	std::cout << " Type: " << VulkanTools::GetPhysicalDeviceTypeString(mVkPhysicalDeviceProperties.deviceType) << std::endl;
+	std::cout << " API: " << (mVkPhysicalDeviceProperties.apiVersion >> 22) << "." << ((mVkPhysicalDeviceProperties.apiVersion >> 12) & 0x3ff) << "." << (mVkPhysicalDeviceProperties.apiVersion & 0xfff) << std::endl;
+
 	// Features should be checked by the examples before using them
 	vkGetPhysicalDeviceFeatures(aVkPhysicalDevice, &mVkPhysicalDeviceFeatures);
 

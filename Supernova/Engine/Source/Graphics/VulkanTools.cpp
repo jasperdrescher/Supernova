@@ -55,6 +55,21 @@ namespace VulkanTools
 		}
 	}
 
+	std::string GetPhysicalDeviceTypeString(VkPhysicalDeviceType aType)
+	{
+		switch (aType)
+		{
+#define STR(r) case VK_PHYSICAL_DEVICE_TYPE_ ##r: return #r
+			STR(OTHER);
+			STR(INTEGRATED_GPU);
+			STR(DISCRETE_GPU);
+			STR(VIRTUAL_GPU);
+			STR(CPU);
+#undef STR
+			default: return "UNKNOWN_DEVICE_TYPE";
+		}
+	}
+
 	VkBool32 GetSupportedDepthFormat(VkPhysicalDevice aVkPhysicalDevice, VkFormat* aVkDepthFormat)
 	{
 		// Since all depth formats may be optional, we need to find a suitable depth format to use
