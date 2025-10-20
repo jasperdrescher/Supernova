@@ -74,6 +74,9 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mPlanetModelMatrix{1.0f}
 	, mShouldShowEditorInfo{true}
 	, mShouldShowProfiler{true}
+#ifdef _DEBUG
+	, mShouldDrawWireframe{true}
+#endif
 {
 	mFrameTimer = new Time::Timer();
 	
@@ -125,6 +128,11 @@ VulkanRenderer::~VulkanRenderer()
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mRocks, nullptr);
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mStarfield, nullptr);
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mVoyager, nullptr);
+
+#ifdef _DEBUG
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mPlanetWireframe, nullptr);
+#endif
+
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptorSetLayout, nullptr);
 		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, nullptr);
@@ -494,6 +502,16 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	inputState.vertexAttributeDescriptionCount = 4;
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mPlanet));
 
+#ifdef _DEBUG
+	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid)
+	{
+		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mPlanetWireframe));
+
+		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+	}
+#endif
+
 	const std::filesystem::path rockVertexShaderPath = "Instancing/Instancing_vert.spv";
 	const std::filesystem::path rockFragmentShaderPath = "Instancing/Instancing_frag.spv";
 	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
@@ -666,7 +684,11 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mStarfield);
 	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
+#ifdef _DEBUG
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mPlanetWireframe : mVkPipelines.mPlanet);
+#else
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
+#endif
 
 	mVulkanPushConstant.mModelMatrix = mPlanetModelMatrix;
 	vkCmdPushConstants(commandBuffer, mVkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VulkanPushConstant), &mVulkanPushConstant);
@@ -874,7 +896,7 @@ void VulkanRenderer::CreateVkInstance()
 		instanceCreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(mInstanceExtensions.size());
 		instanceCreateInfo.ppEnabledExtensionNames = mInstanceExtensions.data();
 
-#ifndef NDEBUG
+#ifdef _DEBUG
 		for (const char* instanceExtension : mInstanceExtensions)
 		{
 			std::cout << "Enabling instance extension " << instanceExtension << std::endl;
@@ -1272,6 +1294,9 @@ void VulkanRenderer::OnUpdateUIOverlay()
 		{
 			ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
 			ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
+#ifdef _DEBUG
+			ImGui::Text("fillModeNonSolid is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid ? "enabled" : "disabled");
+#endif
 			ImGui::Text("VSync is %s", mEngineProperties->mIsVSyncEnabled ? "enabled" : "disabled");
 			ImGui::Text("Validation Layers is %s", mEngineProperties->mIsValidationEnabled ? "enabled" : "disabled");
 		}
@@ -1281,6 +1306,10 @@ void VulkanRenderer::OnUpdateUIOverlay()
 		if (ImGui::CollapsingHeader("Scene Details", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			ImGui::Text("Rock instances: %d", mIndirectInstanceCount);
+
+#ifdef _DEBUG
+			ImGui::Checkbox("Draw wireframe", &mShouldDrawWireframe);
+#endif
 
 			ImGui::NewLine();
 

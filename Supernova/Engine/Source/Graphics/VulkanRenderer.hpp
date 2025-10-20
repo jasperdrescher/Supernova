@@ -93,6 +93,7 @@ private:
 		VkPipeline mVoyager{VK_NULL_HANDLE};
 		VkPipeline mStarfield{VK_NULL_HANDLE};
 		VkPipeline mPlanet{VK_NULL_HANDLE};
+		VkPipeline mPlanetWireframe{VK_NULL_HANDLE};
 		VkPipeline mRocks{VK_NULL_HANDLE};
 	} mVkPipelines{}
 	;
@@ -159,4 +160,7 @@ private:
 	float mFPSTimerInterval;
 	bool mShouldShowEditorInfo;
 	bool mShouldShowProfiler;
+#ifdef _DEBUG
+	bool mShouldDrawWireframe;
+#endif
 };

@@ -276,6 +276,11 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 		mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect = VK_TRUE;
 	}
 
+	if (mVkPhysicalDeviceFeatures.fillModeNonSolid)
+	{
+		mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid = VK_TRUE;
+	}
+
 	// Memory properties are used regularly for creating all kinds of buffers
 	vkGetPhysicalDeviceMemoryProperties(aVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);
 
