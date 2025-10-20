@@ -1002,7 +1002,7 @@ void VulkanRenderer::PrepareInstanceData()
 	std::vector<VulkanInstanceData> instanceData;
 	instanceData.resize(mIndirectInstanceCount);
 
-	std::default_random_engine RandomGenerator(std::random_device{}());
+	std::default_random_engine randomGenerator(std::random_device{}());
 	std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
 	std::uniform_int_distribution<std::uint32_t> randomTextureIndex(0, mTextures.mRockTextureArray.mLayerCount);
 
@@ -1013,21 +1013,21 @@ void VulkanRenderer::PrepareInstanceData()
 		glm::vec2 ring1{14.0f, 18.0f};
 
 		// Inner ring
-		const float rhoInner = std::sqrt((std::pow(ring0[1], 2.0f) - std::pow(ring0[0], 2.0f)) * uniformDist(RandomGenerator) + std::pow(ring0[0], 2.0f));
-		const float thetaInner = static_cast<float>(2.0f * std::numbers::pi * uniformDist(RandomGenerator));
-		instanceData[i].mPosition = glm::vec3(rhoInner * std::cos(thetaInner), uniformDist(RandomGenerator) * 0.5f - 0.25f, rhoInner * std::sin(thetaInner));
-		instanceData[i].mRotation = glm::vec3(std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator));
-		instanceData[i].mScale = 1.5f + uniformDist(RandomGenerator) - uniformDist(RandomGenerator);
-		instanceData[i].mTextureIndex = randomTextureIndex(RandomGenerator);
+		const float rhoInner = std::sqrt((std::pow(ring0[1], 2.0f) - std::pow(ring0[0], 2.0f)) * uniformDist(randomGenerator) + std::pow(ring0[0], 2.0f));
+		const float thetaInner = static_cast<float>(2.0f * std::numbers::pi * uniformDist(randomGenerator));
+		instanceData[i].mPosition = glm::vec3(rhoInner * std::cos(thetaInner), uniformDist(randomGenerator) * 0.5f - 0.25f, rhoInner * std::sin(thetaInner));
+		instanceData[i].mRotation = glm::vec3(std::numbers::pi * uniformDist(randomGenerator), std::numbers::pi * uniformDist(randomGenerator), std::numbers::pi * uniformDist(randomGenerator));
+		instanceData[i].mScale = 1.5f + uniformDist(randomGenerator) - uniformDist(randomGenerator);
+		instanceData[i].mTextureIndex = randomTextureIndex(randomGenerator);
 		instanceData[i].mScale *= 0.75f;
 
 		// Outer ring
-		const float rhoOuter = std::sqrt((std::pow(ring1[1], 2.0f) - std::pow(ring1[0], 2.0f)) * uniformDist(RandomGenerator) + std::pow(ring1[0], 2.0f));
-		const float thetaOuter = static_cast<float>(2.0f * std::numbers::pi * uniformDist(RandomGenerator));
-		instanceData[i + mIndirectInstanceCount / 2].mPosition = glm::vec3(rhoOuter * std::cos(thetaOuter), uniformDist(RandomGenerator) * 0.5f - 0.25f, rhoOuter * std::sin(thetaOuter));
-		instanceData[i + mIndirectInstanceCount / 2].mRotation = glm::vec3(std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator), std::numbers::pi * uniformDist(RandomGenerator));
-		instanceData[i + mIndirectInstanceCount / 2].mScale = 1.5f + uniformDist(RandomGenerator) - uniformDist(RandomGenerator);
-		instanceData[i + mIndirectInstanceCount / 2].mTextureIndex = randomTextureIndex(RandomGenerator);
+		const float rhoOuter = std::sqrt((std::pow(ring1[1], 2.0f) - std::pow(ring1[0], 2.0f)) * uniformDist(randomGenerator) + std::pow(ring1[0], 2.0f));
+		const float thetaOuter = static_cast<float>(2.0f * std::numbers::pi * uniformDist(randomGenerator));
+		instanceData[i + mIndirectInstanceCount / 2].mPosition = glm::vec3(rhoOuter * std::cos(thetaOuter), uniformDist(randomGenerator) * 0.5f - 0.25f, rhoOuter * std::sin(thetaOuter));
+		instanceData[i + mIndirectInstanceCount / 2].mRotation = glm::vec3(std::numbers::pi * uniformDist(randomGenerator), std::numbers::pi * uniformDist(randomGenerator), std::numbers::pi * uniformDist(randomGenerator));
+		instanceData[i + mIndirectInstanceCount / 2].mScale = 1.5f + uniformDist(randomGenerator) - uniformDist(randomGenerator);
+		instanceData[i + mIndirectInstanceCount / 2].mTextureIndex = randomTextureIndex(randomGenerator);
 		instanceData[i + mIndirectInstanceCount / 2].mScale *= 0.75f;
 	}
 
