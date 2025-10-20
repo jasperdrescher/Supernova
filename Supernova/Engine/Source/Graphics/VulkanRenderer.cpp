@@ -72,6 +72,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mVoyagerModelMatrix{1.0f}
 	, mPlanetModelMatrix{1.0f}
+	, mShouldShowProfiler{true}
 {
 	mFrameTimer = new Time::Timer();
 	
@@ -1243,7 +1244,7 @@ void VulkanRenderer::UpdateUIOverlay()
 	ImGui::PopItemWidth();
 	ImGui::End();
 
-	ImGui::Begin("Simple Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
+	ImGui::Begin("Simple Profiler", &mShouldShowProfiler, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
 	SimpleProfiler::ShowImguiProfiler();
 	ImGui::End();
 

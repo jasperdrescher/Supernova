@@ -157,5 +157,5 @@ private:
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
 	float mFrametime;
 	float mFPSTimerInterval;
-	bool mShouldClose;
+	bool mShouldShowProfiler;
 };
