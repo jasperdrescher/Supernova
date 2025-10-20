@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <format>
 #include <stdexcept>
+#include <Profiler/SimpleProfiler.hpp>
 
 namespace WindowLocal
 {
@@ -94,6 +95,8 @@ void Window::CreateWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurfa
 
 void Window::UpdateWindow()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("Window::UpdateWindow");
+
 	glfwPollEvents();
 
 	mEngineProperties->mIsFocused = glfwGetWindowAttrib(mGLFWWindow, GLFW_FOCUSED);

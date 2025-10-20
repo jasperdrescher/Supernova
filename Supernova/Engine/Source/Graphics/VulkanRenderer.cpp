@@ -13,6 +13,8 @@
 #include "VulkanTools.hpp"
 #include "VulkanTypes.hpp"
 #include "Window.hpp"
+#include "Profiler/SimpleProfiler.hpp"
+#include "Profiler/SimpleProfilerImGui.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -181,6 +183,8 @@ void VulkanRenderer::EndUpdate()
 
 void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::UpdateRenderer");
+
 	if (!mEngineProperties->mIsMinimized)
 	{
 		if (mEngineProperties->mIsRendererPrepared)
@@ -552,6 +556,8 @@ void VulkanRenderer::PrepareVulkanResources()
 
 void VulkanRenderer::PrepareFrame()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::PrepareFrame");
+
 	// Use a fence to wait until the command buffer has finished execution before using it again
 	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
 	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex]));
@@ -578,6 +584,8 @@ void VulkanRenderer::PrepareFrame()
 
 void VulkanRenderer::BuildGraphicsCommandBuffer()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::BuildGraphicsCommandBuffer");
+
 	VkCommandBuffer commandBuffer = mVkCommandBuffers[mCurrentBufferIndex];
 
 	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
@@ -712,6 +720,8 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 
 void VulkanRenderer::UpdateModelMatrix()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::UpdateModelMatrix");
+
 	const glm::vec3 pivotPoint = glm::vec3{20.0f, 0.0f, 80.0f};
 	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, -pivotPoint);
 
@@ -724,6 +734,8 @@ void VulkanRenderer::UpdateModelMatrix()
 
 void VulkanRenderer::UpdateUniformBuffers()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::UpdateUniformBuffers");
+
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mViewMatrix = mCamera->mMatrices.mView;
 	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
@@ -734,6 +746,8 @@ void VulkanRenderer::UpdateUniformBuffers()
 
 void VulkanRenderer::SubmitFrame()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::SubmitFrame");
+
 	const VkPipelineStageFlags waitPipelineStage{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	const VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -1075,6 +1089,8 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem
 
 void VulkanRenderer::RenderFrame()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::RenderFrame");
+
 	mFrameTimer->StartTimer();
 	
 	PrepareFrame();
@@ -1134,6 +1150,8 @@ void VulkanRenderer::CreateCommandPool()
 
 void VulkanRenderer::OnResizeWindow()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::OnResizeWindow");
+
 	if (!mEngineProperties->mIsRendererPrepared)
 		return;
 	
@@ -1193,6 +1211,8 @@ void VulkanRenderer::DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer)
 
 void VulkanRenderer::UpdateUIOverlay()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::UpdateUIOverlay");
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize = ImVec2(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight));
 	io.DeltaTime = mFrametime;
@@ -1205,6 +1225,7 @@ void VulkanRenderer::UpdateUIOverlay()
 
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+
 	ImGui::SetNextWindowPos(ImVec2(10.0f * mImGuiOverlay->GetScale(), 10.0f * mImGuiOverlay->GetScale()));
 	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
 	ImGui::Begin(mEngineProperties->mApplicationName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
@@ -1221,6 +1242,11 @@ void VulkanRenderer::UpdateUIOverlay()
 
 	ImGui::PopItemWidth();
 	ImGui::End();
+
+	ImGui::Begin("Simple Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
+	SimpleProfiler::ShowImguiProfiler();
+	ImGui::End();
+
 	ImGui::PopStyleVar();
 	ImGui::Render();
 

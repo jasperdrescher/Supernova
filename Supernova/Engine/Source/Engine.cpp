@@ -8,6 +8,7 @@
 
 #include <format>
 #include <iostream>
+#include <Profiler/SimpleProfiler.hpp>
 
 Engine::Engine()
 	: mEngineProperties{nullptr}
@@ -52,6 +53,8 @@ void Engine::Run()
 
 	while (!mVulkanWindow->ShouldClose())
 	{
+		SIMPLE_PROFILER_PROFILE_SCOPE("Engine::Run");
+
 		mTimer->StartTimer();
 
 		mVulkanRenderer->UpdateRenderer(mDeltaTime);

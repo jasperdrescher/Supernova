@@ -16,6 +16,11 @@ namespace Time
 		mEndPoint = std::chrono::steady_clock::now();
 	}
 
+	double Timer::GetDurationMicroseconds() const
+	{
+		return Time::GetDurationMicroseconds(mEndPoint, mStartPoint);
+	}
+
 	double Timer::GetDurationMilliseconds() const
 	{
 		return Time::GetDurationMilliseconds(mEndPoint, mStartPoint);

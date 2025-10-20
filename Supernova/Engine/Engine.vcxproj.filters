@@ -31,6 +31,9 @@
     <Filter Include="Header Files\Input">
       <UniqueIdentifier>{d4168227-6ccc-4e6c-90bc-4ec6943662bc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Profiler">
+      <UniqueIdentifier>{4cb0c13f-c02b-4fe0-a6aa-2cc1ef18ae2f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Engine.cpp">
@@ -166,6 +169,15 @@
     </ClInclude>
     <ClInclude Include="Source\Time.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Profiler\SimpleSampler.hpp">
+      <Filter>Header Files\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Profiler\SimpleProfiler.hpp">
+      <Filter>Header Files\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Profiler\SimpleProfilerImGui.hpp">
+      <Filter>Header Files\Profiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -59,6 +59,9 @@
     <ClInclude Include="Source\Graphics\Window.hpp" />
     <ClInclude Include="Source\Input\InputKeys.hpp" />
     <ClInclude Include="Source\Input\InputManager.hpp" />
+    <ClInclude Include="Source\Profiler\SimpleProfilerImGui.hpp" />
+    <ClInclude Include="Source\Profiler\SimpleSampler.hpp" />
+    <ClInclude Include="Source\Profiler\SimpleProfiler.hpp" />
     <ClInclude Include="Source\Time.hpp" />
     <ClInclude Include="Source\UniqueIdentifier.hpp" />
   </ItemGroup>
@@ -126,7 +129,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;SIMPLE_PROFILER_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\EnTT\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -159,7 +162,7 @@ xcopy "$(ProjectDir)Resources\*.ttf" "$(TargetDir)Resources\" /s /i /y</Command>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;SIMPLE_PROFILER_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)Source;$(SolutionDir)ThirdParty\TinyGLTF\Include;$(SolutionDir)ThirdParty\GLFW\include;$(SolutionDir)ThirdParty\KTX\Include;$(SolutionDir)ThirdParty\STB\Include;$(VULKAN_SDK)\Include;$(SolutionDir)ThirdParty\GLM\Include;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\EnTT\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>

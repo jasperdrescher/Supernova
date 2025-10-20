@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <cmath>
+#include <Profiler/SimpleProfiler.hpp>
 
 Camera::Camera()
 	: mMatrices{}
@@ -132,6 +133,8 @@ void Camera::SetZoomSpeed(float aZoomSpeed)
 
 void Camera::Update(float aDeltaTime)
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("Camera::Update");
+
 	if (mType == CameraType::FirstPerson)
 	{
 		if (IsMoving())
