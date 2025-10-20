@@ -72,6 +72,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mVoyagerModelMatrix{1.0f}
 	, mPlanetModelMatrix{1.0f}
+	, mShouldShowEditorInfo{true}
 	, mShouldShowProfiler{true}
 {
 	mFrameTimer = new Time::Timer();
@@ -167,6 +168,7 @@ void VulkanRenderer::InitializeRenderer()
 {
 	InitializeVulkan();
 	PrepareVulkanResources();
+	mImGuiOverlay->InitializeStyle(mWindow->GetContentScaleForMonitor());
 }
 
 void VulkanRenderer::PrepareUpdate()
@@ -194,18 +196,21 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 		}
 
 		Input::InputManager& inputManager = Input::InputManager::GetInstance();
-		mCamera->mKeys.mIsRightDown = inputManager.GetIsKeyDown(Input::Key::Right) || inputManager.GetIsKeyDown(Input::Key::D);
-		mCamera->mKeys.mIsUpDown = inputManager.GetIsKeyDown(Input::Key::Up) || inputManager.GetIsKeyDown(Input::Key::W);
-		mCamera->mKeys.mIsDownDown = inputManager.GetIsKeyDown(Input::Key::Down) || inputManager.GetIsKeyDown(Input::Key::S);
-		mCamera->mKeys.mIsLeftDown = inputManager.GetIsKeyDown(Input::Key::Left) || inputManager.GetIsKeyDown(Input::Key::A);
-		mCamera->mKeys.mIsShiftDown = inputManager.GetIsKeyDown(Input::Key::LeftShift);
-		mCamera->mKeys.mIsSpaceDown = inputManager.GetIsKeyDown(Input::Key::Spacebar);
-		mCamera->mKeys.mIsCtrlDown = inputManager.GetIsKeyDown(Input::Key::LeftControl);
-		mCamera->mMouse.mScrollWheelDelta = inputManager.GetScrollOffset().y;
-		mCamera->mMouse.mIsLeftDown = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left);
-		mCamera->mMouse.mIsMiddleDown = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle);
-		mCamera->mMouse.mDeltaX = inputManager.GetMousePositionDelta().x;
-		mCamera->mMouse.mDeltaY = inputManager.GetMousePositionDelta().y;
+		if (!mImGuiOverlay->WantsToCaptureInput())
+		{
+			mCamera->mKeys.mIsRightDown = inputManager.GetIsKeyDown(Input::Key::Right) || inputManager.GetIsKeyDown(Input::Key::D);
+			mCamera->mKeys.mIsUpDown = inputManager.GetIsKeyDown(Input::Key::Up) || inputManager.GetIsKeyDown(Input::Key::W);
+			mCamera->mKeys.mIsDownDown = inputManager.GetIsKeyDown(Input::Key::Down) || inputManager.GetIsKeyDown(Input::Key::S);
+			mCamera->mKeys.mIsLeftDown = inputManager.GetIsKeyDown(Input::Key::Left) || inputManager.GetIsKeyDown(Input::Key::A);
+			mCamera->mKeys.mIsShiftDown = inputManager.GetIsKeyDown(Input::Key::LeftShift);
+			mCamera->mKeys.mIsSpaceDown = inputManager.GetIsKeyDown(Input::Key::Spacebar);
+			mCamera->mKeys.mIsCtrlDown = inputManager.GetIsKeyDown(Input::Key::LeftControl);
+			mCamera->mMouse.mScrollWheelDelta = inputManager.GetScrollOffset().y;
+			mCamera->mMouse.mIsLeftDown = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left);
+			mCamera->mMouse.mIsMiddleDown = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle);
+			mCamera->mMouse.mDeltaX = inputManager.GetMousePositionDelta().x;
+			mCamera->mMouse.mDeltaY = inputManager.GetMousePositionDelta().y;
+		}
 
 		inputManager.FlushInput(); // TODO: Fix this bad solution to having frame-based offsets
 
@@ -1227,26 +1232,20 @@ void VulkanRenderer::UpdateUIOverlay()
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 
-	ImGui::SetNextWindowPos(ImVec2(10.0f * mImGuiOverlay->GetScale(), 10.0f * mImGuiOverlay->GetScale()));
-	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
-	ImGui::Begin(mEngineProperties->mApplicationName.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-	ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
-	ImGui::Text("%i/%i", mFramebufferWidth, mFramebufferHeight);
-	ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mAverageFPS), mAverageFPS);
-	mImGuiOverlay->Vec2Text("Cursor position", inputManager.GetMousePosition());
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Windows"))
+		{
+			if (ImGui::MenuItem("Editor Info", nullptr, &mShouldShowEditorInfo)) {}
+			if (ImGui::MenuItem("Simple Profiler", nullptr, &mShouldShowProfiler)) {}
 
-	ImGui::PushItemWidth(110.0f * mImGuiOverlay->GetScale());
+			ImGui::EndMenu();
+		}
 
-	ImGui::NewLine();
+		ImGui::EndMainMenuBar();
+	}
 
 	OnUpdateUIOverlay();
-
-	ImGui::PopItemWidth();
-	ImGui::End();
-
-	ImGui::Begin("Simple Profiler", &mShouldShowProfiler, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
-	SimpleProfiler::ShowImguiProfiler();
-	ImGui::End();
 
 	ImGui::PopStyleVar();
 	ImGui::Render();
@@ -1256,37 +1255,61 @@ void VulkanRenderer::UpdateUIOverlay()
 
 void VulkanRenderer::OnUpdateUIOverlay()
 {
-	if (ImGui::CollapsingHeader("Render Settings", ImGuiTreeNodeFlags_DefaultOpen))
+	if (mShouldShowEditorInfo)
 	{
-		ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
-		ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
-		ImGui::Text("VSync is %s", mEngineProperties->mIsVSyncEnabled ? "enabled" : "disabled");
-		ImGui::Text("Validation Layers is %s", mEngineProperties->mIsValidationEnabled ? "enabled" : "disabled");
+		ImGui::SetNextWindowPos(ImVec2(10.0f * mImGuiOverlay->GetScale(), 40.0f * mImGuiOverlay->GetScale()));
+		ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+
+		ImGui::Begin("Editor Info", &mShouldShowEditorInfo, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+		ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
+		ImGui::Text("%i/%i", mFramebufferWidth, mFramebufferHeight);
+		ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mAverageFPS), mAverageFPS);
+		ImGui::PushItemWidth(110.0f * mImGuiOverlay->GetScale());
+
+		ImGui::NewLine();
+
+		if (ImGui::CollapsingHeader("Render Settings", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
+			ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
+			ImGui::Text("VSync is %s", mEngineProperties->mIsVSyncEnabled ? "enabled" : "disabled");
+			ImGui::Text("Validation Layers is %s", mEngineProperties->mIsValidationEnabled ? "enabled" : "disabled");
+		}
+
+		ImGui::NewLine();
+
+		if (ImGui::CollapsingHeader("Scene Details", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Text("Rock instances: %d", mIndirectInstanceCount);
+
+			ImGui::NewLine();
+
+			const glm::vec3& cameraPosition = mCamera->GetPosition();
+			mImGuiOverlay->Vec3Text("Camera position", cameraPosition);
+
+			const glm::vec3& cameraRotaiton = mCamera->GetRotation();
+			mImGuiOverlay->Vec3Text("Camera rotation", cameraRotaiton);
+
+			const glm::vec4& cameraViewPosition = mCamera->GetViewPosition();
+			mImGuiOverlay->Vec4Text("Camera view position", cameraViewPosition);
+
+			ImGui::NewLine();
+
+			mImGuiOverlay->Mat4Text("Voyager", mVoyagerModelMatrix);
+
+			ImGui::NewLine();
+
+			mImGuiOverlay->Mat4Text("Planet", mPlanetModelMatrix);
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::End();
 	}
 
-	ImGui::NewLine();
-
-	if (ImGui::CollapsingHeader("Scene Details", ImGuiTreeNodeFlags_DefaultOpen))
+	if (mShouldShowProfiler)
 	{
-		ImGui::Text("Rock instances: %d", mIndirectInstanceCount);
-
-		ImGui::NewLine();
-
-		const glm::vec3& cameraPosition = mCamera->GetPosition();
-		mImGuiOverlay->Vec3Text("Camera position", cameraPosition);
-
-		const glm::vec3& cameraRotaiton = mCamera->GetRotation();
-		mImGuiOverlay->Vec3Text("Camera rotation", cameraRotaiton);
-
-		const glm::vec4& cameraViewPosition = mCamera->GetViewPosition();
-		mImGuiOverlay->Vec4Text("Camera view position", cameraViewPosition);
-
-		ImGui::NewLine();
-
-		mImGuiOverlay->Mat4Text("Voyager", mVoyagerModelMatrix);
-
-		ImGui::NewLine();
-
-		mImGuiOverlay->Mat4Text("Planet", mPlanetModelMatrix);
+		ImGui::Begin("Simple Profiler", &mShouldShowProfiler, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
+		SimpleProfiler::ShowImguiProfiler();
+		ImGui::End();
 	}
 }

@@ -183,3 +183,10 @@ void Window::SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) cons
 	processIcon[0].height = aHeight;
 	glfwSetWindowIcon(mGLFWWindow, 1, processIcon);
 }
+
+float Window::GetContentScaleForMonitor() const
+{
+	float scaleX, scaleY;
+	glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &scaleX, &scaleY);
+	return scaleX;
+}

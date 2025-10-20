@@ -149,9 +149,9 @@ namespace SimpleProfiler
 			ImGuiTableFlags_Sortable))
 			return;
 
-		ImGui::TableSetupColumn("Scope", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_DefaultSort, 120.0f, 0);
-		ImGui::TableSetupColumn("Time (ms)", ImGuiTableColumnFlags_WidthStretch, 120.0f, 1);
-		ImGui::TableSetupColumn("% of Parent", ImGuiTableColumnFlags_WidthStretch, 80.0f, 2);
+		ImGui::TableSetupColumn("Scope", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_DefaultSort, 180.0f, 0);
+		ImGui::TableSetupColumn("Time (ms)", ImGuiTableColumnFlags_WidthStretch, 60.0f, 1);
+		ImGui::TableSetupColumn("% of Parent", ImGuiTableColumnFlags_WidthStretch, 60.0f, 2);
 		ImGui::TableSetupColumn("Location", ImGuiTableColumnFlags_WidthStretch, 120.0f, 3);
 
 		ImGui::TableHeadersRow();

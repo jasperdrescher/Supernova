@@ -23,6 +23,7 @@ public:
 
 	bool ShouldClose() const { return mShouldClose; }
 	std::vector<const char*> GetGlfwRequiredExtensions();
+	float GetContentScaleForMonitor() const;
 
 private:
 	static void KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aAction, int aMode);
@@ -34,6 +35,7 @@ private:
 	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);
 
 	void SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const;
+
 
 	std::filesystem::path mIconPath;
 	bool mShouldClose;
