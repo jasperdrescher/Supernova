@@ -4,11 +4,11 @@
 #include "FileLoader.hpp"
 #include "Graphics/VulkanRenderer.hpp"
 #include "Graphics/Window.hpp"
+#include "Profiler/SimpleProfiler.hpp"
 #include "Timer.hpp"
 
 #include <format>
 #include <iostream>
-#include <Profiler/SimpleProfiler.hpp>
 
 Engine::Engine()
 	: mEngineProperties{nullptr}

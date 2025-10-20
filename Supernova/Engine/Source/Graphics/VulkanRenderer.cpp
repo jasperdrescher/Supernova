@@ -5,6 +5,8 @@
 #include "FileLoader.hpp"
 #include "ImGuiOverlay.hpp"
 #include "Input/InputManager.hpp"
+#include "Profiler/SimpleProfiler.hpp"
+#include "Profiler/SimpleProfilerImGui.hpp"
 #include "Time.hpp"
 #include "Timer.hpp"
 #include "VulkanDebug.hpp"
@@ -13,8 +15,6 @@
 #include "VulkanTools.hpp"
 #include "VulkanTypes.hpp"
 #include "Window.hpp"
-#include "Profiler/SimpleProfiler.hpp"
-#include "Profiler/SimpleProfilerImGui.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

@@ -3,6 +3,7 @@
 #include "EngineProperties.hpp"
 #include "FileLoader.hpp"
 #include "Input/InputManager.hpp"
+#include "Profiler/SimpleProfiler.hpp"
 #include "Vulkantools.hpp"
 
 #define GLFW_EXCLUDE_API
@@ -12,7 +13,6 @@
 #include <cstdint>
 #include <format>
 #include <stdexcept>
-#include <Profiler/SimpleProfiler.hpp>
 
 namespace WindowLocal
 {
