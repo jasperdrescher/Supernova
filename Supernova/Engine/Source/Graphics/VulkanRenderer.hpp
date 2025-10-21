@@ -84,14 +84,13 @@ private:
 	struct DescriptorSets
 	{
 		VkDescriptorSet mInstancedRocks{VK_NULL_HANDLE};
-		VkDescriptorSet mStaticPlanetWithStarfield{VK_NULL_HANDLE};
+		VkDescriptorSet mStaticPlanet{VK_NULL_HANDLE};
 		VkDescriptorSet mStaticVoyager{VK_NULL_HANDLE};
 	};
 
 	struct
 	{
 		VkPipeline mVoyager{VK_NULL_HANDLE};
-		VkPipeline mStarfield{VK_NULL_HANDLE};
 		VkPipeline mPlanet{VK_NULL_HANDLE};
 		VkPipeline mPlanetWireframe{VK_NULL_HANDLE};
 		VkPipeline mRocks{VK_NULL_HANDLE};
@@ -149,6 +148,7 @@ private:
 	std::uint32_t mIndirectInstanceCount;
 	glm::mat4 mVoyagerModelMatrix;
 	glm::mat4 mPlanetModelMatrix;
+	glm::vec4 mClearColor;
 	Time::Timer* mFrameTimer;
 	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;

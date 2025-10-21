@@ -72,6 +72,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mVoyagerModelMatrix{1.0f}
 	, mPlanetModelMatrix{1.0f}
+	, mClearColor{0.25f, 0.25f, 0.25f, 1.0f}
 	, mShouldShowEditorInfo{true}
 	, mShouldShowProfiler{true}
 #ifdef _DEBUG
@@ -126,7 +127,6 @@ VulkanRenderer::~VulkanRenderer()
 
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mPlanet, nullptr);
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mRocks, nullptr);
-		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mStarfield, nullptr);
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mVoyager, nullptr);
 
 #ifdef _DEBUG
@@ -330,10 +330,10 @@ void VulkanRenderer::CreateDescriptorSets()
 		// Static planet
 		//	Binding 0 : Vertex shader uniform buffer
 		//	Binding 1 : Color map
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mStaticPlanetWithStarfield));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mStaticPlanet));
 		const std::vector<VkWriteDescriptorSet> staticPlanetWriteDescriptorSets = {
-			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
-			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanetWithStarfield, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mPlanetTexture.mDescriptor),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mPlanetTexture.mDescriptor),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
 
@@ -519,16 +519,6 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	inputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(bindingDescriptions.size());
 	inputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptions.size());
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mRocks));
-
-	rasterizationState.cullMode = VK_CULL_MODE_NONE;
-	depthStencilState.depthWriteEnable = VK_FALSE;
-	const std::filesystem::path starfieldVertexShaderPath = "Instancing/Starfield_vert.spv";
-	const std::filesystem::path starfieldFragmentShaderPath = "Instancing/Starfield_frag.spv";
-	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / starfieldVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / starfieldFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
-	inputState.vertexBindingDescriptionCount = 0;
-	inputState.vertexAttributeDescriptionCount = 0;
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mStarfield));
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -646,7 +636,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-		.clearValue = { .color = {0.0f,0.0f,0.0f,0.0f} }
+		.clearValue = { .color = {mClearColor.r, mClearColor.g, mClearColor.b, mClearColor.a} }
 	};
 
 	// A single depth stencil attachment info can be used, but they can also be specified separately.
@@ -680,9 +670,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	// Draw non-instanced static models
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticPlanetWithStarfield, 0, nullptr);
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mStarfield);
-	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mStaticPlanet, 0, nullptr);
 
 #ifdef _DEBUG
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mPlanetWireframe : mVkPipelines.mPlanet);
