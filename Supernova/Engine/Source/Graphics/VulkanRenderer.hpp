@@ -95,8 +95,8 @@ private:
 		VkPipeline mPlanet{VK_NULL_HANDLE};
 		VkPipeline mPlanetWireframe{VK_NULL_HANDLE};
 		VkPipeline mRocks{VK_NULL_HANDLE};
-	} mVkPipelines{}
-	;
+	} mVkPipelines{};
+
 	struct
 	{
 		VulkanTexture2DArray mRockTextureArray;

@@ -266,7 +266,7 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 	mVkPresentCompleteSemaphores.resize(gMaxConcurrentFrames);
 	for (VkSemaphore& vkSemaphore : mVkPresentCompleteSemaphores)
 	{
-		VkSemaphoreCreateInfo vkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+		const VkSemaphoreCreateInfo vkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &vkSemaphoreCreateInfo, nullptr, &vkSemaphore));
 	}
 
@@ -275,7 +275,7 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 	mVkRenderCompleteSemaphores.resize(mVulkanSwapChain.mVkImages.size());
 	for (VkSemaphore& vkSemaphore : mVkRenderCompleteSemaphores)
 	{
-		VkSemaphoreCreateInfo vkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+		const VkSemaphoreCreateInfo vkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &vkSemaphoreCreateInfo, nullptr, &vkSemaphore));
 	}
 }
@@ -284,8 +284,8 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 void VulkanRenderer::CreateCommandBuffers()
 {
 	// Allocate one command buffer per max. concurrent frame from above pool
-	const VkCommandBufferAllocateInfo cmdBufAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPoolBuffer, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
-	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &cmdBufAllocateInfo, mVkCommandBuffers.data()));
+	const VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPoolBuffer, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
+	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &commandBufferAllocateInfo, mVkCommandBuffers.data()));
 }
 
 void VulkanRenderer::CreateDescriptorPool()
