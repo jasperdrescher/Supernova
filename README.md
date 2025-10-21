@@ -15,7 +15,7 @@ The engine includes several systems:
 <sub>*Captured on 2025/10/09*</sub>
 
 ## Graphics
-The renderer is based on [Vulkan C++ examples and demos](https://github.com/SaschaWillems/Vulkan) by Sascha Willems and is tested on AMD and Nvidia graphics drivers.
+The renderer is based on [Vulkan C++ examples and demos by Sascha Willems](https://github.com/SaschaWillems/Vulkan) and [Vulkan Samples by Khronos Group](https://github.com/KhronosGroup/Vulkan-Samples/tree/main) and is tested on AMD and Nvidia graphics drivers.
 Currently using Vulkan [1.4](https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#versions-1.4) with [Dynamic Rendering](https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#_render_pass_objects_deprecation_via_dynamic_rendering).
 
 ## Dependencies
