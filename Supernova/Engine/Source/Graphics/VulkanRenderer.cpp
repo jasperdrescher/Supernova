@@ -673,10 +673,10 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	// Begin dynamic rendering
 	vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
-	VkViewport viewport = VulkanInitializers::viewport(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f);
+	const VkViewport viewport = VulkanInitializers::viewport(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f);
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-	VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
+	const VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	// Draw non-instanced static models
@@ -704,7 +704,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	mModels.mVoyagerModel->Draw(commandBuffer, vkglTF::RenderFlags::BindImages, mVkPipelineLayout);
 
 	// Draw instanced multi draw models
-	VkDeviceSize offsets[1] = {0};
+	const VkDeviceSize offsets[1] = {0};
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModels.mRockModel->vertices.mBuffer, offsets);
