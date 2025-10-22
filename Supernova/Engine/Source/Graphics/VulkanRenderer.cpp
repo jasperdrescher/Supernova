@@ -67,7 +67,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mIndirectDrawCount{0}
 	, mVkPipelineLayout{VK_NULL_HANDLE}
 	, mGraphicsDescriptorSetLayout{VK_NULL_HANDLE}
-	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
+	, mGraphicsCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mVoyagerModelMatrix{1.0f}
 	, mPlanetModelMatrix{1.0f}
@@ -111,7 +111,7 @@ VulkanRenderer::~VulkanRenderer()
 		if (mVkDescriptorPool != VK_NULL_HANDLE)
 			vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, mVkDescriptorPool, nullptr);
 
-		vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
+		vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mGraphicsCommandPoolBuffer, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
 
 		for (VkShaderModule& shaderModule : mVkShaderModules)
 			vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, shaderModule, nullptr);
@@ -133,7 +133,7 @@ VulkanRenderer::~VulkanRenderer()
 
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mGraphicsDescriptorSetLayout, nullptr);
-		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, nullptr);
+		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mGraphicsCommandPoolBuffer, nullptr);
 
 		mInstanceBuffer.Destroy();
 
@@ -297,10 +297,10 @@ void VulkanRenderer::CreateSynchronizationPrimitives()
 }
 
 // Command buffers are used to record commands to and are submitted to a queue for execution ("rendering")
-void VulkanRenderer::CreateCommandBuffers()
+void VulkanRenderer::CreateGraphicsCommandBuffers()
 {
 	// Allocate one command buffer per max. concurrent frame from above pool
-	const VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mVkCommandPoolBuffer, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
+	const VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(mGraphicsCommandPoolBuffer, VK_COMMAND_BUFFER_LEVEL_PRIMARY, gMaxConcurrentFrames);
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanDevice->mLogicalVkDevice, &commandBufferAllocateInfo, mVkCommandBuffers.data()));
 }
 
@@ -610,34 +610,39 @@ void VulkanRenderer::CreateComputePipelines()
 	computePipelineCreateInfo.stage = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / computeShaderPath, VK_SHADER_STAGE_COMPUTE_BIT);
 
 	// Use specialization constants to pass max. level of detail (determined by no. of meshes)
-	VkSpecializationMapEntry specializationEntry{};
-	specializationEntry.constantID = 0;
-	specializationEntry.offset = 0;
-	specializationEntry.size = sizeof(uint32_t);
+	const VkSpecializationMapEntry specializationEntry =
+	{
+		.constantID = 0,
+		.offset = 0,
+		.size = sizeof(uint32_t)
+	};
 
-	uint32_t specializationData = static_cast<uint32_t>(mModels.mSuzanneModel->nodes.size()) - 1;
+	const uint32_t specializationData = static_cast<uint32_t>(mModels.mSuzanneModel->nodes.size()) - 1;
 
-	VkSpecializationInfo specializationInfo{};
-	specializationInfo.mapEntryCount = 1;
-	specializationInfo.pMapEntries = &specializationEntry;
-	specializationInfo.dataSize = sizeof(specializationData);
-	specializationInfo.pData = &specializationData;
-
+	const VkSpecializationInfo specializationInfo =
+	{
+		.mapEntryCount = 1,
+		.pMapEntries = &specializationEntry,
+		.dataSize = sizeof(specializationData),
+		.pData = &specializationData
+	};
 	computePipelineCreateInfo.stage.pSpecializationInfo = &specializationInfo;
 
 	VK_CHECK_RESULT(vkCreateComputePipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &computePipelineCreateInfo, nullptr, &mComputeContext.mPipeline));
 
 	// Separate command pool as queue family for compute may be different than graphics
-	VkCommandPoolCreateInfo cmdPoolInfo = {};
-	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	cmdPoolInfo.queueFamilyIndex = mVulkanDevice->mQueueFamilyIndices.mCompute;
-	cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &cmdPoolInfo, nullptr, &mComputeContext.mCommandPool));
+	const VkCommandPoolCreateInfo commandPoolCreateInfo =
+	{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = mVulkanDevice->mQueueFamilyIndices.mCompute
+	};
+	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &commandPoolCreateInfo, nullptr, &mComputeContext.mCommandPool));
 
 	// Create command buffers for compute operations
-	for (auto& cmdBuffer : mComputeContext.mCommandBuffers)
+	for (VkCommandBuffer& commandBuffer : mComputeContext.mCommandBuffers)
 	{
-		cmdBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, mComputeContext.mCommandPool);
+		commandBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, mComputeContext.mCommandPool);
 	}
 
 	// Fences to check for command buffer completion
@@ -648,7 +653,7 @@ void VulkanRenderer::CreateComputePipelines()
 	}
 
 	// Semaphores to order compute and graphics submissions
-	for (auto& semaphore : mComputeContext.mSemaphores)
+	for (ComputeContext::ComputeSemaphores& semaphore : mComputeContext.mSemaphores)
 	{
 		const VkSemaphoreCreateInfo semaphoreInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreInfo, nullptr, &semaphore.mCompleteSemaphore));
@@ -690,12 +695,12 @@ void VulkanRenderer::CreateUIOverlay()
 void VulkanRenderer::PrepareVulkanResources()
 {
 	InitializeSwapchain();
-	CreateCommandPool();
+	CreateGraphicsCommandPool();
 	SetupSwapchain();
 	SetupDepthStencil();
 	CreatePipelineCache();
 	CreateSynchronizationPrimitives();
-	CreateCommandBuffers();
+	CreateGraphicsCommandBuffers();
 	
 	CreateUIOverlay();
 
@@ -1555,14 +1560,14 @@ void VulkanRenderer::InitializeVulkan()
 	mVulkanSwapChain.SetContext(mVkInstance, mVulkanDevice);
 }
 
-void VulkanRenderer::CreateCommandPool()
+void VulkanRenderer::CreateGraphicsCommandPool()
 {
-	const VkCommandPoolCreateInfo vkCommandPoolCreateInfo{
+	const VkCommandPoolCreateInfo commandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 		.queueFamilyIndex = mVulkanSwapChain.mQueueNodeIndex,
 	};
-	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &vkCommandPoolCreateInfo, nullptr, &mVkCommandPoolBuffer));
+	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &commandPoolCreateInfo, nullptr, &mGraphicsCommandPoolBuffer));
 }
 
 void VulkanRenderer::OnResizeWindow()

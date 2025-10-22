@@ -54,7 +54,7 @@ private:
 
 	void LoadAssets();
 	void CreateSynchronizationPrimitives();
-	void CreateCommandBuffers();
+	void CreateGraphicsCommandBuffers();
 	void CreateDescriptorPool();
 	void CreateGraphicsDescriptorSetLayout();
 	void CreateGraphicsDescriptorSets();
@@ -78,7 +78,7 @@ private:
 	void PrepareIndirectData();
 	void PrepareInstanceData();
 	void InitializeSwapchain();
-	void CreateCommandPool();
+	void CreateGraphicsCommandPool();
 	void SetupSwapchain();
 	void DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer);
 	void UpdateUIOverlay();
@@ -131,7 +131,7 @@ private:
 	VulkanSwapChain mVulkanSwapChain; // Wraps the swap chain to present images (framebuffers) to the windowing system
 	VkPipelineLayout mVkPipelineLayout;
 	VkDescriptorSetLayout mGraphicsDescriptorSetLayout;
-	VkCommandPool mVkCommandPoolBuffer;
+	VkCommandPool mGraphicsCommandPoolBuffer;
 	VulkanPushConstant mVulkanPushConstant{};
 	Time::TimePoint mLastTimestamp;
 	std::vector<VkDrawIndexedIndirectCommand> mIndirectCommands; // Store the indirect draw commands containing index offsets and instance count per object
