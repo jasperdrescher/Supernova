@@ -36,6 +36,13 @@ for /R %%f in (*.vert) do (
         :: Compile fragment shader
         %GLSLANG_VALIDATOR% -V "!FRAG_PATH!" -o "!DIR!!BASENAME!_frag.spv"
     )
+
+    set "COMP_PATH=!DIR!!BASENAME!.comp"
+
+    if exist "!COMP_PATH!" (
+        :: Compile comp shader
+        %GLSLANG_VALIDATOR% -V "!COMP_PATH!" -o "!DIR!!BASENAME!_comp.spv"
+    )
 )
 
 echo Finished compiling shaders.

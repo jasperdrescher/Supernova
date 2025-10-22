@@ -65,9 +65,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mCurrentImageIndex{0}
 	, mCurrentBufferIndex{0}
 	, mIndirectDrawCount{0}
-	, mIndirectInstanceCount{0}
 	, mVkPipelineLayout{VK_NULL_HANDLE}
-	, mVkDescriptorSetLayout{VK_NULL_HANDLE}
+	, mGraphicsDescriptorSetLayout{VK_NULL_HANDLE}
 	, mVkCommandPoolBuffer{VK_NULL_HANDLE}
 	, mVkPhysicalDevice13Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES}
 	, mVoyagerModelMatrix{1.0f}
@@ -94,12 +93,10 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 
 	// Setup a default look-at camera
 	mCamera = new Camera();
-	mCamera->SetType(CameraType::LookAt);
-	mCamera->SetPosition(glm::vec3(5.5f, -1.85f, -18.5f));
-	mCamera->SetRotation(glm::vec3(-17.2f, -4.7f, 0.0f));
+	mCamera->SetType(CameraType::FirstPerson);
+	mCamera->SetPosition(glm::vec3(0.5f, 0.0f, -18.5f));
 	mCamera->SetRotationSpeed(2.0f);
-	mCamera->SetZoomSpeed(15.0f);
-	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 0.1f, 256.0f);
+	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 0.1f, 512.0f);
 
 	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, glm::vec3{1.0f, -2.0f, 10.0f});
 	mVoyagerModelMatrix = glm::scale(mVoyagerModelMatrix, glm::vec3{0.2f});
@@ -135,11 +132,32 @@ VulkanRenderer::~VulkanRenderer()
 #endif
 
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mVkDescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mGraphicsDescriptorSetLayout, nullptr);
 		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mVkCommandPoolBuffer, nullptr);
 
 		mInstanceBuffer.Destroy();
-		mIndirectCommandsBuffer.Destroy();
+
+		for (VulkanBuffer& buffer : indirectDrawCountBuffers)
+			buffer.Destroy();
+
+		for (VulkanBuffer& buffer : indirectCommandsBuffers)
+			buffer.Destroy();
+
+		compute.lodLevelsBuffers.Destroy();
+
+		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, compute.pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, compute.descriptorSetLayout, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, compute.pipeline, nullptr);
+		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, compute.commandPool, nullptr);
+
+		for (VkFence& fence : compute.fences)
+			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, fence, nullptr);
+
+		for (Compute::ComputeSemaphores& semaphore : compute.semaphores)
+		{
+			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore.complete, nullptr);
+			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore.ready, nullptr);
+		}
 
 		for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
 			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
@@ -237,7 +255,7 @@ void VulkanRenderer::LoadAssets()
 	mModels.mVoyagerModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 
 	mModels.mRockModel = new vkglTF::Model();
-	const std::filesystem::path rockModelPath = "Rock01.gltf";
+	const std::filesystem::path rockModelPath = "Suzanne_lods.gltf";
 	mModels.mRockModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / rockModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 
 	mModels.mPlanetModel = new vkglTF::Model();
@@ -295,12 +313,13 @@ void VulkanRenderer::CreateDescriptorPool()
 	const std::vector<VkDescriptorPoolSize> poolSizes = {
 		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (gMaxConcurrentFrames * 3) + poolPadding),
 		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (gMaxConcurrentFrames * 2) + poolPadding),
+		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (gMaxConcurrentFrames * 4) + poolPadding)
 	};
-	const VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames * 3);
+	const VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames * 4);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolCreateInfo, nullptr, &mVkDescriptorPool));
 }
 
-void VulkanRenderer::CreateDescriptorSetLayout()
+void VulkanRenderer::CreateGraphicsDescriptorSetLayout()
 {
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		// Binding 0 : Vertex shader uniform buffer
@@ -309,13 +328,13 @@ void VulkanRenderer::CreateDescriptorSetLayout()
 		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 	};
 	const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mVkDescriptorSetLayout));
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mGraphicsDescriptorSetLayout));
 }
 
-void VulkanRenderer::CreateDescriptorSets()
+void VulkanRenderer::CreateGraphicsDescriptorSets()
 {
 	// Sets per frame, just like the buffers themselves
-	const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mVkDescriptorSetLayout, 1);
+	const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mGraphicsDescriptorSetLayout, 1);
 	for (std::size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
 		// Instanced models
@@ -408,7 +427,7 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	// Layout
 	// Uses set 0 for passing vertex shader ubo and set 1 for fragment shader images (taken from glTF model)
 	const std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
-		mVkDescriptorSetLayout,
+		mGraphicsDescriptorSetLayout,
 		vkglTF::gDescriptorSetLayoutImage,
 	};
 	
@@ -471,19 +490,29 @@ void VulkanRenderer::CreateGraphicsPipelines()
 		// These are advanced for each vertex fetched by the vertex shader
 		VulkanInitializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mPosition)), // Location 0: Position
 		VulkanInitializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mNormal)), // Location 1: Normal
+		VulkanInitializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mColor)), // Location 3: Color
+		// Per-Instance attributes
+		// These are advanced for each instance rendered
+		VulkanInitializers::vertexInputAttributeDescription(1, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanInstanceData, mPosition)), // Location 4: Position
+		VulkanInitializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanInstanceData, mScale)), // Location 5: Scale
+	};
+
+	const std::vector<VkVertexInputAttributeDescription> texturedAttributeDescriptions = {
+		// Per-vertex attributes
+		// These are advanced for each vertex fetched by the vertex shader
+		VulkanInitializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mPosition)), // Location 0: Position
+		VulkanInitializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mNormal)), // Location 1: Normal
 		VulkanInitializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(vkglTF::Vertex, mUV)), // Location 2: Texture coordinates
 		VulkanInitializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mColor)), // Location 3: Color
 		// Per-Instance attributes
 		// These are advanced for each instance rendered
 		VulkanInitializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanInstanceData, mPosition)), // Location 4: Position
-		VulkanInitializers::vertexInputAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanInstanceData, mRotation)), // Location 5: Rotation
-		VulkanInitializers::vertexInputAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, offsetof(VulkanInstanceData, mScale)), // Location 6: Scale
-		VulkanInitializers::vertexInputAttributeDescription(1, 7, VK_FORMAT_R32_SINT, offsetof(VulkanInstanceData, mTextureIndex)), // Location 7: Texture array layer index
+		VulkanInitializers::vertexInputAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VulkanInstanceData, mScale)), // Location 5: Scale
 	};
 
 	VkPipelineVertexInputStateCreateInfo inputState = VulkanInitializers::pipelineVertexInputStateCreateInfo();
 	inputState.pVertexBindingDescriptions = bindingDescriptions.data();
-	inputState.pVertexAttributeDescriptions = attributeDescriptions.data();
+	inputState.pVertexAttributeDescriptions = texturedAttributeDescriptions.data();
 
 	pipelineCI.pVertexInputState = &inputState;
 
@@ -513,10 +542,11 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	}
 #endif
 
-	const std::filesystem::path rockVertexShaderPath = "Instancing/Instancing_vert.spv";
-	const std::filesystem::path rockFragmentShaderPath = "Instancing/Instancing_frag.spv";
+	const std::filesystem::path rockVertexShaderPath = "ComputeCull/Indirectdraw_vert.spv";
+	const std::filesystem::path rockFragmentShaderPath = "ComputeCull/Indirectdraw_frag.spv";
 	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
 	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	inputState.pVertexAttributeDescriptions = attributeDescriptions.data();
 	inputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(bindingDescriptions.size());
 	inputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptions.size());
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mRocks));
@@ -530,6 +560,114 @@ void VulkanRenderer::CreateGraphicsPipelines()
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 	}
 #endif
+}
+
+void VulkanRenderer::CreateComputeDescriptorSetLayout()
+{
+	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.mCompute, 0, &compute.queue);
+
+	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+		// Binding 0: Instance input data buffer
+		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+		// Binding 1: Indirect draw command output buffer (input)
+		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+		// Binding 2: Uniform buffer with global matrices (input)
+		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+		// Binding 3: Indirect draw stats (output)
+		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+		// Binding 4: LOD info (input)
+		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+	};
+
+	const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &compute.descriptorSetLayout));
+}
+
+void VulkanRenderer::CreateComputeDescriptorSets()
+{
+	const VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayout, 1);
+	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &compute.pipelineLayout));
+
+	for (size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
+	{
+		VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &compute.descriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &compute.descriptorSets[i]));
+		const std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets = {
+			// Binding 0: Instance input data buffer
+			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &mInstanceBuffer.mVkDescriptorBufferInfo),
+			// Binding 1: Indirect draw command output buffer
+			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &indirectCommandsBuffers[i].mVkDescriptorBufferInfo),
+			// Binding 2: Uniform buffer with global matrices
+			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			// Binding 3: Atomic counter (written in shader)
+			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &indirectDrawCountBuffers[i].mVkDescriptorBufferInfo),
+			// Binding 4: LOD info
+			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &compute.lodLevelsBuffers.mVkDescriptorBufferInfo)
+		};
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
+	}
+}
+
+void VulkanRenderer::CreateComputePipelines()
+{
+	VkComputePipelineCreateInfo computePipelineCreateInfo = VulkanInitializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
+	const std::filesystem::path computeShaderPath = "ComputeCull/Indirectdraw_comp.spv";
+	computePipelineCreateInfo.stage = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / computeShaderPath, VK_SHADER_STAGE_COMPUTE_BIT);
+
+	// Use specialization constants to pass max. level of detail (determined by no. of meshes)
+	VkSpecializationMapEntry specializationEntry{};
+	specializationEntry.constantID = 0;
+	specializationEntry.offset = 0;
+	specializationEntry.size = sizeof(uint32_t);
+
+	uint32_t specializationData = static_cast<uint32_t>(mModels.mRockModel->nodes.size()) - 1;
+
+	VkSpecializationInfo specializationInfo{};
+	specializationInfo.mapEntryCount = 1;
+	specializationInfo.pMapEntries = &specializationEntry;
+	specializationInfo.dataSize = sizeof(specializationData);
+	specializationInfo.pData = &specializationData;
+
+	computePipelineCreateInfo.stage.pSpecializationInfo = &specializationInfo;
+
+	VK_CHECK_RESULT(vkCreateComputePipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipeline));
+
+	// Separate command pool as queue family for compute may be different than graphics
+	VkCommandPoolCreateInfo cmdPoolInfo = {};
+	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	cmdPoolInfo.queueFamilyIndex = mVulkanDevice->mQueueFamilyIndices.mCompute;
+	cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &cmdPoolInfo, nullptr, &compute.commandPool));
+
+	// Create command buffers for compute operations
+	for (auto& cmdBuffer : compute.commandBuffers)
+	{
+		cmdBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool);
+	}
+
+	// Fences to check for command buffer completion
+	for (VkFence& fence : compute.fences)
+	{
+		const VkFenceCreateInfo fenceCreateInfo = VulkanInitializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+		VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &fenceCreateInfo, nullptr, &fence));
+	}
+
+	// Semaphores to order compute and graphics submissions
+	for (auto& semaphore : compute.semaphores)
+	{
+		const VkSemaphoreCreateInfo semaphoreInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreInfo, nullptr, &semaphore.complete));
+		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreInfo, nullptr, &semaphore.ready));
+	}
+
+	// Signal first used ready semaphore
+	const VkSubmitInfo computeSubmitInfo =
+	{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &compute.semaphores[gMaxConcurrentFrames - 1].ready
+	};
+	VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -572,9 +710,12 @@ void VulkanRenderer::PrepareVulkanResources()
 	PrepareInstanceData();
 	CreateUniformBuffers();
 	CreateDescriptorPool();
-	CreateDescriptorSetLayout();
-	CreateDescriptorSets();
+	CreateGraphicsDescriptorSetLayout();
+	CreateGraphicsDescriptorSets();
 	CreateGraphicsPipelines();
+	CreateComputeDescriptorSetLayout();
+	CreateComputeDescriptorSets();
+	CreateComputePipelines();
 
 	mEngineProperties->mIsRendererPrepared = true;
 }
@@ -639,6 +780,33 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
 		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1});
+
+	if (mVulkanDevice->mQueueFamilyIndices.mGraphics != mVulkanDevice->mQueueFamilyIndices.mCompute)
+	{
+		const VkBufferMemoryBarrier bufferMemoryBarrier =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			nullptr,
+			0,
+			VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+			mVulkanDevice->mQueueFamilyIndices.mCompute,
+			mVulkanDevice->mQueueFamilyIndices.mGraphics,
+			indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
+			0,
+			indirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
+		};
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+			0,
+			0,
+			nullptr,
+			1,
+			&bufferMemoryBarrier,
+			0,
+			nullptr);
+	}
 
 	// New structures are used to define the attachments used in dynamic rendering
 	const VkRenderingAttachmentInfoKHR colorAttachmentInfo{
@@ -709,7 +877,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 #ifdef _DEBUG
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mRocksWireframe : mVkPipelines.mRocks);
 #else
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
 #endif
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModels.mRockModel->vertices.mBuffer, offsets);
@@ -720,14 +888,14 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
 	{
 		// Index offsets and instance count are taken from the indirect buffer
-		vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffer.mVkBuffer, 0, mIndirectDrawCount, sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirect(commandBuffer, indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, 0, static_cast<uint32_t>(indirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
 	}
 	else
 	{
 		// Issue separate draw commands
-		for (std::size_t j = 0; j < mDrawIndexedIndirectCommands.size(); j++)
+		for (std::size_t j = 0; j < indirectCommands.size(); j++)
 		{
-			vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffer.mVkBuffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+			vkCmdDrawIndexedIndirect(commandBuffer, indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 		}
 	}
 
@@ -748,7 +916,132 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 		VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 
+	if (mVulkanDevice->mQueueFamilyIndices.mGraphics != mVulkanDevice->mQueueFamilyIndices.mCompute)
+	{
+		const VkBufferMemoryBarrier bufferMemoryBarrier =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			nullptr,
+			VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+			0,
+			mVulkanDevice->mQueueFamilyIndices.mGraphics,
+			mVulkanDevice->mQueueFamilyIndices.mCompute,
+			indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
+			0,
+			indirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
+		};
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			0,
+			0,
+			nullptr,
+			1,
+			&bufferMemoryBarrier,
+			0,
+			nullptr);
+	}
+
 	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+}
+
+void VulkanRenderer::BuildComputeCommandBuffer()
+{
+	VkCommandBuffer commandBuffer = compute.commandBuffers[mCurrentBufferIndex];
+
+	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
+	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
+
+	// Acquire barrier
+	// Add memory barrier to ensure that the indirect commands have been consumed before the compute shader updates them
+	if (mVulkanDevice->mQueueFamilyIndices.mGraphics != mVulkanDevice->mQueueFamilyIndices.mCompute)
+	{
+		const VkBufferMemoryBarrier bufferMemoryBarrier =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			nullptr,
+			0,
+			VK_ACCESS_SHADER_WRITE_BIT,
+			mVulkanDevice->mQueueFamilyIndices.mGraphics,
+			mVulkanDevice->mQueueFamilyIndices.mCompute,
+			indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
+			0,
+			indirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
+		};
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			0,
+			0,
+			nullptr,
+			1,
+			&bufferMemoryBarrier,
+			0,
+			nullptr);
+	}
+
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSets[mCurrentBufferIndex], 0, nullptr);
+
+	// Clear the buffer that the compute shader pass will write statistics and draw calls to
+	vkCmdFillBuffer(commandBuffer, indirectDrawCountBuffers[mCurrentBufferIndex].mVkBuffer, 0, indirectDrawCountBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range, 0);
+
+	// This barrier ensures that the fill command is finished before the compute shader can start writing to the buffer
+	const VkMemoryBarrier memoryBarrier =
+	{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+		.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+		.dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+	};
+	vkCmdPipelineBarrier(
+		commandBuffer,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+		0,
+		1,
+		&memoryBarrier,
+		0,
+		nullptr,
+		0,
+		nullptr);
+
+	// Dispatch the compute job
+	// The compute shader will do the frustum culling and adjust the indirect draw calls depending on object visibility.
+	// It also determines the lod to use depending on distance to the viewer.
+	vkCmdDispatch(commandBuffer, mIndirectDrawCount / 16, 1, 1);
+
+	// Release barrier
+	// Add memory barrier to ensure that the compute shader has finished writing the indirect command buffer before it's consumed
+	if (mVulkanDevice->mQueueFamilyIndices.mGraphics != mVulkanDevice->mQueueFamilyIndices.mCompute)
+	{
+		const VkBufferMemoryBarrier bufferMemoryBarrier =
+		{
+			VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+			nullptr,
+			VK_ACCESS_SHADER_WRITE_BIT,
+			0,
+			mVulkanDevice->mQueueFamilyIndices.mCompute,
+			mVulkanDevice->mQueueFamilyIndices.mGraphics,
+			indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
+			0,
+			indirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
+		};
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+			0,
+			0,
+			nullptr,
+			1,
+			&bufferMemoryBarrier,
+			0,
+			nullptr);
+	}
+
+	vkEndCommandBuffer(commandBuffer);
 }
 
 void VulkanRenderer::UpdateModelMatrix()
@@ -772,6 +1065,10 @@ void VulkanRenderer::UpdateUniformBuffers()
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mViewMatrix = mCamera->mMatrices.mView;
 	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
+
+	mFrustum.UpdateFrustum(mVulkanUniformData.mProjectionMatrix * mVulkanUniformData.mViewMatrix);
+	std::memcpy(mVulkanUniformData.mFrustumPlanes, mFrustum.mPlanes.data(), sizeof(glm::vec4) * 6);
+
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 
@@ -779,16 +1076,18 @@ void VulkanRenderer::SubmitFrame()
 {
 	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::SubmitFrame");
 
-	const VkPipelineStageFlags waitPipelineStage{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	const VkPipelineStageFlags waitPipelineStageMask[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT };
+	const VkSemaphore waitSemaphores[2] = {mVkPresentCompleteSemaphores[mCurrentBufferIndex], compute.semaphores[mCurrentBufferIndex].complete};
+	const VkSemaphore signalSemaphores[2] = {mVkRenderCompleteSemaphores[mCurrentImageIndex], compute.semaphores[mCurrentBufferIndex].ready};
 	const VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &mVkPresentCompleteSemaphores[mCurrentBufferIndex],
-		.pWaitDstStageMask = &waitPipelineStage,
+		.waitSemaphoreCount = 2,
+		.pWaitSemaphores = waitSemaphores,
+		.pWaitDstStageMask = waitPipelineStageMask,
 		.commandBufferCount = 1,
 		.pCommandBuffers = &mVkCommandBuffers[mCurrentBufferIndex],
-		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &mVkRenderCompleteSemaphores[mCurrentImageIndex]
+		.signalSemaphoreCount = 2,
+		.pSignalSemaphores = signalSemaphores
 	};
 	VK_CHECK_RESULT(vkQueueSubmit(mVkQueue, 1, &submitInfo, mWaitVkFences[mCurrentBufferIndex]));
 
@@ -994,86 +1293,95 @@ void VulkanRenderer::CreatePipelineCache()
 
 void VulkanRenderer::PrepareIndirectData()
 {
-	mDrawIndexedIndirectCommands.clear();
+	mIndirectDrawCount = gModelInstanceCount * gModelInstanceCount * gModelInstanceCount;
+	indirectCommands.resize(mIndirectDrawCount);
 
-	// Create an indirect command for a node in the scene with a mesh attached to it
-	std::uint32_t meshNodeIndex = 0;
-	for (const vkglTF::Node* node : mModels.mRockModel->nodes)
+	for (std::uint8_t x = 0; x < gModelInstanceCount; x++)
 	{
-		if (node->mMesh)
+		for (std::uint8_t y = 0; y < gModelInstanceCount; y++)
 		{
-			// A glTF node may consist of multiple primitives, but for now we only care about the first primitive
-			const VkDrawIndexedIndirectCommand drawIndexedIndirectCommand{
-				.indexCount = node->mMesh->mPrimitives[0]->indexCount,
-				.instanceCount = gRockInstanceCount,
-				.firstIndex = node->mMesh->mPrimitives[0]->firstIndex,
-				.firstInstance = meshNodeIndex * gRockInstanceCount,
-			};
-			mDrawIndexedIndirectCommands.push_back(drawIndexedIndirectCommand);
-
-			meshNodeIndex++;
+			for (std::uint8_t z = 0; z < gModelInstanceCount; z++)
+			{
+				const std::uint32_t index = x + y * gModelInstanceCount + z * gModelInstanceCount * gModelInstanceCount;
+				indirectCommands[index].instanceCount = 1;
+				indirectCommands[index].firstInstance = index;
+				// firstIndex and indexCount are written by the compute shader
+			}
 		}
 	}
 
-	mIndirectDrawCount = static_cast<std::uint32_t>(mDrawIndexedIndirectCommands.size());
-
-	mIndirectInstanceCount = 0;
-	for (const VkDrawIndexedIndirectCommand& indirectCmd : mDrawIndexedIndirectCommands)
-	{
-		mIndirectInstanceCount += indirectCmd.instanceCount;
-	}
+	indirectStats.drawCount = static_cast<std::uint32_t>(indirectCommands.size());
 
 	VulkanBuffer stagingBuffer;
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&stagingBuffer,
-		mDrawIndexedIndirectCommands.size() * sizeof(VkDrawIndexedIndirectCommand),
-		mDrawIndexedIndirectCommands.data()));
+		indirectCommands.size() * sizeof(VkDrawIndexedIndirectCommand),
+		indirectCommands.data()));
 
-	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
-		VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		&mIndirectCommandsBuffer,
-		stagingBuffer.mVkDeviceSize));
+	for (VulkanBuffer& indirectCommandsBuffer : indirectCommandsBuffers)
+	{
+		VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+			VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			&indirectCommandsBuffer,
+			stagingBuffer.mVkDeviceSize));
 
-	mVulkanDevice->CopyBuffer(&stagingBuffer, &mIndirectCommandsBuffer, mVkQueue);
+		mVulkanDevice->CopyBuffer(&stagingBuffer, &indirectCommandsBuffer, mVkQueue);
+
+		// Add an initial release barrier to the graphics queue,
+		// so that when the compute command buffer executes for the first time
+		// it doesn't complain about a lack of a corresponding "release" to its "acquire"
+		VkCommandBuffer barrierCommandBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		if (mVulkanDevice->mQueueFamilyIndices.mGraphics != mVulkanDevice->mQueueFamilyIndices.mCompute)
+		{
+			const VkBufferMemoryBarrier bufferMemoryBarrier =
+			{
+				VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+				nullptr,
+				VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+				0,
+				mVulkanDevice->mQueueFamilyIndices.mGraphics,
+				mVulkanDevice->mQueueFamilyIndices.mCompute,
+				indirectCommandsBuffer.mVkBuffer,
+				0,
+				indirectCommandsBuffer.mVkDescriptorBufferInfo.range
+			};
+			vkCmdPipelineBarrier(
+				barrierCommandBuffer,
+				VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				0,
+				0,
+				nullptr,
+				1, 
+				&bufferMemoryBarrier,
+				0, 
+				nullptr);
+		}
+
+		mVulkanDevice->FlushCommandBuffer(barrierCommandBuffer, mVkQueue, true);
+	}
 
 	stagingBuffer.Destroy();
 }
 
 void VulkanRenderer::PrepareInstanceData()
 {
-	std::vector<VulkanInstanceData> instanceData;
-	instanceData.resize(mIndirectInstanceCount);
+	std::vector<VulkanInstanceData> instanceData(mIndirectDrawCount);
 
-	std::default_random_engine randomGenerator(std::random_device{}());
-	std::uniform_real_distribution<float> uniformDist(0.0f, 1.0f);
-	std::uniform_int_distribution<std::uint32_t> randomTextureIndex(0, mTextures.mRockTextureArray.mLayerCount);
-
-	// Distribute rocks randomly on two different rings
-	for (std::uint32_t i = 0; i < mIndirectInstanceCount / 2; i++)
+	for (std::uint8_t x = 0; x < gModelInstanceCount; x++)
 	{
-		glm::vec2 ring0{7.0f, 11.0f};
-		glm::vec2 ring1{14.0f, 18.0f};
-
-		// Inner ring
-		const float rhoInner = std::sqrt((std::pow(ring0[1], 2.0f) - std::pow(ring0[0], 2.0f)) * uniformDist(randomGenerator) + std::pow(ring0[0], 2.0f));
-		const float thetaInner = static_cast<float>(2.0f * std::numbers::pi * uniformDist(randomGenerator));
-		instanceData[i].mPosition = glm::vec3(rhoInner * std::cos(thetaInner), uniformDist(randomGenerator) * 0.5f - 0.25f, rhoInner * std::sin(thetaInner));
-		instanceData[i].mRotation = glm::vec3(std::numbers::pi * uniformDist(randomGenerator), std::numbers::pi * uniformDist(randomGenerator), std::numbers::pi * uniformDist(randomGenerator));
-		instanceData[i].mScale = 1.5f + uniformDist(randomGenerator) - uniformDist(randomGenerator);
-		instanceData[i].mTextureIndex = randomTextureIndex(randomGenerator);
-		instanceData[i].mScale *= 0.75f;
-
-		// Outer ring
-		const float rhoOuter = std::sqrt((std::pow(ring1[1], 2.0f) - std::pow(ring1[0], 2.0f)) * uniformDist(randomGenerator) + std::pow(ring1[0], 2.0f));
-		const float thetaOuter = static_cast<float>(2.0f * std::numbers::pi * uniformDist(randomGenerator));
-		instanceData[i + mIndirectInstanceCount / 2].mPosition = glm::vec3(rhoOuter * std::cos(thetaOuter), uniformDist(randomGenerator) * 0.5f - 0.25f, rhoOuter * std::sin(thetaOuter));
-		instanceData[i + mIndirectInstanceCount / 2].mRotation = glm::vec3(std::numbers::pi * uniformDist(randomGenerator), std::numbers::pi * uniformDist(randomGenerator), std::numbers::pi * uniformDist(randomGenerator));
-		instanceData[i + mIndirectInstanceCount / 2].mScale = 1.5f + uniformDist(randomGenerator) - uniformDist(randomGenerator);
-		instanceData[i + mIndirectInstanceCount / 2].mTextureIndex = randomTextureIndex(randomGenerator);
-		instanceData[i + mIndirectInstanceCount / 2].mScale *= 0.75f;
+		for (std::uint8_t y = 0; y < gModelInstanceCount; y++)
+		{
+			for (std::uint8_t z = 0; z < gModelInstanceCount; z++)
+			{
+				const std::uint32_t index = x + y * gModelInstanceCount + z * gModelInstanceCount * gModelInstanceCount;
+				instanceData[index].mPosition = glm::vec3((float)x, (float)y, (float)z) - glm::vec3((float)gModelInstanceCount / 2.0f);
+				instanceData[index].mScale = 2.0f;
+			}
+		}
 	}
 
 	VulkanBuffer stagingBuffer;
@@ -1085,12 +1393,62 @@ void VulkanRenderer::PrepareInstanceData()
 		instanceData.data()));
 
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		&mInstanceBuffer,
 		stagingBuffer.mVkDeviceSize));
 
 	mVulkanDevice->CopyBuffer(&stagingBuffer, &mInstanceBuffer, mVkQueue);
+
+	stagingBuffer.Destroy();
+
+	// Draw count buffer for host side info readback
+	for (VulkanBuffer& indirectDrawCountBuffer : indirectDrawCountBuffers)
+	{
+		VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&indirectDrawCountBuffer,
+			sizeof(indirectStats)));
+
+		VK_CHECK_RESULT(indirectDrawCountBuffer.Map());
+	}
+
+	// Shader storage buffer containing index offsets and counts for the LODs
+	struct LOD
+	{
+		std::uint32_t firstIndex;
+		std::uint32_t indexCount;
+		float distance;
+		float _pad0;
+	};
+	std::vector<LOD> LODLevels;
+
+	std::uint32_t nodeIndex = 0;
+	for (const vkglTF::Node* node : mModels.mRockModel->nodes)
+	{
+		LOD lod{};
+		lod.firstIndex = node->mMesh->mPrimitives[0]->firstIndex; // First index for this LOD
+		lod.indexCount = node->mMesh->mPrimitives[0]->indexCount; // Index count for this LOD
+		lod.distance = 5.0f + nodeIndex * 5.0f; // Starting distance (to viewer) for this LOD
+		nodeIndex++;
+		LODLevels.push_back(lod);
+	}
+
+	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&stagingBuffer,
+		LODLevels.size() * sizeof(LOD),
+		LODLevels.data()));
+
+	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&compute.lodLevelsBuffers,
+		stagingBuffer.mVkDeviceSize));
+
+	mVulkanDevice->CopyBuffer(&stagingBuffer, &compute.lodLevelsBuffers, mVkQueue);
 
 	stagingBuffer.Destroy();
 }
@@ -1124,11 +1482,37 @@ void VulkanRenderer::RenderFrame()
 
 	mFrameTimer->StartTimer();
 	
-	PrepareFrame();
-	UpdateUniformBuffers();
-	UpdateModelMatrix();
-	BuildGraphicsCommandBuffer();
-	SubmitFrame();
+	{
+		VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &compute.fences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &compute.fences[mCurrentBufferIndex]));
+
+		// Get draw count from compute
+		std::memcpy(&indirectStats, indirectDrawCountBuffers[mCurrentBufferIndex].mMappedData, sizeof(indirectStats));
+		BuildComputeCommandBuffer();
+
+		// Wait for rendering finished
+		VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		const VkSubmitInfo submitInfo =
+		{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = &compute.semaphores[((int)mCurrentBufferIndex - 1) % gMaxConcurrentFrames].ready,
+			.pWaitDstStageMask = &waitDstStageMask,
+			.commandBufferCount = 1,
+			.pCommandBuffers = &compute.commandBuffers[mCurrentBufferIndex],
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores = &compute.semaphores[mCurrentBufferIndex].complete,
+		};
+		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &submitInfo, compute.fences[mCurrentBufferIndex]));
+	}
+
+	{
+		PrepareFrame();
+		UpdateUniformBuffers();
+		UpdateModelMatrix();
+		BuildGraphicsCommandBuffer();
+		SubmitFrame();
+	}
 
 	mFrameTimer->EndTimer();
 
@@ -1295,8 +1679,14 @@ void VulkanRenderer::OnUpdateUIOverlay()
 
 		if (ImGui::CollapsingHeader("Render Settings", ImGuiTreeNodeFlags_DefaultOpen))
 		{
+#ifdef _DEBUG
+			if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid)
+				ImGui::Checkbox("Draw wireframe", &mShouldDrawWireframe);
+#endif
+
 			ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
 			ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
+			ImGui::Text("drawIndirectFirstInstance is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.drawIndirectFirstInstance ? "enabled" : "disabled");
 #ifdef _DEBUG
 			ImGui::Text("fillModeNonSolid is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid ? "enabled" : "disabled");
 #endif
@@ -1308,11 +1698,11 @@ void VulkanRenderer::OnUpdateUIOverlay()
 
 		if (ImGui::CollapsingHeader("Scene Details", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			ImGui::Text("Rock instances: %d", mIndirectInstanceCount);
-
-#ifdef _DEBUG
-			ImGui::Checkbox("Draw wireframe", &mShouldDrawWireframe);
-#endif
+			ImGui::Text("Visible objects: %d", indirectStats.drawCount);
+			for (int i = 0; i < gMaxLOD + 1; i++)
+			{
+				ImGui::Text("LOD %d: %d", i, indirectStats.lodCount[i]);
+			}
 
 			ImGui::NewLine();
 

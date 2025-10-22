@@ -267,19 +267,16 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 	vkGetPhysicalDeviceFeatures(aVkPhysicalDevice, &mVkPhysicalDeviceFeatures);
 
 	if (mVkPhysicalDeviceFeatures.samplerAnisotropy)
-	{
 		mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
-	}
 
 	if (mVkPhysicalDeviceFeatures.multiDrawIndirect)
-	{
 		mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect = VK_TRUE;
-	}
 
 	if (mVkPhysicalDeviceFeatures.fillModeNonSolid)
-	{
 		mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid = VK_TRUE;
-	}
+
+	if (mVkPhysicalDeviceFeatures.drawIndirectFirstInstance)
+		mEnabledVkPhysicalDeviceFeatures.drawIndirectFirstInstance = VK_TRUE;
 
 	// Memory properties are used regularly for creating all kinds of buffers
 	vkGetPhysicalDeviceMemoryProperties(aVkPhysicalDevice, &mVkPhysicalDeviceMemoryProperties);

@@ -6,10 +6,15 @@
 #include "VulkanTools.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <format>
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <iostream>
 #include <ktx.h>
 #include <stdexcept>
@@ -711,4 +716,55 @@ void VulkanTexture2DArray::LoadFromFile(const std::filesystem::path& aPath, VkFo
 	UpdateDescriptor();
 
 	std::cout << "Loaded texture " << aPath.filename() << std::endl;
+}
+
+void VulkanFrustum::UpdateFrustum(const glm::mat4& aMatrix)
+{
+	mPlanes[static_cast<std::size_t>(Side::LEFT)].x = aMatrix[0].w + aMatrix[0].x;
+	mPlanes[static_cast<std::size_t>(Side::LEFT)].y = aMatrix[1].w + aMatrix[1].x;
+	mPlanes[static_cast<std::size_t>(Side::LEFT)].z = aMatrix[2].w + aMatrix[2].x;
+	mPlanes[static_cast<std::size_t>(Side::LEFT)].w = aMatrix[3].w + aMatrix[3].x;
+
+	mPlanes[static_cast<std::size_t>(Side::RIGHT)].x = aMatrix[0].w - aMatrix[0].x;
+	mPlanes[static_cast<std::size_t>(Side::RIGHT)].y = aMatrix[1].w - aMatrix[1].x;
+	mPlanes[static_cast<std::size_t>(Side::RIGHT)].z = aMatrix[2].w - aMatrix[2].x;
+	mPlanes[static_cast<std::size_t>(Side::RIGHT)].w = aMatrix[3].w - aMatrix[3].x;
+
+	mPlanes[static_cast<std::size_t>(Side::TOP)].x = aMatrix[0].w - aMatrix[0].y;
+	mPlanes[static_cast<std::size_t>(Side::TOP)].y = aMatrix[1].w - aMatrix[1].y;
+	mPlanes[static_cast<std::size_t>(Side::TOP)].z = aMatrix[2].w - aMatrix[2].y;
+	mPlanes[static_cast<std::size_t>(Side::TOP)].w = aMatrix[3].w - aMatrix[3].y;
+
+	mPlanes[static_cast<std::size_t>(Side::BOTTOM)].x = aMatrix[0].w + aMatrix[0].y;
+	mPlanes[static_cast<std::size_t>(Side::BOTTOM)].y = aMatrix[1].w + aMatrix[1].y;
+	mPlanes[static_cast<std::size_t>(Side::BOTTOM)].z = aMatrix[2].w + aMatrix[2].y;
+	mPlanes[static_cast<std::size_t>(Side::BOTTOM)].w = aMatrix[3].w + aMatrix[3].y;
+
+	mPlanes[static_cast<std::size_t>(Side::BACK)].x = aMatrix[0].w + aMatrix[0].z;
+	mPlanes[static_cast<std::size_t>(Side::BACK)].y = aMatrix[1].w + aMatrix[1].z;
+	mPlanes[static_cast<std::size_t>(Side::BACK)].z = aMatrix[2].w + aMatrix[2].z;
+	mPlanes[static_cast<std::size_t>(Side::BACK)].w = aMatrix[3].w + aMatrix[3].z;
+
+	mPlanes[static_cast<std::size_t>(Side::FRONT)].x = aMatrix[0].w - aMatrix[0].z;
+	mPlanes[static_cast<std::size_t>(Side::FRONT)].y = aMatrix[1].w - aMatrix[1].z;
+	mPlanes[static_cast<std::size_t>(Side::FRONT)].z = aMatrix[2].w - aMatrix[2].z;
+	mPlanes[static_cast<std::size_t>(Side::FRONT)].w = aMatrix[3].w - aMatrix[3].z;
+
+	for (std::size_t i = 0; i < mPlanes.size(); i++)
+	{
+		float length = std::sqrtf(mPlanes[i].x * mPlanes[i].x + mPlanes[i].y * mPlanes[i].y + mPlanes[i].z * mPlanes[i].z);
+		mPlanes[i] /= length;
+	}
+}
+
+bool VulkanFrustum::IsInSphere(const glm::vec3& aPosition, float aRadius) const
+{
+	for (std::size_t i = 0; i < mPlanes.size(); i++)
+	{
+		if ((mPlanes[i].x * aPosition.x) + (mPlanes[i].y * aPosition.y) + (mPlanes[i].z * aPosition.z) + mPlanes[i].w <= -aRadius)
+		{
+			return false;
+		}
+	}
+	return true;
 }
