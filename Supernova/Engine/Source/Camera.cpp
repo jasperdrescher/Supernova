@@ -43,8 +43,7 @@ void Camera::UpdateViewMatrix()
 		translation.y *= -1.0f;
 	}
 
-	glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translation);
-
+	const glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translation);
 	if (mType == CameraType::FirstPerson)
 	{
 		mMatrices.mView = rotationMatrix * translationMatrix;
