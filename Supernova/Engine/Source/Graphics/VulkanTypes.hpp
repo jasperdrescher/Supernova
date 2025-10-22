@@ -18,14 +18,12 @@ struct VulkanVertex
 
 struct VulkanUniformData
 {
-	VulkanUniformData() : mProjectionMatrix{}, mViewMatrix{}, mViewPosition{0.0f}, mLightPosition{0.0f, -5.0f, 0.0f, 1.0f}, mLocalSpeed{0.0f}, mGlobalSpeed{0.0f}, mLightIntensity{1.8f} {}
+	VulkanUniformData() : mProjectionMatrix{}, mViewMatrix{}, mViewPosition{0.0f}, mLightPosition{0.0f, -5.0f, 0.0f, 1.0f},mLightIntensity{1.8f} {}
 
 	glm::mat4 mProjectionMatrix;
 	glm::mat4 mViewMatrix;
 	glm::vec4 mViewPosition;
 	glm::vec4 mLightPosition;
-	float mLocalSpeed;
-	float mGlobalSpeed;
 	float mLightIntensity;
 };
 

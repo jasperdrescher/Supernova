@@ -131,6 +131,7 @@ VulkanRenderer::~VulkanRenderer()
 
 #ifdef _DEBUG
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mPlanetWireframe, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mRocksWireframe, nullptr);
 #endif
 
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
@@ -519,6 +520,16 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	inputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(bindingDescriptions.size());
 	inputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptions.size());
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mRocks));
+
+#ifdef _DEBUG
+	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid)
+	{
+		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mRocksWireframe));
+
+		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+	}
+#endif
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -694,7 +705,13 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	// Draw instanced multi draw models
 	const VkDeviceSize offsets[1] = {0};
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
+
+#ifdef _DEBUG
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mRocksWireframe : mVkPipelines.mRocks);
+#else
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
+#endif
+
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModels.mRockModel->vertices.mBuffer, offsets);
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
 	vkCmdBindIndexBuffer(commandBuffer, mModels.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
@@ -755,8 +772,6 @@ void VulkanRenderer::UpdateUniformBuffers()
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mViewMatrix = mCamera->mMatrices.mView;
 	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
-	mVulkanUniformData.mLocalSpeed += mFrametime * 0.35f;
-	mVulkanUniformData.mGlobalSpeed += mFrametime * 0.01f;
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 

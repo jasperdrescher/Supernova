@@ -10,8 +10,6 @@ layout (binding = 0) uniform UBO
 	mat4 view;
 	vec4 viewPos;
 	vec4 lightPos;
-	float locSpeed;
-	float globSpeed;
 	float lightIntensity;
 } ubo;
 
