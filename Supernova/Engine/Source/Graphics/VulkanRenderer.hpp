@@ -192,6 +192,7 @@ private:
 	float mFPSTimerInterval;
 	bool mShouldShowEditorInfo;
 	bool mShouldShowProfiler;
+	bool mShouldFreezeFrustum;
 #ifdef _DEBUG
 	bool mShouldDrawWireframe;
 #endif

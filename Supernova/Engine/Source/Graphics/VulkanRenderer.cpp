@@ -74,8 +74,9 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mClearColor{0.25f, 0.25f, 0.25f, 1.0f}
 	, mShouldShowEditorInfo{true}
 	, mShouldShowProfiler{true}
+	, mShouldFreezeFrustum{false}
 #ifdef _DEBUG
-	, mShouldDrawWireframe{true}
+	, mShouldDrawWireframe{false}
 #endif
 {
 	mFrameTimer = new Time::Timer();
@@ -1064,10 +1065,13 @@ void VulkanRenderer::UpdateUniformBuffers()
 
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mViewMatrix = mCamera->mMatrices.mView;
-	mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
 
-	mFrustum.UpdateFrustum(mVulkanUniformData.mProjectionMatrix * mVulkanUniformData.mViewMatrix);
-	std::memcpy(mVulkanUniformData.mFrustumPlanes, mFrustum.mPlanes.data(), sizeof(glm::vec4) * 6);
+	if (!mShouldFreezeFrustum)
+	{
+		mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
+		mFrustum.UpdateFrustum(mVulkanUniformData.mProjectionMatrix * mVulkanUniformData.mViewMatrix);
+		std::memcpy(mVulkanUniformData.mFrustumPlanes, mFrustum.mPlanes.data(), sizeof(glm::vec4) * 6);
+	}
 
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
@@ -1683,6 +1687,8 @@ void VulkanRenderer::OnUpdateUIOverlay()
 			if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid)
 				ImGui::Checkbox("Draw wireframe", &mShouldDrawWireframe);
 #endif
+
+			ImGui::Checkbox("Freeze frustum", &mShouldFreezeFrustum);
 
 			ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
 			ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
