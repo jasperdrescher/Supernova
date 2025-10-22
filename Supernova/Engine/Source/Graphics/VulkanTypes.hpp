@@ -9,6 +9,10 @@
 #include <ktx.h>
 #include <vulkan/vulkan_core.h>
 
+static constexpr std::uint32_t gMaxConcurrentFrames = 2;
+static constexpr int gModelInstanceCount = 64;
+static constexpr int gMaxLOD = 5;
+
 struct VulkanDevice;
 
 struct VulkanVertex
@@ -137,9 +141,28 @@ class VulkanFrustum
 {
 public:
 	enum class Side { LEFT = 0, RIGHT = 1, TOP = 2, BOTTOM = 3, BACK = 4, FRONT = 5 };
-	std::array<glm::vec4, 6> mPlanes;
+	std::array<glm::vec4, 6> mPlanes{};
 
 	void UpdateFrustum(const glm::mat4& aMatrix);
 
 	bool IsInSphere(const glm::vec3& aPosition, float aRadius) const;
+};
+
+struct ComputeContext
+{
+	VulkanBuffer mLoDBuffers; // Contains index start and counts for the different lod levels
+	VkQueue mQueue; // Separate queue for compute commands (queue family may differ from the one used for graphics)
+	VkCommandPool mCommandPool; // Use a separate command pool (queue family may differ from the one used for graphics)
+	std::array<VkCommandBuffer, gMaxConcurrentFrames> mCommandBuffers; // Command buffer storing the dispatch commands and barriers
+	std::array<VkFence, gMaxConcurrentFrames> mFences; // Synchronization fence to avoid rewriting compute CB if still in use
+	struct ComputeSemaphores
+	{
+		VkSemaphore mReadySemaphore{VK_NULL_HANDLE};
+		VkSemaphore mCompleteSemaphore{VK_NULL_HANDLE};
+	};
+	std::array<ComputeSemaphores, gMaxConcurrentFrames> mSemaphores{}; // Used as a wait semaphore for graphics submission
+	VkDescriptorSetLayout mDescriptorSetLayout; // Compute shader binding layout
+	std::array<VkDescriptorSet, gMaxConcurrentFrames> mDescriptorSets{}; // Compute shader bindings
+	VkPipelineLayout mPipelineLayout; // Layout of the compute pipeline
+	VkPipeline mPipeline; // Compute pipeline
 };

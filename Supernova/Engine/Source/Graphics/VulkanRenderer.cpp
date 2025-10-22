@@ -123,12 +123,12 @@ VulkanRenderer::~VulkanRenderer()
 		vkDestroyPipelineCache(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, nullptr);
 
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mPlanet, nullptr);
-		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mRocks, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mInstancedSuzanne, nullptr);
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mVoyager, nullptr);
 
 #ifdef _DEBUG
 		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mPlanetWireframe, nullptr);
-		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mRocksWireframe, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mVkPipelines.mInstancedSuzanneWireframe, nullptr);
 #endif
 
 		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mVkPipelineLayout, nullptr);
@@ -137,26 +137,26 @@ VulkanRenderer::~VulkanRenderer()
 
 		mInstanceBuffer.Destroy();
 
-		for (VulkanBuffer& buffer : indirectDrawCountBuffers)
+		for (VulkanBuffer& buffer : mIndirectDrawCountBuffers)
 			buffer.Destroy();
 
-		for (VulkanBuffer& buffer : indirectCommandsBuffers)
+		for (VulkanBuffer& buffer : mIndirectCommandsBuffers)
 			buffer.Destroy();
 
-		compute.lodLevelsBuffers.Destroy();
+		mComputeContext.mLoDBuffers.Destroy();
 
-		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, compute.pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, compute.descriptorSetLayout, nullptr);
-		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, compute.pipeline, nullptr);
-		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, compute.commandPool, nullptr);
+		vkDestroyPipelineLayout(mVulkanDevice->mLogicalVkDevice, mComputeContext.mPipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mComputeContext.mDescriptorSetLayout, nullptr);
+		vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mComputeContext.mPipeline, nullptr);
+		vkDestroyCommandPool(mVulkanDevice->mLogicalVkDevice, mComputeContext.mCommandPool, nullptr);
 
-		for (VkFence& fence : compute.fences)
+		for (VkFence& fence : mComputeContext.mFences)
 			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, fence, nullptr);
 
-		for (Compute::ComputeSemaphores& semaphore : compute.semaphores)
+		for (ComputeContext::ComputeSemaphores& semaphore : mComputeContext.mSemaphores)
 		{
-			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore.complete, nullptr);
-			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore.ready, nullptr);
+			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore.mCompleteSemaphore, nullptr);
+			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore.mReadySemaphore, nullptr);
 		}
 
 		for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
@@ -172,7 +172,6 @@ VulkanRenderer::~VulkanRenderer()
 			vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkDeviceMemory, nullptr);
 		}
 
-		mTextures.mRockTextureArray.Destroy();
 		mTextures.mPlanetTexture.Destroy();
 	}
 
@@ -182,7 +181,7 @@ VulkanRenderer::~VulkanRenderer()
 		VulkanDebug::DestroyDebugUtilsMessenger(mVkInstance);
 
 	delete mModels.mPlanetModel;
-	delete mModels.mRockModel;
+	delete mModels.mSuzanneModel;
 	delete mModels.mVoyagerModel;
 	delete mFrameTimer;
 	delete mImGuiOverlay;
@@ -254,9 +253,9 @@ void VulkanRenderer::LoadAssets()
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
 	mModels.mVoyagerModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 
-	mModels.mRockModel = new vkglTF::Model();
-	const std::filesystem::path rockModelPath = "Suzanne_lods.gltf";
-	mModels.mRockModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / rockModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
+	mModels.mSuzanneModel = new vkglTF::Model();
+	const std::filesystem::path suzanneModelPath = "Suzanne_lods.gltf";
+	mModels.mSuzanneModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / suzanneModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
 
 	mModels.mPlanetModel = new vkglTF::Model();
 	const std::filesystem::path planetModelPath = "Lavaplanet.gltf";
@@ -264,8 +263,6 @@ void VulkanRenderer::LoadAssets()
 
 	const std::filesystem::path planetTexturePath = "Lavaplanet_rgba.ktx";
 	mTextures.mPlanetTexture.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / planetTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mVkQueue);
-	const std::filesystem::path rockTexturePath = "Texturearray_rocks_rgba.ktx";
-	mTextures.mRockTextureArray.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / rockTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mVkQueue, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
@@ -339,11 +336,9 @@ void VulkanRenderer::CreateGraphicsDescriptorSets()
 	{
 		// Instanced models
 		// Binding 0 : Vertex shader uniform buffer
-		// Binding 1 : Color map
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mInstancedRocks));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mVkDescriptorSets[i].mSuzanneModel));
 		const std::vector<VkWriteDescriptorSet> instancedWriteDescriptorSets = {
-			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
-			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mInstancedRocks, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mRockTextureArray.mDescriptor),
+			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mSuzanneModel, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(instancedWriteDescriptorSets.size()), instancedWriteDescriptorSets.data(), 0, nullptr);
 
@@ -542,20 +537,20 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	}
 #endif
 
-	const std::filesystem::path rockVertexShaderPath = "ComputeCull/Indirectdraw_vert.spv";
-	const std::filesystem::path rockFragmentShaderPath = "ComputeCull/Indirectdraw_frag.spv";
-	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / rockFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
+	const std::filesystem::path suzanneVertexShaderPath = "ComputeCull/Indirectdraw_vert.spv";
+	const std::filesystem::path suzanneFragmentShaderPath = "ComputeCull/Indirectdraw_frag.spv";
+	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / suzanneVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / suzanneFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
 	inputState.pVertexAttributeDescriptions = attributeDescriptions.data();
 	inputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(bindingDescriptions.size());
 	inputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptions.size());
-	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mRocks));
+	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mInstancedSuzanne));
 
 #ifdef _DEBUG
 	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid)
 	{
 		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mRocksWireframe));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mInstancedSuzanneWireframe));
 
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 	}
@@ -564,7 +559,7 @@ void VulkanRenderer::CreateGraphicsPipelines()
 
 void VulkanRenderer::CreateComputeDescriptorSetLayout()
 {
-	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.mCompute, 0, &compute.queue);
+	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.mCompute, 0, &mComputeContext.mQueue);
 
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		// Binding 0: Instance input data buffer
@@ -580,29 +575,29 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
 	};
 
 	const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &compute.descriptorSetLayout));
+	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mComputeContext.mDescriptorSetLayout));
 }
 
 void VulkanRenderer::CreateComputeDescriptorSets()
 {
-	const VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(&compute.descriptorSetLayout, 1);
-	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &compute.pipelineLayout));
+	const VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(&mComputeContext.mDescriptorSetLayout, 1);
+	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mComputeContext.mPipelineLayout));
 
 	for (size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
-		VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &compute.descriptorSetLayout, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &compute.descriptorSets[i]));
+		VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mComputeContext.mDescriptorSetLayout, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mComputeContext.mDescriptorSets[i]));
 		const std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets = {
 			// Binding 0: Instance input data buffer
-			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &mInstanceBuffer.mVkDescriptorBufferInfo),
+			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &mInstanceBuffer.mVkDescriptorBufferInfo),
 			// Binding 1: Indirect draw command output buffer
-			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &indirectCommandsBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &mIndirectCommandsBuffers[i].mVkDescriptorBufferInfo),
 			// Binding 2: Uniform buffer with global matrices
-			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 			// Binding 3: Atomic counter (written in shader)
-			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &indirectDrawCountBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &mIndirectDrawCountBuffers[i].mVkDescriptorBufferInfo),
 			// Binding 4: LOD info
-			VulkanInitializers::writeDescriptorSet(compute.descriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &compute.lodLevelsBuffers.mVkDescriptorBufferInfo)
+			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &mComputeContext.mLoDBuffers.mVkDescriptorBufferInfo)
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
 	}
@@ -610,7 +605,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
 
 void VulkanRenderer::CreateComputePipelines()
 {
-	VkComputePipelineCreateInfo computePipelineCreateInfo = VulkanInitializers::computePipelineCreateInfo(compute.pipelineLayout, 0);
+	VkComputePipelineCreateInfo computePipelineCreateInfo = VulkanInitializers::computePipelineCreateInfo(mComputeContext.mPipelineLayout, 0);
 	const std::filesystem::path computeShaderPath = "ComputeCull/Indirectdraw_comp.spv";
 	computePipelineCreateInfo.stage = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / computeShaderPath, VK_SHADER_STAGE_COMPUTE_BIT);
 
@@ -620,7 +615,7 @@ void VulkanRenderer::CreateComputePipelines()
 	specializationEntry.offset = 0;
 	specializationEntry.size = sizeof(uint32_t);
 
-	uint32_t specializationData = static_cast<uint32_t>(mModels.mRockModel->nodes.size()) - 1;
+	uint32_t specializationData = static_cast<uint32_t>(mModels.mSuzanneModel->nodes.size()) - 1;
 
 	VkSpecializationInfo specializationInfo{};
 	specializationInfo.mapEntryCount = 1;
@@ -630,34 +625,34 @@ void VulkanRenderer::CreateComputePipelines()
 
 	computePipelineCreateInfo.stage.pSpecializationInfo = &specializationInfo;
 
-	VK_CHECK_RESULT(vkCreateComputePipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &computePipelineCreateInfo, nullptr, &compute.pipeline));
+	VK_CHECK_RESULT(vkCreateComputePipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &computePipelineCreateInfo, nullptr, &mComputeContext.mPipeline));
 
 	// Separate command pool as queue family for compute may be different than graphics
 	VkCommandPoolCreateInfo cmdPoolInfo = {};
 	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	cmdPoolInfo.queueFamilyIndex = mVulkanDevice->mQueueFamilyIndices.mCompute;
 	cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &cmdPoolInfo, nullptr, &compute.commandPool));
+	VK_CHECK_RESULT(vkCreateCommandPool(mVulkanDevice->mLogicalVkDevice, &cmdPoolInfo, nullptr, &mComputeContext.mCommandPool));
 
 	// Create command buffers for compute operations
-	for (auto& cmdBuffer : compute.commandBuffers)
+	for (auto& cmdBuffer : mComputeContext.mCommandBuffers)
 	{
-		cmdBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, compute.commandPool);
+		cmdBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, mComputeContext.mCommandPool);
 	}
 
 	// Fences to check for command buffer completion
-	for (VkFence& fence : compute.fences)
+	for (VkFence& fence : mComputeContext.mFences)
 	{
 		const VkFenceCreateInfo fenceCreateInfo = VulkanInitializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 		VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &fenceCreateInfo, nullptr, &fence));
 	}
 
 	// Semaphores to order compute and graphics submissions
-	for (auto& semaphore : compute.semaphores)
+	for (auto& semaphore : mComputeContext.mSemaphores)
 	{
 		const VkSemaphoreCreateInfo semaphoreInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreInfo, nullptr, &semaphore.complete));
-		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreInfo, nullptr, &semaphore.ready));
+		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreInfo, nullptr, &semaphore.mCompleteSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreInfo, nullptr, &semaphore.mReadySemaphore));
 	}
 
 	// Signal first used ready semaphore
@@ -665,9 +660,9 @@ void VulkanRenderer::CreateComputePipelines()
 	{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &compute.semaphores[gMaxConcurrentFrames - 1].ready
+		.pSignalSemaphores = &mComputeContext.mSemaphores[gMaxConcurrentFrames - 1].mReadySemaphore
 	};
-	VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
+	VK_CHECK_RESULT(vkQueueSubmit(mComputeContext.mQueue, 1, &computeSubmitInfo, VK_NULL_HANDLE));
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -720,9 +715,9 @@ void VulkanRenderer::PrepareVulkanResources()
 	mEngineProperties->mIsRendererPrepared = true;
 }
 
-void VulkanRenderer::PrepareFrame()
+void VulkanRenderer::PrepareFrameGraphics()
 {
-	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::PrepareFrame");
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::PrepareFrameGraphics");
 
 	// Use a fence to wait until the command buffer has finished execution before using it again
 	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
@@ -791,9 +786,9 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 			VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
 			mVulkanDevice->mQueueFamilyIndices.mCompute,
 			mVulkanDevice->mQueueFamilyIndices.mGraphics,
-			indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
+			mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
 			0,
-			indirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
+			mIndirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
 		};
 		vkCmdPipelineBarrier(
 			commandBuffer,
@@ -872,30 +867,30 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 
 	// Draw instanced multi draw models
 	const VkDeviceSize offsets[1] = {0};
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mInstancedRocks, 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelineLayout, 0, 1, &mVkDescriptorSets[mCurrentBufferIndex].mSuzanneModel, 0, nullptr);
 
 #ifdef _DEBUG
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mRocksWireframe : mVkPipelines.mRocks);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mInstancedSuzanneWireframe : mVkPipelines.mInstancedSuzanne);
 #else
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mRocks);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mInstancedSuzanne);
 #endif
 
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModels.mRockModel->vertices.mBuffer, offsets);
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModels.mSuzanneModel->vertices.mBuffer, offsets);
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
-	vkCmdBindIndexBuffer(commandBuffer, mModels.mRockModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(commandBuffer, mModels.mSuzanneModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
 	
 	// One draw call for an arbitrary number of objects
 	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
 	{
 		// Index offsets and instance count are taken from the indirect buffer
-		vkCmdDrawIndexedIndirect(commandBuffer, indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, 0, static_cast<uint32_t>(indirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, 0, static_cast<uint32_t>(mIndirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
 	}
 	else
 	{
 		// Issue separate draw commands
-		for (std::size_t j = 0; j < indirectCommands.size(); j++)
+		for (std::size_t j = 0; j < mIndirectCommands.size(); j++)
 		{
-			vkCmdDrawIndexedIndirect(commandBuffer, indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+			vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 		}
 	}
 
@@ -926,9 +921,9 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 			0,
 			mVulkanDevice->mQueueFamilyIndices.mGraphics,
 			mVulkanDevice->mQueueFamilyIndices.mCompute,
-			indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
+			mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
 			0,
-			indirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
+			mIndirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
 		};
 		vkCmdPipelineBarrier(
 			commandBuffer,
@@ -946,9 +941,18 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 
+void VulkanRenderer::PrepareFrameCompute()
+{
+	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mComputeContext.mFences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
+	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mComputeContext.mFences[mCurrentBufferIndex]));
+
+	// Get draw count from compute
+	std::memcpy(&mIndrectDrawInfo, mIndirectDrawCountBuffers[mCurrentBufferIndex].mMappedData, sizeof(mIndrectDrawInfo));
+}
+
 void VulkanRenderer::BuildComputeCommandBuffer()
 {
-	VkCommandBuffer commandBuffer = compute.commandBuffers[mCurrentBufferIndex];
+	VkCommandBuffer commandBuffer = mComputeContext.mCommandBuffers[mCurrentBufferIndex];
 
 	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
@@ -965,9 +969,9 @@ void VulkanRenderer::BuildComputeCommandBuffer()
 			VK_ACCESS_SHADER_WRITE_BIT,
 			mVulkanDevice->mQueueFamilyIndices.mGraphics,
 			mVulkanDevice->mQueueFamilyIndices.mCompute,
-			indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
+			mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
 			0,
-			indirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
+			mIndirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
 		};
 		vkCmdPipelineBarrier(
 			commandBuffer,
@@ -982,11 +986,11 @@ void VulkanRenderer::BuildComputeCommandBuffer()
 			nullptr);
 	}
 
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipeline);
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSets[mCurrentBufferIndex], 0, nullptr);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, mComputeContext.mPipeline);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, mComputeContext.mPipelineLayout, 0, 1, &mComputeContext.mDescriptorSets[mCurrentBufferIndex], 0, nullptr);
 
 	// Clear the buffer that the compute shader pass will write statistics and draw calls to
-	vkCmdFillBuffer(commandBuffer, indirectDrawCountBuffers[mCurrentBufferIndex].mVkBuffer, 0, indirectDrawCountBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range, 0);
+	vkCmdFillBuffer(commandBuffer, mIndirectDrawCountBuffers[mCurrentBufferIndex].mVkBuffer, 0, mIndirectDrawCountBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range, 0);
 
 	// This barrier ensures that the fill command is finished before the compute shader can start writing to the buffer
 	const VkMemoryBarrier memoryBarrier =
@@ -1024,9 +1028,9 @@ void VulkanRenderer::BuildComputeCommandBuffer()
 			0,
 			mVulkanDevice->mQueueFamilyIndices.mCompute,
 			mVulkanDevice->mQueueFamilyIndices.mGraphics,
-			indirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
+			mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer,
 			0,
-			indirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
+			mIndirectCommandsBuffers[mCurrentBufferIndex].mVkDescriptorBufferInfo.range
 		};
 		vkCmdPipelineBarrier(
 			commandBuffer,
@@ -1075,13 +1079,13 @@ void VulkanRenderer::UpdateUniformBuffers()
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
 }
 
-void VulkanRenderer::SubmitFrame()
+void VulkanRenderer::SubmitFrameGraphics()
 {
-	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::SubmitFrame");
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::SubmitFrameGraphics");
 
 	const VkPipelineStageFlags waitPipelineStageMask[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT };
-	const VkSemaphore waitSemaphores[2] = {mVkPresentCompleteSemaphores[mCurrentBufferIndex], compute.semaphores[mCurrentBufferIndex].complete};
-	const VkSemaphore signalSemaphores[2] = {mVkRenderCompleteSemaphores[mCurrentImageIndex], compute.semaphores[mCurrentBufferIndex].ready};
+	const VkSemaphore waitSemaphores[2] = {mVkPresentCompleteSemaphores[mCurrentBufferIndex], mComputeContext.mSemaphores[mCurrentBufferIndex].mCompleteSemaphore};
+	const VkSemaphore signalSemaphores[2] = {mVkRenderCompleteSemaphores[mCurrentImageIndex], mComputeContext.mSemaphores[mCurrentBufferIndex].mReadySemaphore};
 	const VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.waitSemaphoreCount = 2,
@@ -1123,6 +1127,23 @@ void VulkanRenderer::SubmitFrame()
 
 	// Select the next frame to render to, based on the max. no. of concurrent frames
 	mCurrentBufferIndex = (mCurrentBufferIndex + 1) % gMaxConcurrentFrames;
+}
+
+void VulkanRenderer::SubmitFrameCompute()
+{
+	const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+	const VkSubmitInfo submitInfo =
+	{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &mComputeContext.mSemaphores[((int)mCurrentBufferIndex - 1) % gMaxConcurrentFrames].mReadySemaphore,
+		.pWaitDstStageMask = &waitDstStageMask,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &mComputeContext.mCommandBuffers[mCurrentBufferIndex],
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &mComputeContext.mSemaphores[mCurrentBufferIndex].mCompleteSemaphore,
+	};
+	VK_CHECK_RESULT(vkQueueSubmit(mComputeContext.mQueue, 1, &submitInfo, mComputeContext.mFences[mCurrentBufferIndex]));
 }
 
 void VulkanRenderer::CreateVkInstance()
@@ -1297,7 +1318,7 @@ void VulkanRenderer::CreatePipelineCache()
 void VulkanRenderer::PrepareIndirectData()
 {
 	mIndirectDrawCount = gModelInstanceCount * gModelInstanceCount * gModelInstanceCount;
-	indirectCommands.resize(mIndirectDrawCount);
+	mIndirectCommands.resize(mIndirectDrawCount);
 
 	for (std::uint8_t x = 0; x < gModelInstanceCount; x++)
 	{
@@ -1306,24 +1327,24 @@ void VulkanRenderer::PrepareIndirectData()
 			for (std::uint8_t z = 0; z < gModelInstanceCount; z++)
 			{
 				const std::uint32_t index = x + y * gModelInstanceCount + z * gModelInstanceCount * gModelInstanceCount;
-				indirectCommands[index].instanceCount = 1;
-				indirectCommands[index].firstInstance = index;
+				mIndirectCommands[index].instanceCount = 1;
+				mIndirectCommands[index].firstInstance = index;
 				// firstIndex and indexCount are written by the compute shader
 			}
 		}
 	}
 
-	indirectStats.drawCount = static_cast<std::uint32_t>(indirectCommands.size());
+	mIndrectDrawInfo.mDrawCount = static_cast<std::uint32_t>(mIndirectCommands.size());
 
 	VulkanBuffer stagingBuffer;
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&stagingBuffer,
-		indirectCommands.size() * sizeof(VkDrawIndexedIndirectCommand),
-		indirectCommands.data()));
+		mIndirectCommands.size() * sizeof(VkDrawIndexedIndirectCommand),
+		mIndirectCommands.data()));
 
-	for (VulkanBuffer& indirectCommandsBuffer : indirectCommandsBuffers)
+	for (VulkanBuffer& indirectCommandsBuffer : mIndirectCommandsBuffers)
 	{
 		VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 			VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -1406,13 +1427,13 @@ void VulkanRenderer::PrepareInstanceData()
 	stagingBuffer.Destroy();
 
 	// Draw count buffer for host side info readback
-	for (VulkanBuffer& indirectDrawCountBuffer : indirectDrawCountBuffers)
+	for (VulkanBuffer& indirectDrawCountBuffer : mIndirectDrawCountBuffers)
 	{
 		VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&indirectDrawCountBuffer,
-			sizeof(indirectStats)));
+			sizeof(mIndrectDrawInfo)));
 
 		VK_CHECK_RESULT(indirectDrawCountBuffer.Map());
 	}
@@ -1428,7 +1449,7 @@ void VulkanRenderer::PrepareInstanceData()
 	std::vector<LOD> LODLevels;
 
 	std::uint32_t nodeIndex = 0;
-	for (const vkglTF::Node* node : mModels.mRockModel->nodes)
+	for (const vkglTF::Node* node : mModels.mSuzanneModel->nodes)
 	{
 		LOD lod{};
 		lod.firstIndex = node->mMesh->mPrimitives[0]->firstIndex; // First index for this LOD
@@ -1448,10 +1469,10 @@ void VulkanRenderer::PrepareInstanceData()
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		&compute.lodLevelsBuffers,
+		&mComputeContext.mLoDBuffers,
 		stagingBuffer.mVkDeviceSize));
 
-	mVulkanDevice->CopyBuffer(&stagingBuffer, &compute.lodLevelsBuffers, mVkQueue);
+	mVulkanDevice->CopyBuffer(&stagingBuffer, &mComputeContext.mLoDBuffers, mVkQueue);
 
 	stagingBuffer.Destroy();
 }
@@ -1485,37 +1506,15 @@ void VulkanRenderer::RenderFrame()
 
 	mFrameTimer->StartTimer();
 	
-	{
-		VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &compute.fences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &compute.fences[mCurrentBufferIndex]));
+	PrepareFrameCompute();
+	BuildComputeCommandBuffer();
+	SubmitFrameCompute();
 
-		// Get draw count from compute
-		std::memcpy(&indirectStats, indirectDrawCountBuffers[mCurrentBufferIndex].mMappedData, sizeof(indirectStats));
-		BuildComputeCommandBuffer();
-
-		// Wait for rendering finished
-		VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-		const VkSubmitInfo submitInfo =
-		{
-			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = &compute.semaphores[((int)mCurrentBufferIndex - 1) % gMaxConcurrentFrames].ready,
-			.pWaitDstStageMask = &waitDstStageMask,
-			.commandBufferCount = 1,
-			.pCommandBuffers = &compute.commandBuffers[mCurrentBufferIndex],
-			.signalSemaphoreCount = 1,
-			.pSignalSemaphores = &compute.semaphores[mCurrentBufferIndex].complete,
-		};
-		VK_CHECK_RESULT(vkQueueSubmit(compute.queue, 1, &submitInfo, compute.fences[mCurrentBufferIndex]));
-	}
-
-	{
-		PrepareFrame();
-		UpdateUniformBuffers();
-		UpdateModelMatrix();
-		BuildGraphicsCommandBuffer();
-		SubmitFrame();
-	}
+	PrepareFrameGraphics();
+	UpdateUniformBuffers();
+	UpdateModelMatrix();
+	BuildGraphicsCommandBuffer();
+	SubmitFrameGraphics();
 
 	mFrameTimer->EndTimer();
 
@@ -1703,10 +1702,10 @@ void VulkanRenderer::OnUpdateUIOverlay()
 
 		if (ImGui::CollapsingHeader("Scene Details", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			ImGui::Text("Visible objects: %d", indirectStats.drawCount);
+			ImGui::Text("Visible objects: %d", mIndrectDrawInfo.mDrawCount);
 			for (int i = 0; i < gMaxLOD + 1; i++)
 			{
-				ImGui::Text("LOD %d: %d", i, indirectStats.lodCount[i]);
+				ImGui::Text("LOD %d: %d", i, mIndrectDrawInfo.mLoDCount[i]);
 			}
 
 			ImGui::NewLine();

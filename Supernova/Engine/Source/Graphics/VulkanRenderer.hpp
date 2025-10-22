@@ -14,10 +14,6 @@
 #include <string>
 #include <vector>
 
-constexpr std::uint32_t gMaxConcurrentFrames = 2;
-constexpr int gModelInstanceCount = 64;
-constexpr int gMaxLOD = 5;
-
 namespace vkglTF
 {
 	class Model;
@@ -46,12 +42,14 @@ public:
 
 private:
 	void PrepareVulkanResources();
-	void PrepareFrame();
+	void PrepareFrameGraphics();
 	void BuildGraphicsCommandBuffer();
+	void PrepareFrameCompute();
 	void BuildComputeCommandBuffer();
 	void UpdateModelMatrix();
 	void UpdateUniformBuffers();
-	void SubmitFrame();
+	void SubmitFrameGraphics();
+	void SubmitFrameCompute();
 	void SetupDepthStencil();
 
 	void LoadAssets();
@@ -88,7 +86,7 @@ private:
 
 	struct DescriptorSets
 	{
-		VkDescriptorSet mInstancedRocks{VK_NULL_HANDLE};
+		VkDescriptorSet mSuzanneModel{VK_NULL_HANDLE};
 		VkDescriptorSet mStaticPlanet{VK_NULL_HANDLE};
 		VkDescriptorSet mStaticVoyager{VK_NULL_HANDLE};
 	};
@@ -98,49 +96,30 @@ private:
 		VkPipeline mVoyager{VK_NULL_HANDLE};
 		VkPipeline mPlanet{VK_NULL_HANDLE};
 		VkPipeline mPlanetWireframe{VK_NULL_HANDLE};
-		VkPipeline mRocks{VK_NULL_HANDLE};
-		VkPipeline mRocksWireframe{VK_NULL_HANDLE};
+		VkPipeline mInstancedSuzanne{VK_NULL_HANDLE};
+		VkPipeline mInstancedSuzanneWireframe{VK_NULL_HANDLE};
 	} mVkPipelines{};
 
 	struct
 	{
-		VulkanTexture2DArray mRockTextureArray;
 		VulkanTexture2D mPlanetTexture;
 	} mTextures{};
 
 	struct
 	{
 		vkglTF::Model* mVoyagerModel{nullptr};
-		vkglTF::Model* mRockModel{nullptr};
+		vkglTF::Model* mSuzanneModel{nullptr};
 		vkglTF::Model* mPlanetModel{nullptr};
 	} mModels{};
 
 	struct
 	{
-		uint32_t drawCount;						// Total number of indirect draw counts to be issued
-		uint32_t lodCount[gMaxLOD + 1];	// Statistics for number of draws per LOD level (written by compute shader)
-	} indirectStats{};
+		std::uint32_t mDrawCount; // Total number of indirect draw counts to be issued
+		std::uint32_t mLoDCount[gMaxLOD + 1]; // Statistics for number of draws per LOD level (written by compute shader)
+	} mIndrectDrawInfo{};
 
-	struct Compute
-	{
-		VulkanBuffer lodLevelsBuffers;										// Contains index start and counts for the different lod levels
-		VkQueue queue;														// Separate queue for compute commands (queue family may differ from the one used for graphics)
-		VkCommandPool commandPool;											// Use a separate command pool (queue family may differ from the one used for graphics)
-		std::array<VkCommandBuffer, gMaxConcurrentFrames> commandBuffers;	// Command buffer storing the dispatch commands and barriers
-		std::array<VkFence, gMaxConcurrentFrames> fences;					// Synchronization fence to avoid rewriting compute CB if still in use
-		struct ComputeSemaphores
-		{
-			VkSemaphore ready{VK_NULL_HANDLE};
-			VkSemaphore complete{VK_NULL_HANDLE};
-		};
-		std::array<ComputeSemaphores, gMaxConcurrentFrames> semaphores{};	// Used as a wait semaphore for graphics submission
-		VkDescriptorSetLayout descriptorSetLayout;							// Compute shader binding layout
-		std::array<VkDescriptorSet, gMaxConcurrentFrames> descriptorSets{};	// Compute shader bindings
-		VkPipelineLayout pipelineLayout;									// Layout of the compute pipeline
-		VkPipeline pipeline;												// Compute pipeline
-	} compute{};
-
-	VulkanFrustum mFrustum;
+	ComputeContext mComputeContext{};
+	VulkanFrustum mFrustum{};
 	VulkanUniformData mVulkanUniformData{};
 	VulkanBuffer mInstanceBuffer{};
 	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
@@ -155,7 +134,7 @@ private:
 	VkCommandPool mVkCommandPoolBuffer;
 	VulkanPushConstant mVulkanPushConstant{};
 	Time::TimePoint mLastTimestamp;
-	std::vector<VkDrawIndexedIndirectCommand> indirectCommands; // Store the indirect draw commands containing index offsets and instance count per object
+	std::vector<VkDrawIndexedIndirectCommand> mIndirectCommands; // Store the indirect draw commands containing index offsets and instance count per object
 	std::vector<std::string> mSupportedInstanceExtensions{};
 	std::vector<const char*> mEnabledDeviceExtensions{}; // Set of device extensions to be enabled for this example
 	std::vector<const char*> mRequestedInstanceExtensions{}; // Set of instance extensions to be enabled for this example
@@ -168,8 +147,8 @@ private:
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
 	std::array<DescriptorSets, gMaxConcurrentFrames> mVkDescriptorSets{};
-	std::array<VulkanBuffer, gMaxConcurrentFrames> indirectCommandsBuffers;
-	std::array<VulkanBuffer, gMaxConcurrentFrames> indirectDrawCountBuffers;
+	std::array<VulkanBuffer, gMaxConcurrentFrames> mIndirectCommandsBuffers;
+	std::array<VulkanBuffer, gMaxConcurrentFrames> mIndirectDrawCountBuffers;
 	std::uint32_t mFramebufferWidth;
 	std::uint32_t mFramebufferHeight;
 	std::uint32_t mFrameCounter;
