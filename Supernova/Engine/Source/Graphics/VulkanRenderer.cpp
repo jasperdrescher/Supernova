@@ -72,7 +72,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVoyagerModelMatrix{1.0f}
 	, mPlanetModelMatrix{1.0f}
 	, mClearColor{0.25f, 0.25f, 0.25f, 1.0f}
-	, mLightPosition{0.0f, -5.0f, 0.0f, 1.0f}
+	, mLightPosition{0.5f, 0.0f, 35.0f, 1.0f}
 	, mShouldShowEditorInfo{true}
 	, mShouldShowProfiler{true}
 	, mShouldFreezeFrustum{false}

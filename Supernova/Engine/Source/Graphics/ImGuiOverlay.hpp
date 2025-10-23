@@ -31,6 +31,10 @@ public:
 	void AddShader(const VkPipelineShaderStageCreateInfo& aCreateInfo) { mShaders.push_back(aCreateInfo); }
 	void SetScale(float aScale) { mScale = aScale; }
 
+	static void OnKeyCallback(int aKeycode, int aScancode, int aAction, int aMods);
+	static void OnCharCallback(unsigned int c);
+	static void OnWindowFocusCallback(int focused);
+
 	bool WantsToCaptureInput() const;
 	bool IsVisible() const { return mIsVisible;}
 	float GetScale() const { return mScale; }

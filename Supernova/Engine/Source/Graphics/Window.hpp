@@ -47,6 +47,8 @@ private:
 	static void FramebufferResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight);
 	static void WindowMinimizedCallback(GLFWwindow* aWindow, int aValue);
+	static void CharCallback(GLFWwindow* aWindow, unsigned int aChar);
+	static void WindowFocusCallback(GLFWwindow* aWindow, int aFocused);
 
 	void SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const;
 

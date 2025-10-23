@@ -4,6 +4,7 @@
 #include "Input/InputManager.hpp"
 #include "Profiler/SimpleProfiler.hpp"
 #include "Vulkantools.hpp"
+#include "ImGuiOverlay.hpp"
 
 #define GLFW_EXCLUDE_API
 #include <GLFW/glfw3.h>
@@ -61,9 +62,11 @@ void Window::InitializeWindow(const std::string& aApplicationName)
 
 	glfwSetWindowUserPointer(mGLFWWindow, this);
 	glfwSetKeyCallback(mGLFWWindow, KeyCallback);
+	glfwSetCharCallback(mGLFWWindow, CharCallback);
 	glfwSetMouseButtonCallback(mGLFWWindow, MouseButtonCallback);
 	glfwSetCursorPosCallback(mGLFWWindow, CursorPositionCallback);
 	glfwSetScrollCallback(mGLFWWindow, ScrollCallback);
+	glfwSetWindowFocusCallback(mGLFWWindow, WindowFocusCallback);
 	glfwSetFramebufferSizeCallback(mGLFWWindow, FramebufferResizeCallback);
 	glfwSetWindowSizeCallback(mGLFWWindow, WindowResizeCallback);
 	glfwSetWindowIconifyCallback(mGLFWWindow, WindowMinimizedCallback);
@@ -139,6 +142,7 @@ void Window::KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aActi
 	}
 
 	Input::InputManager::GetInstance().OnKeyAction(aKey, aScancode, aAction != GLFW_RELEASE, aMode);
+	ImGuiOverlay::OnKeyCallback(aKey, aScancode, aAction, aMode);
 }
 
 void Window::MouseButtonCallback(GLFWwindow* /*window*/, int aButton, int aAction, int aMode)
@@ -175,6 +179,16 @@ void Window::WindowMinimizedCallback(GLFWwindow* aWindow, int aValue)
 {
 	Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(aWindow));
 	window->mWindowProperties.mIsMinimized = aValue;
+}
+
+void Window::CharCallback(GLFWwindow* /*aWindow*/, unsigned int aChar)
+{
+	ImGuiOverlay::OnCharCallback(aChar);
+}
+
+void Window::WindowFocusCallback(GLFWwindow* /*aWindow*/, int aFocused)
+{
+	ImGuiOverlay::OnWindowFocusCallback(aFocused);
 }
 
 void Window::SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const
