@@ -2,6 +2,14 @@
 
 namespace Input
 {
+	enum class MouseButton
+	{
+		Undefined,
+		Left,
+		Right,
+		Middle
+	};
+
 	enum class Key
 	{
 		Undefined,

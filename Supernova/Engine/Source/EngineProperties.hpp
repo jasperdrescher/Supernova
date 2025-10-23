@@ -14,12 +14,7 @@ struct EngineProperties
 	std::uint32_t mEngineMajorVersion;
 	std::uint32_t mEngineMinorVersion;
 	std::uint32_t mEnginePatchVersion;
-	int mWindowWidth;
-	int mWindowHeight;
-	bool mIsMinimized;
-	bool mIsFocused;
 	bool mIsPaused;
-	bool mIsFramebufferResized;
 	bool mIsRendererPrepared;
 	bool mIsVSyncEnabled;
 	bool mIsValidationEnabled;

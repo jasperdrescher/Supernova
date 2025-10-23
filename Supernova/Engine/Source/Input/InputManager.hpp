@@ -2,19 +2,11 @@
 
 #include "InputKeys.hpp"
 
-#include <map>
 #include <glm/vec2.hpp>
+#include <map>
 
 namespace Input
 {
-	enum class MouseButtons
-	{
-		Undefined,
-		Left,
-		Right,
-		Middle
-	};
-
 	class InputManager
 	{
 	public:
@@ -38,17 +30,16 @@ namespace Input
 		const glm::vec2& GetScrollOffset() const { return mScrollOffset; }
 		glm::vec2 GetMousePositionDelta() const { return mMousePosition - mPreviousMousePosition; }
 		bool GetIsKeyDown(Key aKey) const;
-		bool GetIsMouseButtonDown(MouseButtons aMouseButton) const;
+		bool GetIsMouseButtonDown(MouseButton aMouseButton) const;
 
 	private:
 		InputManager() {}
 
 		Key GetTranslatedKey(int aKey) const;
-		MouseButtons GetTranslatedMouseButton(int aButton) const;
+		MouseButton GetTranslatedMouseButton(int aButton) const;
 
-	private:
 		std::map<Key, bool> myKeys{};
-		std::map<MouseButtons, bool> myMouseButtons{};
+		std::map<MouseButton, bool> myMouseButtons{};
 		glm::vec2 mPreviousMousePosition{};
 		glm::vec2 mMousePosition{};
 		glm::vec2 mScrollOffset{};

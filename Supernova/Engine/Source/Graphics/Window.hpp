@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 #include <vector>
 
 typedef struct VkInstance_T* VkInstance;
@@ -9,19 +10,32 @@ typedef struct GLFWwindow GLFWwindow;
 
 struct EngineProperties;
 
+struct WindowProperties
+{
+	WindowProperties() : mWindowWidth{1280}, mWindowHeight{720}, mIsFocused{false}, mIsMinimized{false}, mIsFramebufferResized{false} {}
+
+	int mWindowWidth;
+	int mWindowHeight;
+	bool mIsFocused;
+	bool mIsMinimized;
+	bool mIsFramebufferResized;
+};
+
 class Window
 {
 public:
-	Window(EngineProperties* aEngineProperties);
+	Window();
 	~Window();
 
-	void InitializeWindow();
+	void InitializeWindow(const std::string& aApplicationName);
 	void CreateWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurface);
 	void UpdateWindow();
 
 	void SetWindowSize(int aWidth, int aHeight);
+	void OnFramebufferResizeProcessed();
 
 	bool ShouldClose() const { return mShouldClose; }
+	const WindowProperties& GetWindowProperties() const { return mWindowProperties; }
 	std::vector<const char*> GetGlfwRequiredExtensions();
 	float GetContentScaleForMonitor() const;
 
@@ -36,9 +50,8 @@ private:
 
 	void SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const;
 
-
+	WindowProperties mWindowProperties;
 	std::filesystem::path mIconPath;
 	bool mShouldClose;
-	EngineProperties* mEngineProperties;
 	GLFWwindow* mGLFWWindow;
 };

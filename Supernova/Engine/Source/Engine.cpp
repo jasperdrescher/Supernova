@@ -20,7 +20,7 @@ Engine::Engine()
 	, mDeltaTime{0.0f}
 {
 	mEngineProperties = new EngineProperties();
-	mVulkanWindow = new Window(mEngineProperties);
+	mVulkanWindow = new Window();
 	mVulkanRenderer = new VulkanRenderer(mEngineProperties, mVulkanWindow);
 	mTimer = new Time::Timer();
 
@@ -43,7 +43,7 @@ void Engine::Start()
 
 	FileLoader::PrintWorkingDirectory();
 
-	mVulkanWindow->InitializeWindow();
+	mVulkanWindow->InitializeWindow(mEngineProperties->mApplicationName);
 	mVulkanRenderer->InitializeRenderer();
 }
 

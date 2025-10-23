@@ -1,5 +1,6 @@
 #include "InputManager.hpp"
 
+#define GLFW_EXCLUDE_API
 #include <GLFW/glfw3.h>
 
 #include <map>
@@ -8,16 +9,16 @@ namespace Input
 {
 	bool InputManager::GetIsKeyDown(Key aKey) const
 	{
-		std::map<Key, bool>::const_iterator iterator = myKeys.find(aKey);
+		const std::map<Key, bool>::const_iterator iterator = myKeys.find(aKey);
 		if (iterator == myKeys.end())
 			return false;
 
 		return iterator->second;
 	}
 
-	bool InputManager::GetIsMouseButtonDown(MouseButtons aMouseButton) const
+	bool InputManager::GetIsMouseButtonDown(MouseButton aMouseButton) const
 	{
-		std::map<MouseButtons, bool>::const_iterator iterator = myMouseButtons.find(aMouseButton);
+		const std::map<MouseButton, bool>::const_iterator iterator = myMouseButtons.find(aMouseButton);
 		if (iterator == myMouseButtons.end())
 			return false;
 
@@ -165,14 +166,14 @@ namespace Input
 		}
 	}
 
-	MouseButtons InputManager::GetTranslatedMouseButton(int aButton) const
+	MouseButton InputManager::GetTranslatedMouseButton(int aButton) const
 	{
 		switch (aButton)
 		{
-			case GLFW_MOUSE_BUTTON_LEFT: return MouseButtons::Left;
-			case GLFW_MOUSE_BUTTON_RIGHT: return MouseButtons::Right;
-			case GLFW_MOUSE_BUTTON_MIDDLE: return MouseButtons::Middle;
-			default: return MouseButtons::Undefined; break;
+			case GLFW_MOUSE_BUTTON_LEFT: return MouseButton::Left;
+			case GLFW_MOUSE_BUTTON_RIGHT: return MouseButton::Right;
+			case GLFW_MOUSE_BUTTON_MIDDLE: return MouseButton::Middle;
+			default: return MouseButton::Undefined; break;
 		}
 	}
 }

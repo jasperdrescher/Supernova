@@ -86,8 +86,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	mEngineProperties->mIsValidationEnabled = true;
 	mEngineProperties->mIsVSyncEnabled = true;
 
-	mFramebufferWidth = mEngineProperties->mWindowWidth;
-	mFramebufferHeight = mEngineProperties->mWindowHeight;
+	mFramebufferWidth = mWindow->GetWindowProperties().mWindowWidth;
+	mFramebufferHeight = mWindow->GetWindowProperties().mWindowHeight;
 
 	mVkPhysicalDevice13Features.dynamicRendering = VK_TRUE;
 
@@ -214,7 +214,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 {
 	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::UpdateRenderer");
 
-	if (!mEngineProperties->mIsMinimized)
+	if (!mWindow->GetWindowProperties().mIsMinimized)
 	{
 		if (mEngineProperties->mIsRendererPrepared)
 		{
@@ -232,8 +232,8 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 			mCamera->mKeys.mIsSpaceDown = inputManager.GetIsKeyDown(Input::Key::Spacebar);
 			mCamera->mKeys.mIsCtrlDown = inputManager.GetIsKeyDown(Input::Key::LeftControl);
 			mCamera->mMouse.mScrollWheelDelta = inputManager.GetScrollOffset().y;
-			mCamera->mMouse.mIsLeftDown = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left);
-			mCamera->mMouse.mIsMiddleDown = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle);
+			mCamera->mMouse.mIsLeftDown = inputManager.GetIsMouseButtonDown(Input::MouseButton::Left);
+			mCamera->mMouse.mIsMiddleDown = inputManager.GetIsMouseButtonDown(Input::MouseButton::Middle);
 			mCamera->mMouse.mDeltaX = inputManager.GetMousePositionDelta().x;
 			mCamera->mMouse.mDeltaY = inputManager.GetMousePositionDelta().y;
 		}
@@ -1131,9 +1131,9 @@ void VulkanRenderer::SubmitFrameGraphics()
 
 	const VkResult result = vkQueuePresentKHR(mVkQueue, &presentInfo);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR) || mEngineProperties->mIsFramebufferResized)
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR) || mWindow->GetWindowProperties().mIsFramebufferResized)
 	{
-		mEngineProperties->mIsFramebufferResized = false;
+		mWindow->OnFramebufferResizeProcessed();
 
 		OnResizeWindow();
 
@@ -1659,9 +1659,9 @@ void VulkanRenderer::UpdateUIOverlay()
 	const bool isVisible = mImGuiOverlay->IsVisible();
 	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
 	io.MousePos = ImVec2(inputManager.GetMousePosition().x, inputManager.GetMousePosition().y);
-	io.MouseDown[0] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left) && isVisible;
-	io.MouseDown[1] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Right) && isVisible;
-	io.MouseDown[2] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle) && isVisible;
+	io.MouseDown[0] = inputManager.GetIsMouseButtonDown(Input::MouseButton::Left) && isVisible;
+	io.MouseDown[1] = inputManager.GetIsMouseButtonDown(Input::MouseButton::Right) && isVisible;
+	io.MouseDown[2] = inputManager.GetIsMouseButtonDown(Input::MouseButton::Middle) && isVisible;
 
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);

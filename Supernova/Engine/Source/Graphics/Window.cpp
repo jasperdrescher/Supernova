@@ -1,6 +1,5 @@
 #include "Window.hpp"
 
-#include "EngineProperties.hpp"
 #include "FileLoader.hpp"
 #include "Input/InputManager.hpp"
 #include "Profiler/SimpleProfiler.hpp"
@@ -8,11 +7,13 @@
 
 #define GLFW_EXCLUDE_API
 #include <GLFW/glfw3.h>
+
 #include <iostream>
 #include <vector>
 #include <cstdint>
 #include <format>
 #include <stdexcept>
+#include <string>
 
 namespace WindowLocal
 {
@@ -22,9 +23,8 @@ namespace WindowLocal
 	}
 }
 
-Window::Window(EngineProperties* aEngineProperties)
-	: mEngineProperties{aEngineProperties}
-	, mGLFWWindow{nullptr}
+Window::Window()
+	: mGLFWWindow{nullptr}
 	, mIconPath{"Textures/Supernova.png"}
 	, mShouldClose{false}
 {
@@ -36,7 +36,7 @@ Window::~Window()
 	glfwTerminate();
 }
 
-void Window::InitializeWindow()
+void Window::InitializeWindow(const std::string& aApplicationName)
 {
 	if (glfwInit() != GLFW_TRUE)
 	{
@@ -52,7 +52,7 @@ void Window::InitializeWindow()
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	mGLFWWindow = glfwCreateWindow(mEngineProperties->mWindowWidth, mEngineProperties->mWindowHeight, mEngineProperties->mApplicationName.c_str(), nullptr, nullptr);
+	mGLFWWindow = glfwCreateWindow(mWindowProperties.mWindowWidth, mWindowProperties.mWindowHeight, aApplicationName.c_str(), nullptr, nullptr);
 	if (!mGLFWWindow)
 	{
 		glfwTerminate();
@@ -71,8 +71,6 @@ void Window::InitializeWindow()
 	glfwSetInputMode(mGLFWWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	if (glfwRawMouseMotionSupported() == GLFW_TRUE)
 		glfwSetInputMode(mGLFWWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-
-	glfwSetWindowTitle(mGLFWWindow, mEngineProperties->mApplicationName.c_str());
 
 	int iconWidth = 0;
 	int iconHeight = 0;
@@ -99,14 +97,25 @@ void Window::UpdateWindow()
 
 	glfwPollEvents();
 
-	mEngineProperties->mIsFocused = glfwGetWindowAttrib(mGLFWWindow, GLFW_FOCUSED);
+	mWindowProperties.mIsFocused = glfwGetWindowAttrib(mGLFWWindow, GLFW_FOCUSED);
 	mShouldClose = glfwWindowShouldClose(mGLFWWindow);
 }
 
 void Window::SetWindowSize(int aWidth, int aHeight)
 {
-	mEngineProperties->mWindowWidth = aWidth;
-	mEngineProperties->mWindowHeight = aHeight;
+	if (mWindowProperties.mIsMinimized)
+		return;
+
+	if (aWidth <= 0 || aHeight <= 0)
+		return;
+
+	mWindowProperties.mWindowWidth = aWidth;
+	mWindowProperties.mWindowHeight = aHeight;
+}
+
+void Window::OnFramebufferResizeProcessed()
+{
+	mWindowProperties.mIsFramebufferResized = false;
 }
 
 std::vector<const char*> Window::GetGlfwRequiredExtensions()
@@ -150,29 +159,22 @@ void Window::ScrollCallback(GLFWwindow* /*aWindow*/, double aX, double aY)
 void Window::FramebufferResizeCallback(GLFWwindow* aWindow, int /*aWidth*/, int /*aHeight*/)
 {
 	Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(aWindow));
-	if (window->mEngineProperties->mIsMinimized || !window->mEngineProperties->mIsRendererPrepared)
+	if (window->mWindowProperties.mIsMinimized)
 		return;
 
-	window->mEngineProperties->mIsFramebufferResized = true;
+	window->mWindowProperties.mIsFramebufferResized = true;
 }
 
 void Window::WindowResizeCallback(GLFWwindow* aWindow, int aWidth, int aHeight)
 {
 	Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(aWindow));
-	if (window->mEngineProperties->mIsMinimized)
-		return;
-
-	if (aWidth <= 0 || aHeight <= 0)
-		return;
-
 	window->SetWindowSize(aWidth, aHeight);
 }
 
 void Window::WindowMinimizedCallback(GLFWwindow* aWindow, int aValue)
 {
 	Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(aWindow));
-	window->mEngineProperties->mIsMinimized = aValue;
-	window->mEngineProperties->mIsPaused = aValue;
+	window->mWindowProperties.mIsMinimized = aValue;
 }
 
 void Window::SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const
@@ -186,7 +188,8 @@ void Window::SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) cons
 
 float Window::GetContentScaleForMonitor() const
 {
-	float scaleX, scaleY;
+	float scaleX = 0.0f;
+	float scaleY = 0.0f;
 	glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &scaleX, &scaleY);
 	return scaleX;
 }
