@@ -100,7 +100,6 @@ void Window::UpdateWindow()
 
 	glfwPollEvents();
 
-	mWindowProperties.mIsFocused = glfwGetWindowAttrib(mGLFWWindow, GLFW_FOCUSED);
 	mShouldClose = glfwWindowShouldClose(mGLFWWindow);
 }
 
@@ -186,8 +185,11 @@ void Window::CharCallback(GLFWwindow* /*aWindow*/, unsigned int aChar)
 	ImGuiOverlay::OnCharCallback(aChar);
 }
 
-void Window::WindowFocusCallback(GLFWwindow* /*aWindow*/, int aFocused)
+void Window::WindowFocusCallback(GLFWwindow* aWindow, int aFocused)
 {
+	Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(aWindow));
+	window->mWindowProperties.mIsFocused = aFocused;
+
 	ImGuiOverlay::OnWindowFocusCallback(aFocused);
 }
 
