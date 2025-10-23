@@ -23,7 +23,7 @@ struct VulkanVertex
 
 struct VulkanUniformData
 {
-	VulkanUniformData() : mProjectionMatrix{}, mViewMatrix{}, mViewPosition{0.0f}, mLightPosition{0.0f, -5.0f, 0.0f, 1.0f}, mFrustumPlanes{}, mLightIntensity{1.8f} {}
+	VulkanUniformData() : mProjectionMatrix{}, mViewMatrix{}, mViewPosition{0.0f}, mLightPosition{0.0f}, mFrustumPlanes{}, mLightIntensity{1.8f} {}
 
 	glm::mat4 mProjectionMatrix;
 	glm::mat4 mViewMatrix;

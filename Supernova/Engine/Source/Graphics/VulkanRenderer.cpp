@@ -22,7 +22,7 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
-
+#include <glm/gtc/type_ptr.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -72,6 +72,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mVoyagerModelMatrix{1.0f}
 	, mPlanetModelMatrix{1.0f}
 	, mClearColor{0.25f, 0.25f, 0.25f, 1.0f}
+	, mLightPosition{0.0f, -5.0f, 0.0f, 1.0f}
 	, mShouldShowEditorInfo{true}
 	, mShouldShowProfiler{true}
 	, mShouldFreezeFrustum{false}
@@ -194,7 +195,6 @@ void VulkanRenderer::InitializeRenderer()
 {
 	InitializeVulkan();
 	PrepareVulkanResources();
-	mImGuiOverlay->InitializeStyle(mWindow->GetContentScaleForMonitor());
 }
 
 void VulkanRenderer::PrepareUpdate()
@@ -686,6 +686,7 @@ void VulkanRenderer::CreateUIOverlay()
 	mImGuiOverlay->SetMaxConcurrentFrames(gMaxConcurrentFrames);
 	mImGuiOverlay->SetVulkanDevice(mVulkanDevice);
 	mImGuiOverlay->SetVkQueue(mVkQueue);
+	mImGuiOverlay->SetScale(mWindow->GetContentScaleForMonitor());
 	mImGuiOverlay->AddShader(LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / UIVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT));
 	mImGuiOverlay->AddShader(LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / UIFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT));
 	mImGuiOverlay->PrepareResources();
@@ -1073,6 +1074,7 @@ void VulkanRenderer::UpdateUniformBuffers()
 
 	mVulkanUniformData.mProjectionMatrix = mCamera->mMatrices.mPerspective;
 	mVulkanUniformData.mViewMatrix = mCamera->mMatrices.mView;
+	mVulkanUniformData.mLightPosition = mLightPosition;
 
 	if (!mShouldFreezeFrustum)
 	{
@@ -1680,7 +1682,7 @@ void VulkanRenderer::OnUpdateUIOverlay()
 		ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
 		ImGui::Text("%i/%i", mFramebufferWidth, mFramebufferHeight);
 		ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mAverageFPS), mAverageFPS);
-		ImGui::PushItemWidth(110.0f * mImGuiOverlay->GetScale());
+		ImGui::PushItemWidth(160.0f * mImGuiOverlay->GetScale());
 
 		ImGui::NewLine();
 
@@ -1714,6 +1716,8 @@ void VulkanRenderer::OnUpdateUIOverlay()
 			}
 
 			ImGui::NewLine();
+
+			ImGui::InputFloat4("Light position", glm::value_ptr(mLightPosition), "%.1f");
 
 			const glm::vec3& cameraPosition = mCamera->GetPosition();
 			mImGuiOverlay->Vec3Text("Camera position", cameraPosition);

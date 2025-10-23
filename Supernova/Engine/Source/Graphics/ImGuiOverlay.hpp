@@ -18,7 +18,6 @@ public:
 	ImGuiOverlay();
 	~ImGuiOverlay();
 
-	void InitializeStyle(float aDPI);
 	void PreparePipeline(const VkPipelineCache aPipelineCache, const VkFormat aColorFormat, const VkFormat aDepthFormat);
 	void PrepareResources();
 	void Update(std::uint32_t aCurrentBufferIndex);
@@ -30,6 +29,7 @@ public:
 	void SetVkQueue(VkQueue aVkQueue) { mQueue = aVkQueue; }
 	void SetMaxConcurrentFrames(std::uint32_t aMaxConcurrentFrames) { gMaxConcurrentFrames = aMaxConcurrentFrames; }
 	void AddShader(const VkPipelineShaderStageCreateInfo& aCreateInfo) { mShaders.push_back(aCreateInfo); }
+	void SetScale(float aScale) { mScale = aScale; }
 
 	bool WantsToCaptureInput() const;
 	bool IsVisible() const { return mIsVisible;}
@@ -56,6 +56,8 @@ private:
 		glm::vec2 scale{};
 		glm::vec2 translate{};
 	};
+
+	void InitializeStyle();
 
 	PushConstBlock mPushConstBlock{};
 	VkQueue mQueue;

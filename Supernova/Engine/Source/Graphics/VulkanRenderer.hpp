@@ -160,6 +160,7 @@ private:
 	glm::mat4 mVoyagerModelMatrix;
 	glm::mat4 mPlanetModelMatrix;
 	glm::vec4 mClearColor;
+	glm::vec4 mLightPosition;
 	Time::Timer* mFrameTimer;
 	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;

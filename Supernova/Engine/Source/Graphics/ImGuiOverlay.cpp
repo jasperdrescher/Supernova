@@ -42,7 +42,11 @@ ImGuiOverlay::ImGuiOverlay()
 	, mIsVisible{true}
 	, mScale{1.0f}
 {
+	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 }
 
 ImGuiOverlay::~ImGuiOverlay()
@@ -60,21 +64,18 @@ void ImGuiOverlay::PrepareResources()
 
 	ImGuiIO& io = ImGui::GetIO();
 
-	// Create font texture
-	unsigned char* fontData;
-	int texWidth, texHeight;
+	unsigned char* fontData = nullptr;
+	int texWidth = 0;
+	int texHeight = 0;;
 	const std::filesystem::path fontPath = "Roboto-Medium.ttf";
 	const std::filesystem::path filePath = FileLoader::GetEngineResourcesPath() / FileLoader::gFontPath / fontPath;
 	io.Fonts->AddFontFromFileTTF(filePath.generic_string().c_str(), 16.0f * mScale);
 	io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
-	VkDeviceSize uploadSize = texWidth * texHeight * 4 * sizeof(char);
+	const VkDeviceSize uploadSize = texWidth * texHeight * 4 * sizeof(char);
 
-	// Set ImGui style scale factor to handle retina and other HiDPI displays (same as font scaling above)
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.ScaleAllSizes(mScale);
+	InitializeStyle();
 
-	// Create target image for copy
-	VkImageCreateInfo imageInfo{
+	const VkImageCreateInfo imageCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		.imageType = VK_IMAGE_TYPE_2D,
 		.format = VK_FORMAT_R8G8B8A8_UNORM,
@@ -87,65 +88,63 @@ void ImGuiOverlay::PrepareResources()
 		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
 	};
-	VK_CHECK_RESULT(vkCreateImage(mVulkanDevice->mLogicalVkDevice, &imageInfo, nullptr, &mFontImage));
-	VkMemoryRequirements memReqs;
-	vkGetImageMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mFontImage, &memReqs);
-	VkMemoryAllocateInfo memAllocInfo{
+	VK_CHECK_RESULT(vkCreateImage(mVulkanDevice->mLogicalVkDevice, &imageCreateInfo, nullptr, &mFontImage));
+
+	VkMemoryRequirements memoryRequirements;
+	vkGetImageMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mFontImage, &memoryRequirements);
+
+	const VkMemoryAllocateInfo memoryAllocateInfo{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-		.allocationSize = memReqs.size,
-		.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		.allocationSize = memoryRequirements.size,
+		.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 	};
-	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &mFontMemory));
+	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &memoryAllocateInfo, nullptr, &mFontMemory));
 	VK_CHECK_RESULT(vkBindImageMemory(mVulkanDevice->mLogicalVkDevice, mFontImage, mFontMemory, 0));
 
-	// Image view
-	VkImageViewCreateInfo viewInfo{
+	const VkImageViewCreateInfo imageViewCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		.image = mFontImage,
 		.viewType = VK_IMAGE_VIEW_TYPE_2D,
 		.format = VK_FORMAT_R8G8B8A8_UNORM,
 		.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 }
 	};
-	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &viewInfo, nullptr, &mFontImageView));
+	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &imageViewCreateInfo, nullptr, &mFontImageView));
 
-	// Staging buffers for font data upload
 	VulkanBuffer stagingBuffer;
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, uploadSize));
-	stagingBuffer.Map();
+	VK_CHECK_RESULT(stagingBuffer.Map());
 	std::memcpy(stagingBuffer.mMappedData, fontData, uploadSize);
 
-	// Copy buffer data to font image
-	VkCommandBuffer copyCmd = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-	// Prepare for transfer
+	VkCommandBuffer copyCommandBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
 	VulkanTools::SetImageLayout(
-		copyCmd,
+		copyCommandBuffer,
 		mFontImage,
 		VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		VK_PIPELINE_STAGE_HOST_BIT,
 		VK_PIPELINE_STAGE_TRANSFER_BIT);
-	// Copy
-	VkBufferImageCopy bufferCopyRegion{
+	
+	const VkBufferImageCopy bufferCopyRegion{
 		.imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .layerCount = 1 },
 		.imageExtent = {.width = (std::uint32_t)texWidth, .height = (std::uint32_t)texHeight, .depth = 1 }
 	};
-	vkCmdCopyBufferToImage(copyCmd, stagingBuffer.mVkBuffer, mFontImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
-	// Prepare for shader read
+	vkCmdCopyBufferToImage(copyCommandBuffer, stagingBuffer.mVkBuffer, mFontImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
+
 	VulkanTools::SetImageLayout(
-		copyCmd,
+		copyCommandBuffer,
 		mFontImage,
 		VK_IMAGE_ASPECT_COLOR_BIT,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		VK_PIPELINE_STAGE_TRANSFER_BIT,
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-	mVulkanDevice->FlushCommandBuffer(copyCmd, mQueue, true);
+	mVulkanDevice->FlushCommandBuffer(copyCommandBuffer, mQueue, true);
 
 	stagingBuffer.Destroy();
 
-	// Font texture Sampler
-	VkSamplerCreateInfo samplerInfo{
+	const VkSamplerCreateInfo samplerCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 		.magFilter = VK_FILTER_LINEAR,
 		.minFilter = VK_FILTER_LINEAR,
@@ -156,30 +155,28 @@ void ImGuiOverlay::PrepareResources()
 		.maxAnisotropy = 1.0f,
 		.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
 	};
-	VK_CHECK_RESULT(vkCreateSampler(mVulkanDevice->mLogicalVkDevice, &samplerInfo, nullptr, &mSampler));
+	VK_CHECK_RESULT(vkCreateSampler(mVulkanDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &mSampler));
 
-	// Descriptor pool
-	VkDescriptorPoolSize poolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1};
-	VkDescriptorPoolCreateInfo descriptorPoolInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .maxSets = 2, .poolSizeCount = 1, .pPoolSizes = &poolSize};
+	const VkDescriptorPoolSize poolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1};
+	const VkDescriptorPoolCreateInfo descriptorPoolInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .maxSets = 2, .poolSizeCount = 1, .pPoolSizes = &poolSize};
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mDescriptorPool));
 
-	// Descriptor set layout
-	VkDescriptorSetLayoutBinding setLayoutBinding = VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
-	VkDescriptorSetLayoutCreateInfo descriptorLayout{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = 1, .pBindings = &setLayoutBinding};
+	const VkDescriptorSetLayoutBinding setLayoutBinding = VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	const VkDescriptorSetLayoutCreateInfo descriptorLayout{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = 1, .pBindings = &setLayoutBinding};
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorLayout, nullptr, &mDescriptorSetLayout));
 
-	// Descriptor set
-	VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mDescriptorPool, &mDescriptorSetLayout, 1);
+	const VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mDescriptorPool, &mDescriptorSetLayout, 1);
 	VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mDescriptorSet));
-	VkDescriptorImageInfo fontDescriptor{.sampler = mSampler, .imageView = mFontImageView, .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-	VkWriteDescriptorSet writeDescriptorSets = VulkanInitializers::writeDescriptorSet(mDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor);
+
+	const VkDescriptorImageInfo fontDescriptor{.sampler = mSampler, .imageView = mFontImageView, .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+	const VkWriteDescriptorSet writeDescriptorSets = VulkanInitializers::writeDescriptorSet(mDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor);
 	vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, 1, &writeDescriptorSets, 0, nullptr);
 
 	// Buffers per max. frames-in-flight
 	mBuffers.resize(gMaxConcurrentFrames);
 }
 
-void ImGuiOverlay::InitializeStyle(float aDPI)
+void ImGuiOverlay::InitializeStyle()
 {
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -198,10 +195,9 @@ void ImGuiOverlay::InitializeStyle(float aDPI)
 	style.Colors[ImGuiCol_Button] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
 	style.Colors[ImGuiCol_ButtonHovered] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
 	style.Colors[ImGuiCol_ButtonActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
-
-	mScale = aDPI;
-	style.FontScaleDpi = mScale;
+	
 	style.ScaleAllSizes(mScale);
+	style.FontScaleDpi = mScale;
 }
 
 /** Prepare a separate pipeline for the UI overlay rendering decoupled from the main application */
@@ -209,8 +205,8 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 {
 	// Pipeline layout
 	// Push constants for UI rendering parameters
-	VkPushConstantRange pushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .size = sizeof(PushConstBlock)};
-	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{
+	const VkPushConstantRange pushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .size = sizeof(PushConstBlock)};
+	const VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		.setLayoutCount = 1,
 		.pSetLayouts = &mDescriptorSetLayout,
@@ -220,11 +216,11 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout));
 
 	// Setup graphics pipeline for UI rendering
-	VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-	VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+	const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+	const VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
 	// Enable blending
-	VkPipelineColorBlendAttachmentState blendAttachmentState{
+	const VkPipelineColorBlendAttachmentState blendAttachmentState{
 		.blendEnable = VK_TRUE,
 		.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
 		.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
@@ -236,26 +232,28 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 	};
 
 	// Vertex bindings an attributes based on ImGui vertex definition
-	std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
+	const std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
 		{.binding = 0, .stride = sizeof(ImDrawVert), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX }
 	};
-	std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+
+	const std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
 		{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(ImDrawVert, pos) },
 		{.location = 1, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(ImDrawVert, uv) },
 		{.location = 2, .binding = 0, .format = VK_FORMAT_R8G8B8A8_UNORM, .offset = offsetof(ImDrawVert, col) },
 	};
+
 	VkPipelineVertexInputStateCreateInfo vertexInputState = VulkanInitializers::pipelineVertexInputStateCreateInfo();
 	vertexInputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(vertexInputBindings.size());
 	vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
 	vertexInputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vertexInputAttributes.size());
 	vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
-	VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-	VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
-	VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::pipelineViewportStateCreateInfo(1, 1, 0);
-	VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::pipelineMultisampleStateCreateInfo(mRasterizationSamples);
-	std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-	VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+	const VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+	const VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
+	const VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::pipelineViewportStateCreateInfo(1, 1, 0);
+	const VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::pipelineMultisampleStateCreateInfo(mRasterizationSamples);
+	const std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+	const VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 		.stageCount = static_cast<std::uint32_t>(mShaders.size()),
@@ -273,7 +271,7 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 	};
 
 	// If we are using dynamic rendering (renderPass is null), we must define color, depth and stencil attachments at pipeline create time
-	VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
+	const VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 			.colorAttachmentCount = 1,
 			.pColorAttachmentFormats = &aColorFormat,
