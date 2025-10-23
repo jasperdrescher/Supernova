@@ -237,6 +237,21 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 			mCamera->mMouse.mDeltaX = inputManager.GetMousePositionDelta().x;
 			mCamera->mMouse.mDeltaY = inputManager.GetMousePositionDelta().y;
 		}
+		else
+		{
+			mCamera->mKeys.mIsRightDown = false;
+			mCamera->mKeys.mIsUpDown = false;
+			mCamera->mKeys.mIsDownDown = false;
+			mCamera->mKeys.mIsLeftDown = false;
+			mCamera->mKeys.mIsShiftDown = false;
+			mCamera->mKeys.mIsSpaceDown = false;
+			mCamera->mKeys.mIsCtrlDown = false;
+			mCamera->mMouse.mScrollWheelDelta = false;
+			mCamera->mMouse.mIsLeftDown = false;
+			mCamera->mMouse.mIsMiddleDown = false;
+			mCamera->mMouse.mDeltaX = 0.0f;
+			mCamera->mMouse.mDeltaY = 0.0f;
+		}
 
 		inputManager.FlushInput(); // TODO: Fix this bad solution to having frame-based offsets
 
@@ -1641,11 +1656,12 @@ void VulkanRenderer::UpdateUIOverlay()
 	io.DisplaySize = ImVec2(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight));
 	io.DeltaTime = mFrametime;
 
+	const bool isVisible = mImGuiOverlay->IsVisible();
 	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
 	io.MousePos = ImVec2(inputManager.GetMousePosition().x, inputManager.GetMousePosition().y);
-	io.MouseDown[0] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left) && mImGuiOverlay->IsVisible();
-	io.MouseDown[1] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Right) && mImGuiOverlay->IsVisible();
-	io.MouseDown[2] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle) && mImGuiOverlay->IsVisible();
+	io.MouseDown[0] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Left) && isVisible;
+	io.MouseDown[1] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Right) && isVisible;
+	io.MouseDown[2] = inputManager.GetIsMouseButtonDown(Input::MouseButtons::Middle) && isVisible;
 
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
