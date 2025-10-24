@@ -2,6 +2,8 @@
 
 #include "Types.hpp"
 
+#include "Core/Types.hpp"
+
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -10,7 +12,6 @@
 #include <glm/trigonometric.hpp>
 
 #include <cmath>
-#include <cstdint>
 
 namespace Math
 {
@@ -89,7 +90,7 @@ namespace Math
 		return glm::make_vec3(aData);
 	}
 
-	inline Vector3f MakeVector3f(const std::uint16_t* aData)
+	inline Vector3f MakeVector3f(const Types::uint8* aData)
 	{
 		return glm::make_vec3(aData);
 	}
@@ -104,7 +105,7 @@ namespace Math
 		return glm::make_vec4(aData);
 	}
 
-	inline Vector4f MakeVector4f(const std::uint16_t* aData)
+	inline Vector4f MakeVector4f(const Types::uint8* aData)
 	{
 		return glm::make_vec4(aData);
 	}
