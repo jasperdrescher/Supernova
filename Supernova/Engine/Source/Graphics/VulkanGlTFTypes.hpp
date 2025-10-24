@@ -1,12 +1,9 @@
 #pragma once
 
+#include "Math/Types.hpp"
+
 #include <cstdint>
 #include <filesystem>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 #include <limits>
 #include <string>
 #include <vector>
@@ -69,7 +66,7 @@ namespace vkglTF
 		float mAlphaCutoff;
 		float mMetallicFactor;
 		float mRoughnessFactor;
-		glm::vec4 mBaseColorFactor;
+		Math::Vector4f mBaseColorFactor;
 		vkglTF::Texture* mBaseColorTexture;
 		vkglTF::Texture* mMetallicRoughnessTexture;
 		vkglTF::Texture* mNormalTexture;
@@ -84,10 +81,10 @@ namespace vkglTF
 	{
 		Dimensions() : mMin{std::numeric_limits<float>::max()}, mMax{std::numeric_limits<float>::lowest()}, mRadius{0.0f} {}
 
-		glm::vec3 mMin;
-		glm::vec3 mMax;
-		glm::vec3 mSize{};
-		glm::vec3 mCenter{};
+		Math::Vector3f mMin;
+		Math::Vector3f mMax;
+		Math::Vector3f mSize{};
+		Math::Vector3f mCenter{};
 		float mRadius;
 	};
 
@@ -95,7 +92,7 @@ namespace vkglTF
 	{
 		Primitive(std::uint32_t firstIndex, std::uint32_t indexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), firstVertex{0}, vertexCount{0}, material(material) {};
 
-		void SetDimensions(const glm::vec3& aMin, const glm::vec3& aMax);
+		void SetDimensions(const Math::Vector3f& aMin, const Math::Vector3f& aMax);
 
 		Dimensions mDimensions;
 		std::uint32_t firstIndex;
@@ -140,12 +137,12 @@ namespace vkglTF
 		{
 			UniformBlock() : mJointcount{0.0f} {}
 
-			glm::mat4 mMatrix{};
-			glm::mat4 mJointMatrix[64]{};
+			Math::Matrix4f mMatrix{};
+			Math::Matrix4f mJointMatrix[64]{};
 			float mJointcount;
 		};
 
-		Mesh(VulkanDevice* aDevice, const glm::mat4& aMatrix);
+		Mesh(VulkanDevice* aDevice, const Math::Matrix4f& aMatrix);
 		~Mesh();
 
 		std::vector<Primitive*> mPrimitives;
@@ -161,7 +158,7 @@ namespace vkglTF
 
 		std::string mName{};
 		Node* mSkeletonRoot;
-		std::vector<glm::mat4> inverseBindMatrices{};
+		std::vector<Math::Matrix4f> inverseBindMatrices{};
 		std::vector<Node*> joints{};
 	};
 
@@ -172,20 +169,20 @@ namespace vkglTF
 
 		void update();
 
-		glm::mat4 GetLocalMatrix() const;
-		glm::mat4 GetMatrix() const;
+		Math::Matrix4f GetLocalMatrix() const;
+		Math::Matrix4f GetMatrix() const;
 
 		Node* mParent;
 		std::uint32_t mIndex;
 		std::vector<Node*> mChildren{};
-		glm::mat4 mMatrix{};
+		Math::Matrix4f mMatrix{};
 		std::string mName{};
 		Mesh* mMesh;
 		Skin* mSkin;
 		std::int32_t mSkinIndex;
-		glm::vec3 mTranslation{};
-		glm::vec3 mScale{};
-		glm::quat mRotation{};
+		Math::Vector3f mTranslation{};
+		Math::Vector3f mScale{};
+		Math::Quaternionf mRotation{};
 	};
 
 	struct AnimationChannel
@@ -205,7 +202,7 @@ namespace vkglTF
 
 		AnimationSampler() : mInterpolation{InterpolationType::LINEAR} {}
 
-		std::vector<glm::vec4> mOutputsVec4{};
+		std::vector<Math::Vector4f> mOutputsVec4{};
 		std::vector<float> mInputs{};
 		InterpolationType mInterpolation;
 	};
@@ -232,13 +229,13 @@ namespace vkglTF
 		static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(std::uint32_t aBinding, const std::vector<VertexComponent>& aComponents);
 		static VkPipelineVertexInputStateCreateInfo* getPipelineVertexInputState(const std::vector<VertexComponent>& aComponents); // Returns the default pipeline vertex input state create info structure for the requested vertex components
 
-		glm::vec3 mPosition{};
-		glm::vec3 mNormal{};
-		glm::vec2 mUV{};
-		glm::vec4 mColor{};
-		glm::vec4 mJoint0{};
-		glm::vec4 mWeight0{};
-		glm::vec4 mTangent{};
+		Math::Vector3f mPosition{};
+		Math::Vector3f mNormal{};
+		Math::Vector2f mUV{};
+		Math::Vector4f mColor{};
+		Math::Vector4f mJoint0{};
+		Math::Vector4f mWeight0{};
+		Math::Vector4f mTangent{};
 		static VkVertexInputBindingDescription mVertexInputBindingDescription;
 		static std::vector<VkVertexInputAttributeDescription> mVertexInputAttributeDescriptions;
 		static VkPipelineVertexInputStateCreateInfo mPipelineVertexInputStateCreateInfo;

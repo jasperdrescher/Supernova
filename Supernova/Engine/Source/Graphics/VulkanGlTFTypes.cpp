@@ -1,6 +1,8 @@
 #include "VulkanGlTFTypes.hpp"
 
 #include "FileLoader.hpp"
+#include "Math/Functions.hpp"
+#include "Math/Types.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanTools.hpp"
 
@@ -10,13 +12,7 @@
 #define TINYGLTF_NO_INCLUDE_JSON
 #define TINYGLTF_NO_INCLUDE_RAPIDJSON
 #include <tiny_gltf.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/geometric.hpp>
-#include <glm/mat4x4.hpp>
+
 #include <vulkan/vulkan_core.h>
 #include <cstdint>
 #include <format>
@@ -513,16 +509,16 @@ namespace vkglTF
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
-	void vkglTF::Primitive::SetDimensions(const glm::vec3& aMin, const glm::vec3& aMax)
+	void vkglTF::Primitive::SetDimensions(const Math::Vector3f& aMin, const Math::Vector3f& aMax)
 	{
 		mDimensions.mMin = aMin;
 		mDimensions.mMax = aMax;
 		mDimensions.mSize = aMax - aMin;
 		mDimensions.mCenter = (aMin + aMax) / 2.0f;
-		mDimensions.mRadius = glm::distance(aMin, aMax) / 2.0f;
+		mDimensions.mRadius = Math::Distance(aMin, aMax) / 2.0f;
 	}
 
-	vkglTF::Mesh::Mesh(VulkanDevice* aDevice, const glm::mat4& aMatrix)
+	vkglTF::Mesh::Mesh(VulkanDevice* aDevice, const Math::Matrix4f& aMatrix)
 	{
 		mVulkanDevice = aDevice;
 		mUniformBlock.mMatrix = aMatrix;
@@ -547,14 +543,14 @@ namespace vkglTF
 		}
 	}
 
-	glm::mat4 Node::GetLocalMatrix() const
+	Math::Matrix4f Node::GetLocalMatrix() const
 	{
-		return glm::translate(glm::mat4(1.0f), mTranslation) * glm::mat4(mRotation) * glm::scale(glm::mat4(1.0f), mScale) * mMatrix;
+		return Math::Translate(Math::Matrix4f(1.0f), mTranslation) * Math::Matrix4f(mRotation) * Math::Scale(Math::Matrix4f(1.0f), mScale) * mMatrix;
 	}
 
-	glm::mat4 Node::GetMatrix() const
+	Math::Matrix4f Node::GetMatrix() const
 	{
-		glm::mat4 m = GetLocalMatrix();
+		Math::Matrix4f m = GetLocalMatrix();
 		vkglTF::Node* p = mParent;
 		while (p)
 		{
@@ -568,16 +564,16 @@ namespace vkglTF
 	{
 		if (mMesh)
 		{
-			glm::mat4 m = GetMatrix();
+			Math::Matrix4f m = GetMatrix();
 			if (mSkin)
 			{
 				mMesh->mUniformBlock.mMatrix = m;
 				// Update join matrices
-				glm::mat4 inverseTransform = glm::inverse(m);
+				Math::Matrix4f inverseTransform = Math::Inverse(m);
 				for (size_t i = 0; i < mSkin->joints.size(); i++)
 				{
 					vkglTF::Node* jointNode = mSkin->joints[i];
-					glm::mat4 jointMat = jointNode->GetMatrix() * mSkin->inverseBindMatrices[i];
+					Math::Matrix4f jointMat = jointNode->GetMatrix() * mSkin->inverseBindMatrices[i];
 					jointMat = inverseTransform * jointMat;
 					mMesh->mUniformBlock.mJointMatrix[i] = jointMat;
 				}
@@ -586,7 +582,7 @@ namespace vkglTF
 			}
 			else
 			{
-				std::memcpy(mMesh->mUniformBuffer.mMappedData, &m, sizeof(glm::mat4));
+				std::memcpy(mMesh->mUniformBuffer.mMappedData, &m, sizeof(Math::Matrix4f));
 			}
 		}
 

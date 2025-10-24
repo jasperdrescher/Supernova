@@ -1,11 +1,10 @@
 #pragma once
 
+#include "Math/Types.hpp"
 #include "VulkanGlTFTypes.hpp"
 
 #include <cstdint>
 #include <filesystem>
-#include <glm/fwd.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -40,7 +39,7 @@ namespace vkglTF
 		void LoadImages(VulkanDevice* aDevice, VkQueue aTransferQueue);
 		void LoadMaterials();
 		void LoadAnimations();
-		void GetNodeDimensions(const Node* aNode, glm::vec3& aMin, glm::vec3& aMax);
+		void GetNodeDimensions(const Node* aNode, Math::Vector3f& aMin, Math::Vector3f& aMax);
 		void GetSceneDimensions();
 		void UpdateAnimation(std::uint32_t aIndex, float aTime);
 		void PrepareNodeDescriptor(vkglTF::Node* aNode, VkDescriptorSetLayout aDescriptorSetLayout);

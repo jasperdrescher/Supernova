@@ -1,15 +1,9 @@
 #include "VulkanglTFModel.hpp"
 
+#include "Math/Functions.hpp"
+#include "Math/Types.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanTools.hpp"
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/geometric.hpp>
-#include <glm/mat4x4.hpp>
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
@@ -110,35 +104,35 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode,
     newNode->mParent = aParent;
     newNode->mName = aNode->name;
     newNode->mSkinIndex = aNode->skin;
-	newNode->mMatrix = glm::mat4{1.0f};
+	newNode->mMatrix = Math::Matrix4f{1.0f};
 
 	// Generate local node matrix
-	glm::vec3 translation = glm::vec3{0.0f};
+	Math::Vector3f translation = Math::Vector3f{0.0f};
     if (aNode->translation.size() == 3)
 	{
-		translation = glm::make_vec3(aNode->translation.data());
+		translation = Math::MakeVector3f(aNode->translation.data());
 		newNode->mTranslation = translation;
 	}
 
     if (aNode->rotation.size() == 4)
 	{
-        const glm::quat q = glm::make_quat(aNode->rotation.data());
-		newNode->mRotation = glm::mat4(q);
+        const Math::Quaternionf q = Math::MakeQuaternion(aNode->rotation.data());
+		newNode->mRotation = Math::Matrix4f(q);
 	}
 
-	glm::vec3 scale = glm::vec3{1.0f};
+	Math::Vector3f scale = Math::Vector3f{1.0f};
     if (aNode->scale.size() == 3)
 	{
-		scale = glm::make_vec3(aNode->scale.data());
+		scale = Math::MakeVector3f(aNode->scale.data());
 		newNode->mScale = scale;
 	}
 
     if (aNode->matrix.size() == 16)
 	{
-        newNode->mMatrix = glm::make_mat4x4(aNode->matrix.data());
+        newNode->mMatrix = Math::MakeMatrix(aNode->matrix.data());
         if (aGlobalscale != 1.0f)
 		{
-			//newNode->matrix = glm::scale(newNode->matrix, glm::vec3(globalscale));
+			//newNode->matrix = Math::Scale(newNode->matrix, Math::Vector3f(globalscale));
 		}
 	};
 
@@ -168,8 +162,8 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode,
             std::uint32_t vertexStart = static_cast<std::uint32_t>(aVertexBuffer.size());
 			std::uint32_t indexCount = 0;
 			std::uint32_t vertexCount = 0;
-			glm::vec3 posMin{};
-			glm::vec3 posMax{};
+			Math::Vector3f posMin{};
+			Math::Vector3f posMax{};
 			bool hasSkin = false;
 			// Vertices
 			{
@@ -188,8 +182,8 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode,
                 const tinygltf::Accessor& posAccessor = mCurrentModel->accessors[primitive.attributes.find("POSITION")->second];
                 const tinygltf::BufferView& posView = mCurrentModel->bufferViews[posAccessor.bufferView];
                 bufferPos = reinterpret_cast<const float*>(&(mCurrentModel->buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
-				posMin = glm::vec3(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
-				posMax = glm::vec3(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
+				posMin = Math::Vector3f(posAccessor.minValues[0], posAccessor.minValues[1], posAccessor.minValues[2]);
+				posMax = Math::Vector3f(posAccessor.maxValues[0], posAccessor.maxValues[1], posAccessor.maxValues[2]);
 
 				if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
 				{
@@ -244,28 +238,28 @@ void vkglTF::Model::LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode,
 				for (size_t v = 0; v < posAccessor.count; v++)
 				{
 					Vertex vert{};
-					vert.mPosition = glm::vec4(glm::make_vec3(&bufferPos[v * 3]), 1.0f);
-					vert.mNormal = glm::normalize(glm::vec3(bufferNormals ? glm::make_vec3(&bufferNormals[v * 3]) : glm::vec3(0.0f)));
-					vert.mUV = bufferTexCoords ? glm::make_vec2(&bufferTexCoords[v * 2]) : glm::vec3(0.0f);
+					vert.mPosition = Math::Vector4f(Math::MakeVector3f(&bufferPos[v * 3]), 1.0f);
+					vert.mNormal = Math::Normalize(Math::Vector3f(bufferNormals ? Math::MakeVector3f(&bufferNormals[v * 3]) : Math::Vector3f(0.0f)));
+					vert.mUV = bufferTexCoords ? Math::MakeVector2f(&bufferTexCoords[v * 2]) : Math::Vector3f(0.0f);
 					if (bufferColors)
 					{
 						switch (numColorComponents)
 						{
 							case 3:
-								vert.mColor = glm::vec4(glm::make_vec3(&bufferColors[v * 3]), 1.0f);
+								vert.mColor = Math::Vector4f(Math::MakeVector3f(&bufferColors[v * 3]), 1.0f);
 								break;
 							case 4:
-								vert.mColor = glm::make_vec4(&bufferColors[v * 4]);
+								vert.mColor = Math::MakeVector4f(&bufferColors[v * 4]);
 								break;
 						}
 					}
 					else
 					{
-						vert.mColor = glm::vec4(1.0f);
+						vert.mColor = Math::Vector4f(1.0f);
 					}
-					vert.mTangent = bufferTangents ? glm::vec4(glm::make_vec4(&bufferTangents[v * 4])) : glm::vec4(0.0f);
-					vert.mJoint0 = hasSkin ? glm::vec4(glm::make_vec4(&bufferJoints[v * 4])) : glm::vec4(0.0f);
-					vert.mWeight0 = hasSkin ? glm::make_vec4(&bufferWeights[v * 4]) : glm::vec4(0.0f);
+					vert.mTangent = bufferTangents ? Math::Vector4f(Math::MakeVector4f(&bufferTangents[v * 4])) : Math::Vector4f(0.0f);
+					vert.mJoint0 = hasSkin ? Math::Vector4f(Math::MakeVector4f(&bufferJoints[v * 4])) : Math::Vector4f(0.0f);
+					vert.mWeight0 = hasSkin ? Math::MakeVector4f(&bufferWeights[v * 4]) : Math::Vector4f(0.0f);
                     aVertexBuffer.push_back(vert);
 				}
 			}
@@ -372,7 +366,7 @@ void vkglTF::Model::LoadSkins()
             const tinygltf::BufferView& bufferView = mCurrentModel->bufferViews[accessor.bufferView];
             const tinygltf::Buffer& buffer = mCurrentModel->buffers[bufferView.buffer];
 			newSkin->inverseBindMatrices.resize(accessor.count);
-			std::memcpy(newSkin->inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::mat4));
+			std::memcpy(newSkin->inverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(Math::Matrix4f));
 		}
 
 		skins.push_back(newSkin);
@@ -416,7 +410,7 @@ void vkglTF::Model::LoadMaterials()
 		}
 		if (mat.values.find("baseColorFactor") != mat.values.end())
 		{
-			material.mBaseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+			material.mBaseColorFactor = Math::MakeVector4f(mat.values["baseColorFactor"].ColorFactor().data());
 		}
 		if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end())
 		{
@@ -529,19 +523,19 @@ void vkglTF::Model::LoadAnimations()
 				{
 					case TINYGLTF_TYPE_VEC3:
 					{
-						glm::vec3* buf = new glm::vec3[accessor.count];
-						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::vec3));
+						Math::Vector3f* buf = new Math::Vector3f[accessor.count];
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(Math::Vector3f));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
-							sampler.mOutputsVec4.push_back(glm::vec4(buf[index], 0.0f));
+							sampler.mOutputsVec4.push_back(Math::Vector4f(buf[index], 0.0f));
 						}
 						delete[] buf;
 						break;
 					}
 					case TINYGLTF_TYPE_VEC4:
 					{
-						glm::vec4* buf = new glm::vec4[accessor.count];
-						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(glm::vec4));
+						Math::Vector4f* buf = new Math::Vector4f[accessor.count];
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(Math::Vector4f));
 						for (size_t index = 0; index < accessor.count; index++)
 						{
 							sampler.mOutputsVec4.push_back(buf[index]);
@@ -673,7 +667,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		{
 			if (node->mMesh)
 			{
-				const glm::mat4 localMatrix = node->GetMatrix();
+				const Math::Matrix4f localMatrix = node->GetMatrix();
 				for (const Primitive* primitive : node->mMesh->mPrimitives)
 				{
 					for (std::uint32_t i = 0; i < primitive->vertexCount; i++)
@@ -682,8 +676,8 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 						// Pre-transform vertex positions by node-hierarchy
 						if (preTransform)
 						{
-							vertex.mPosition = glm::vec3(localMatrix * glm::vec4(vertex.mPosition, 1.0f));
-							vertex.mNormal = glm::normalize(glm::mat3(localMatrix) * vertex.mNormal);
+							vertex.mPosition = Math::Vector3f(localMatrix * Math::Vector4f(vertex.mPosition, 1.0f));
+							vertex.mNormal = Math::Normalize(Math::Matrix3f(localMatrix) * vertex.mNormal);
 						}
 
 						// Flip Y-Axis of vertex positions
@@ -896,7 +890,7 @@ void vkglTF::Model::CreateEmptyTexture(VkQueue aTransferQueue)
 	mEmptyTexture.mLayerCount = 1;
 	mEmptyTexture.mMipLevels = 1;
 
-	size_t bufferSize = mEmptyTexture.mWidth * mEmptyTexture.mHeight * 4;
+	size_t bufferSize = static_cast<std::size_t>(mEmptyTexture.mWidth * mEmptyTexture.mHeight * 4);
 	unsigned char* buffer = new unsigned char[bufferSize];
 	memset(buffer, 0, bufferSize);
 
@@ -1054,14 +1048,14 @@ void vkglTF::Model::Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFl
 	}
 }
 
-void vkglTF::Model::GetNodeDimensions(const Node* aNode, glm::vec3& aMin, glm::vec3& aMax)
+void vkglTF::Model::GetNodeDimensions(const Node* aNode, Math::Vector3f& aMin, Math::Vector3f& aMax)
 {
 	if (aNode->mMesh)
 	{
 		for (const Primitive* primitive : aNode->mMesh->mPrimitives)
 		{
-			const glm::vec4 locMin = glm::vec4(primitive->mDimensions.mMin, 1.0f) * aNode->GetMatrix();
-			const glm::vec4 locMax = glm::vec4(primitive->mDimensions.mMax, 1.0f) * aNode->GetMatrix();
+			const Math::Vector4f locMin = Math::Vector4f(primitive->mDimensions.mMin, 1.0f) * aNode->GetMatrix();
+			const Math::Vector4f locMax = Math::Vector4f(primitive->mDimensions.mMax, 1.0f) * aNode->GetMatrix();
 			if (locMin.x < aMin.x) { aMin.x = locMin.x; }
 			if (locMin.y < aMin.y) { aMin.y = locMin.y; }
 			if (locMin.z < aMin.z) { aMin.z = locMin.z; }
@@ -1079,15 +1073,15 @@ void vkglTF::Model::GetNodeDimensions(const Node* aNode, glm::vec3& aMin, glm::v
 
 void vkglTF::Model::GetSceneDimensions()
 {
-	mDimensions.mMin = glm::vec3(std::numeric_limits<float>::max());
-	mDimensions.mMax = glm::vec3(std::numeric_limits<float>::lowest());
+	mDimensions.mMin = Math::Vector3f(std::numeric_limits<float>::max());
+	mDimensions.mMax = Math::Vector3f(std::numeric_limits<float>::lowest());
 	for (vkglTF::Node*& node : nodes)
 	{
 		GetNodeDimensions(node, mDimensions.mMin, mDimensions.mMax);
 	}
 	mDimensions.mSize = mDimensions.mMax - mDimensions.mMin;
 	mDimensions.mCenter = (mDimensions.mMin + mDimensions.mMax) / 2.0f;
-	mDimensions.mRadius = glm::distance(mDimensions.mMin, mDimensions.mMax) / 2.0f;
+	mDimensions.mRadius = Math::Distance(mDimensions.mMin, mDimensions.mMax) / 2.0f;
 }
 
 void vkglTF::Model::UpdateAnimation(std::uint32_t aIndex, float aTime)
@@ -1121,29 +1115,30 @@ void vkglTF::Model::UpdateAnimation(std::uint32_t aIndex, float aTime)
 					{
 						case vkglTF::AnimationChannel::PathType::TRANSLATION:
 						{
-							glm::vec4 trans = glm::mix(sampler.mOutputsVec4[i], sampler.mOutputsVec4[i + 1], u);
-							channel.mNode->mTranslation = glm::vec3(trans);
+							Math::Vector4f trans = Math::Mix(sampler.mOutputsVec4[i], sampler.mOutputsVec4[i + 1], u);
+							channel.mNode->mTranslation = Math::Vector3f(trans);
 							break;
 						}
 						case vkglTF::AnimationChannel::PathType::SCALE:
 						{
-							glm::vec4 trans = glm::mix(sampler.mOutputsVec4[i], sampler.mOutputsVec4[i + 1], u);
-							channel.mNode->mScale = glm::vec3(trans);
+							Math::Vector4f trans = Math::Mix(sampler.mOutputsVec4[i], sampler.mOutputsVec4[i + 1], u);
+							channel.mNode->mScale = Math::Vector3f(trans);
 							break;
 						}
 						case vkglTF::AnimationChannel::PathType::ROTATION:
 						{
-							glm::quat q1;
+							Math::Quaternionf q1{};
 							q1.x = sampler.mOutputsVec4[i].x;
 							q1.y = sampler.mOutputsVec4[i].y;
 							q1.z = sampler.mOutputsVec4[i].z;
 							q1.w = sampler.mOutputsVec4[i].w;
-							glm::quat q2;
+
+							Math::Quaternionf q2{};
 							q2.x = sampler.mOutputsVec4[i + 1].x;
 							q2.y = sampler.mOutputsVec4[i + 1].y;
 							q2.z = sampler.mOutputsVec4[i + 1].z;
 							q2.w = sampler.mOutputsVec4[i + 1].w;
-							channel.mNode->mRotation = glm::normalize(glm::slerp(q1, q2, u));
+							channel.mNode->mRotation = Math::Normalize(Math::Slerp(q1, q2, u));
 							break;
 						}
 					}
