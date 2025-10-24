@@ -59,6 +59,8 @@
     <ClInclude Include="Source\Graphics\Window.hpp" />
     <ClInclude Include="Source\Input\InputKeys.hpp" />
     <ClInclude Include="Source\Input\InputManager.hpp" />
+    <ClInclude Include="Source\Math\Functions.hpp" />
+    <ClInclude Include="Source\Math\Types.hpp" />
     <ClInclude Include="Source\Profiler\SimpleProfilerImGui.hpp" />
     <ClInclude Include="Source\Profiler\SimpleSampler.hpp" />
     <ClInclude Include="Source\Profiler\SimpleProfiler.hpp" />

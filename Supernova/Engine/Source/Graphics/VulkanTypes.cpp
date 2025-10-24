@@ -12,9 +12,6 @@
 #include <cstring>
 #include <filesystem>
 #include <format>
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 #include <iostream>
 #include <ktx.h>
 #include <stdexcept>
@@ -718,7 +715,7 @@ void VulkanTexture2DArray::LoadFromFile(const std::filesystem::path& aPath, VkFo
 	std::cout << "Loaded texture " << aPath.filename() << std::endl;
 }
 
-void VulkanFrustum::UpdateFrustum(const glm::mat4& aMatrix)
+void VulkanFrustum::UpdateFrustum(const Math::Matrix4f& aMatrix)
 {
 	mPlanes[static_cast<std::size_t>(Side::LEFT)].x = aMatrix[0].w + aMatrix[0].x;
 	mPlanes[static_cast<std::size_t>(Side::LEFT)].y = aMatrix[1].w + aMatrix[1].x;
@@ -757,7 +754,7 @@ void VulkanFrustum::UpdateFrustum(const glm::mat4& aMatrix)
 	}
 }
 
-bool VulkanFrustum::IsInSphere(const glm::vec3& aPosition, float aRadius) const
+bool VulkanFrustum::IsInSphere(const Math::Vector3f& aPosition, float aRadius) const
 {
 	for (std::size_t i = 0; i < mPlanes.size(); i++)
 	{

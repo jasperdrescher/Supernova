@@ -1,11 +1,10 @@
 #pragma once
 
+#include "Math/Types.hpp"
+
 #include <array>
 #include <cstdint>
 #include <filesystem>
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 #include <ktx.h>
 #include <vulkan/vulkan_core.h>
 
@@ -25,11 +24,11 @@ struct VulkanUniformData
 {
 	VulkanUniformData() : mProjectionMatrix{}, mViewMatrix{}, mViewPosition{0.0f}, mLightPosition{0.0f}, mFrustumPlanes{}, mLightIntensity{1.8f} {}
 
-	glm::mat4 mProjectionMatrix;
-	glm::mat4 mViewMatrix;
-	glm::vec4 mViewPosition;
-	glm::vec4 mLightPosition;
-	glm::vec4 mFrustumPlanes[6];
+	Math::Matrix4f mProjectionMatrix;
+	Math::Matrix4f mViewMatrix;
+	Math::Vector4f mViewPosition;
+	Math::Vector4f mLightPosition;
+	Math::Vector4f mFrustumPlanes[6];
 	float mLightIntensity;
 };
 
@@ -47,7 +46,7 @@ struct VulkanInstanceData
 {
 	VulkanInstanceData() : mPosition{}, mScale{0.0f} {}
 
-	glm::vec3 mPosition;
+	Math::Vector3f mPosition;
 	float mScale;
 };
 
@@ -55,7 +54,7 @@ struct VulkanPushConstant
 {
 	VulkanPushConstant() : mModelMatrix{} {}
 
-	glm::mat4 mModelMatrix;
+	Math::Matrix4f mModelMatrix;
 };
 
 struct VulkanBuffer
@@ -87,9 +86,9 @@ struct VulkanShaderData
 {
 	VulkanShaderData() : mProjectionMatrix{}, mModelMatrix{}, mViewMatrix{} {}
 
-	glm::mat4 mProjectionMatrix;
-	glm::mat4 mModelMatrix;
-	glm::mat4 mViewMatrix;
+	Math::Matrix4f mProjectionMatrix;
+	Math::Matrix4f mModelMatrix;
+	Math::Matrix4f mViewMatrix;
 };
 
 struct VulkanDepthStencil
@@ -141,11 +140,11 @@ class VulkanFrustum
 {
 public:
 	enum class Side { LEFT = 0, RIGHT = 1, TOP = 2, BOTTOM = 3, BACK = 4, FRONT = 5 };
-	std::array<glm::vec4, 6> mPlanes{};
+	std::array<Math::Vector4f, 6> mPlanes{};
 
-	void UpdateFrustum(const glm::mat4& aMatrix);
+	void UpdateFrustum(const Math::Matrix4f& aMatrix);
 
-	bool IsInSphere(const glm::vec3& aPosition, float aRadius) const;
+	bool IsInSphere(const Math::Vector3f& aPosition, float aRadius) const;
 };
 
 struct ComputeContext

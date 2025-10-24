@@ -1,11 +1,11 @@
 #pragma once
 
+#include "Math/Types.hpp"
 #include "Time.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanTypes.hpp"
 
-#include <glm/fwd.hpp>
 #include <vulkan/vulkan_core.h>
 
 #include <array>
@@ -157,10 +157,10 @@ private:
 	std::uint32_t mCurrentImageIndex;
 	std::uint32_t mCurrentBufferIndex;
 	std::uint32_t mIndirectDrawCount;
-	glm::mat4 mVoyagerModelMatrix;
-	glm::mat4 mPlanetModelMatrix;
-	glm::vec4 mClearColor;
-	glm::vec4 mLightPosition;
+	Math::Matrix4f mVoyagerModelMatrix;
+	Math::Matrix4f mPlanetModelMatrix;
+	Math::Vector4f mClearColor;
+	Math::Vector4f mLightPosition;
 	Time::Timer* mFrameTimer;
 	Camera* mCamera;
 	ImGuiOverlay* mImGuiOverlay;

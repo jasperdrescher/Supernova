@@ -1,14 +1,10 @@
 #pragma once
 
+#include "Math/Types.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanTypes.hpp"
 
 #include <cstdint>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-#include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -39,10 +35,10 @@ public:
 	bool IsVisible() const { return mIsVisible;}
 	float GetScale() const { return mScale; }
 
-	void Vec2Text(const char* aLabel, const glm::vec2& aVec2);
-	void Vec3Text(const char* aLabel, const glm::vec3& aVec3);
-	void Vec4Text(const char* aLabel, const glm::vec4& aVec4);
-	void Mat4Text(const char* aLabel, const glm::mat4& aMat4);
+	void Vec2Text(const char* aLabel, const Math::Vector2f& aVec2);
+	void Vec3Text(const char* aLabel, const Math::Vector3f& aVec3);
+	void Vec4Text(const char* aLabel, const Math::Vector4f& aVec4);
+	void Mat4Text(const char* aLabel, const Math::Matrix4f& aMat4);
 
 private:
 	struct Buffers
@@ -57,8 +53,8 @@ private:
 
 	struct PushConstBlock
 	{
-		glm::vec2 scale{};
-		glm::vec2 translate{};
+		Math::Vector2f scale{};
+		Math::Vector2f translate{};
 	};
 
 	void InitializeStyle();

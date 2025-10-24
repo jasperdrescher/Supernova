@@ -1,10 +1,10 @@
 #include "Window.hpp"
 
 #include "FileLoader.hpp"
+#include "ImGuiOverlay.hpp"
 #include "Input/InputManager.hpp"
 #include "Profiler/SimpleProfiler.hpp"
 #include "Vulkantools.hpp"
-#include "ImGuiOverlay.hpp"
 
 #define GLFW_EXCLUDE_API
 #include <GLFW/glfw3.h>

@@ -1,9 +1,6 @@
 #pragma once
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
+#include "Math/Types.hpp"
 
 enum class CameraType { LookAt, FirstPerson };
 
@@ -16,8 +13,8 @@ public:
 	{
 		Matrices() : mPerspective{0.0f}, mView{0.0f} {}
 
-		glm::mat4 mPerspective;
-		glm::mat4 mView;
+		Math::Matrix4f mPerspective;
+		Math::Matrix4f mView;
 	} mMatrices;
 
 	struct Keys
@@ -47,19 +44,19 @@ public:
 	void SetType(CameraType aType);
 	void SetPerspective(float aFoV, float aAspectRatio, float aZNear, float aZFar);
 	void UpdateAspectRatio(float aAspectRatio);
-	void SetPosition(glm::vec3 aPosition);
-	void SetRotation(glm::vec3 aRotation);
-	void Rotate(glm::vec3 aDelta);
-	void SetTranslation(glm::vec3 aTranslation);
-	void Translate(glm::vec3 aDelta);
+	void SetPosition(const Math::Vector3f& aPosition);
+	void SetRotation(const Math::Vector3f& aRotation);
+	void Rotate(const Math::Vector3f& aDelta);
+	void SetTranslation(const Math::Vector3f& aTranslation);
+	void Translate(const Math::Vector3f& aDelta);
 	void SetRotationSpeed(float aRotationSpeed);
 	void SetMovementSpeed(float aMovementSpeed);
 	void SetZoomSpeed(float aZoomSpeed);
 	void Update(float aDeltaTime);
 
-	const glm::vec3& GetPosition() const { return mPosition; }
-	const glm::vec3& GetRotation() const { return mRotation; }
-	const glm::vec4& GetViewPosition() const { return mViewPosition; }
+	const Math::Vector3f& GetPosition() const { return mPosition; }
+	const Math::Vector3f& GetRotation() const { return mRotation; }
+	const Math::Vector4f& GetViewPosition() const { return mViewPosition; }
 	bool IsMoving() const;
 	float GetNearClip() const;
 	float GetFarClip() const;
@@ -67,9 +64,9 @@ public:
 private:
 	void UpdateViewMatrix();
 
-	glm::vec4 mViewPosition;
-	glm::vec3 mRotation;
-	glm::vec3 mPosition;
+	Math::Vector4f mViewPosition;
+	Math::Vector3f mRotation;
+	Math::Vector3f mPosition;
 	CameraType mType;
 	float mFoV;
 	float mZNear;

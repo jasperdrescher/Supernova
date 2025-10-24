@@ -34,6 +34,9 @@
     <Filter Include="Header Files\Profiler">
       <UniqueIdentifier>{4cb0c13f-c02b-4fe0-a6aa-2cc1ef18ae2f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Math">
+      <UniqueIdentifier>{37e2ddb9-3926-4389-af66-245b988e0097}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Engine.cpp">
@@ -178,6 +181,12 @@
     </ClInclude>
     <ClInclude Include="Source\Profiler\SimpleProfilerImGui.hpp">
       <Filter>Header Files\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Types.hpp">
+      <Filter>Header Files\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Math\Functions.hpp">
+      <Filter>Header Files\Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "InputKeys.hpp"
+#include "Math/Types.hpp"
 
-#include <glm/vec2.hpp>
 #include <map>
 
 namespace Input
@@ -26,9 +26,9 @@ namespace Input
 		void OnScrollAction(double aXOffset, double aYOffset);
 		void OnMouseButtonAction(int aButton, int aAction, int aModifier);
 
-		const glm::vec2& GetMousePosition() const { return mMousePosition; }
-		const glm::vec2& GetScrollOffset() const { return mScrollOffset; }
-		glm::vec2 GetMousePositionDelta() const { return mMousePosition - mPreviousMousePosition; }
+		const Math::Vector2f& GetMousePosition() const { return mMousePosition; }
+		const Math::Vector2f& GetScrollOffset() const { return mScrollOffset; }
+		Math::Vector2f GetMousePositionDelta() const { return mMousePosition - mPreviousMousePosition; }
 		bool GetIsKeyDown(Key aKey) const;
 		bool GetIsMouseButtonDown(MouseButton aMouseButton) const;
 
@@ -40,8 +40,8 @@ namespace Input
 
 		std::map<Key, bool> myKeys{};
 		std::map<MouseButton, bool> myMouseButtons{};
-		glm::vec2 mPreviousMousePosition{};
-		glm::vec2 mMousePosition{};
-		glm::vec2 mScrollOffset{};
+		Math::Vector2f mPreviousMousePosition{};
+		Math::Vector2f mMousePosition{};
+		Math::Vector2f mScrollOffset{};
 	};
 }

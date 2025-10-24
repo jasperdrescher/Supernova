@@ -5,6 +5,8 @@
 #include "FileLoader.hpp"
 #include "ImGuiOverlay.hpp"
 #include "Input/InputManager.hpp"
+#include "Math/Functions.hpp"
+#include "Math/Types.hpp"
 #include "Profiler/SimpleProfiler.hpp"
 #include "Profiler/SimpleProfilerImGui.hpp"
 #include "Time.hpp"
@@ -16,30 +18,20 @@
 #include "VulkanTypes.hpp"
 #include "Window.hpp"
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <format>
-#include <stdexcept>
+#include <imgui.h>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
-#include <imgui.h>
-#include <filesystem>
-#include <random>
-#include <numbers>
-#include <cmath>
-#include <cstddef>
 
 VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	Window* aWindow)
@@ -74,7 +66,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mClearColor{0.25f, 0.25f, 0.25f, 1.0f}
 	, mLightPosition{0.5f, 0.0f, 35.0f, 1.0f}
 	, mShouldShowEditorInfo{true}
-	, mShouldShowProfiler{true}
+	, mShouldShowProfiler{false}
 	, mShouldFreezeFrustum{false}
 #ifdef _DEBUG
 	, mShouldDrawWireframe{false}
@@ -96,11 +88,11 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	// Setup a default look-at camera
 	mCamera = new Camera();
 	mCamera->SetType(CameraType::FirstPerson);
-	mCamera->SetPosition(glm::vec3(0.5f, 0.0f, -18.5f));
+	mCamera->SetPosition(Math::Vector3f(0.5f, 0.0f, -18.5f));
 	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 0.1f, 512.0f);
 
-	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, glm::vec3{1.0f, -2.0f, 10.0f});
-	mVoyagerModelMatrix = glm::scale(mVoyagerModelMatrix, glm::vec3{0.2f});
+	mVoyagerModelMatrix = Math::Translate(mVoyagerModelMatrix, Math::Vector3f{1.0f, -2.0f, 10.0f});
+	mVoyagerModelMatrix = Math::Scale(mVoyagerModelMatrix, Math::Vector3f{0.2f});
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -1073,14 +1065,14 @@ void VulkanRenderer::UpdateModelMatrix()
 {
 	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::UpdateModelMatrix");
 
-	const glm::vec3 pivotPoint = glm::vec3{20.0f, 0.0f, 80.0f};
-	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, -pivotPoint);
+	const Math::Vector3f pivotPoint = Math::Vector3f{20.0f, 0.0f, 80.0f};
+	mVoyagerModelMatrix = Math::Translate(mVoyagerModelMatrix, -pivotPoint);
 
-	static constexpr float angle = glm::radians(-5.0f);
-	glm::vec3 rotationAxis = glm::vec3{0.0f, 1.0f, 0.0f};
-	mVoyagerModelMatrix = glm::rotate(mVoyagerModelMatrix, angle * mFrametime, rotationAxis);
+	static constexpr float angle = Math::ToRadians(-5.0f);
+	const Math::Vector3f rotationAxis = Math::Vector3f{0.0f, 1.0f, 0.0f};
+	mVoyagerModelMatrix = Math::Rotate(mVoyagerModelMatrix, angle * mFrametime, rotationAxis);
 
-	mVoyagerModelMatrix = glm::translate(mVoyagerModelMatrix, pivotPoint);
+	mVoyagerModelMatrix = Math::Translate(mVoyagerModelMatrix, pivotPoint);
 }
 
 void VulkanRenderer::UpdateUniformBuffers()
@@ -1095,7 +1087,7 @@ void VulkanRenderer::UpdateUniformBuffers()
 	{
 		mVulkanUniformData.mViewPosition = mCamera->GetViewPosition();
 		mFrustum.UpdateFrustum(mVulkanUniformData.mProjectionMatrix * mVulkanUniformData.mViewMatrix);
-		std::memcpy(mVulkanUniformData.mFrustumPlanes, mFrustum.mPlanes.data(), sizeof(glm::vec4) * 6);
+		std::memcpy(mVulkanUniformData.mFrustumPlanes, mFrustum.mPlanes.data(), sizeof(Math::Vector4f) * 6);
 	}
 
 	std::memcpy(mVulkanUniformBuffers[mCurrentBufferIndex].mMappedData, &mVulkanUniformData, sizeof(VulkanUniformData));
@@ -1424,7 +1416,7 @@ void VulkanRenderer::PrepareInstanceData()
 			for (std::uint8_t z = 0; z < gModelInstanceCount; z++)
 			{
 				const std::uint32_t index = x + y * gModelInstanceCount + z * gModelInstanceCount * gModelInstanceCount;
-				instanceData[index].mPosition = glm::vec3((float)x, (float)y, (float)z) - glm::vec3((float)gModelInstanceCount / 2.0f);
+				instanceData[index].mPosition = Math::Vector3f((float)x, (float)y, (float)z) - Math::Vector3f((float)gModelInstanceCount / 2.0f);
 				instanceData[index].mScale = 2.0f;
 			}
 		}
@@ -1733,15 +1725,15 @@ void VulkanRenderer::OnUpdateUIOverlay()
 
 			ImGui::NewLine();
 
-			ImGui::InputFloat4("Light position", glm::value_ptr(mLightPosition), "%.1f");
+			ImGui::InputFloat4("Light position", Math::ValuePointer(mLightPosition), "%.1f");
 
-			const glm::vec3& cameraPosition = mCamera->GetPosition();
+			const Math::Vector3f& cameraPosition = mCamera->GetPosition();
 			mImGuiOverlay->Vec3Text("Camera position", cameraPosition);
 
-			const glm::vec3& cameraRotaiton = mCamera->GetRotation();
+			const Math::Vector3f& cameraRotaiton = mCamera->GetRotation();
 			mImGuiOverlay->Vec3Text("Camera rotation", cameraRotaiton);
 
-			const glm::vec4& cameraViewPosition = mCamera->GetViewPosition();
+			const Math::Vector4f& cameraViewPosition = mCamera->GetViewPosition();
 			mImGuiOverlay->Vec4Text("Camera view position", cameraViewPosition);
 
 			ImGui::NewLine();

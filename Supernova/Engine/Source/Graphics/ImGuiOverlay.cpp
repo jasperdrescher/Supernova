@@ -1,6 +1,8 @@
 #include "ImGuiOverlay.hpp"
 
 #include "FileLoader.hpp"
+#include "Math/Functions.hpp"
+#include "Math/Types.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
 #include "VulkanTypes.hpp"
@@ -8,20 +10,12 @@
 #define GLFW_EXCLUDE_API
 #include <GLFW/glfw3.h>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/matrix_decompose.hpp>
-
 #include <algorithm>
 #include <cassert>
-#include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
 
 #include <imgui.h>
 #include <string>
@@ -371,8 +365,8 @@ void ImGuiOverlay::Draw(const VkCommandBuffer aVkCommandBuffer, std::uint32_t aC
 	vkCmdBindPipeline(aVkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
 	vkCmdBindDescriptorSets(aVkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSet, 0, nullptr);
 
-	mPushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
-	mPushConstBlock.translate = glm::vec2(-1.0f);
+	mPushConstBlock.scale = Math::Vector2f(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
+	mPushConstBlock.translate = Math::Vector2f(-1.0f);
 	vkCmdPushConstants(aVkCommandBuffer, mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &mPushConstBlock);
 
 	assert(mBuffers[aCurrentBufferIndex].vertexBuffer.mVkBuffer != VK_NULL_HANDLE && mBuffers[aCurrentBufferIndex].indexBuffer.mVkBuffer != VK_NULL_HANDLE);
@@ -608,30 +602,30 @@ bool ImGuiOverlay::WantsToCaptureInput() const
 	return io.WantCaptureKeyboard || io.WantCaptureMouse;
 }
 
-void ImGuiOverlay::Vec2Text(const char* aLabel, const glm::vec2& aVec2)
+void ImGuiOverlay::Vec2Text(const char* aLabel, const Math::Vector2f& aVec2)
 {
 	ImGui::Text("%s %.1f, %.1f", aLabel, aVec2.x, aVec2.y);
 }
 
-void ImGuiOverlay::Vec3Text(const char* aLabel, const glm::vec3& aVec3)
+void ImGuiOverlay::Vec3Text(const char* aLabel, const Math::Vector3f& aVec3)
 {
 	ImGui::Text("%s %.1f, %.1f, %.1f", aLabel, aVec3.x, aVec3.y, aVec3.z);
 }
 
-void ImGuiOverlay::Vec4Text(const char* aLabel, const glm::vec4& aVec4)
+void ImGuiOverlay::Vec4Text(const char* aLabel, const Math::Vector4f& aVec4)
 {
 	ImGui::Text("%s %.1f, %.1f, %.1f, %.1f", aLabel, aVec4.x, aVec4.y, aVec4.z, aVec4.w);
 }
 
-void ImGuiOverlay::Mat4Text(const char* aLabel, const glm::mat4& aMat4)
+void ImGuiOverlay::Mat4Text(const char* aLabel, const Math::Matrix4f& aMat4)
 {
-	glm::vec3 scale;
-	glm::quat rotation;
-	glm::vec3 translation;
-	glm::vec3 skew;
-	glm::vec4 perspective;
-	glm::decompose(aMat4, scale, rotation, translation, skew, perspective);
-	ImGui::Text("%s position %.1f, %.1f, %.1f", aLabel, translation.x, translation.y, translation.z);
-	ImGui::Text("%s rotation %.1f, %.1f, %.1f", aLabel, rotation.x, rotation.y, rotation.z);
-	ImGui::Text("%s scale %.1f, %.1f, %.1f", aLabel, scale.x, scale.y, scale.z);
+	Math::Vector3f scale;
+	Math::Quaternionf rotation;
+	Math::Vector3f translation;
+	if (Math::Decompose(aMat4, scale, rotation, translation))
+	{
+		ImGui::Text("%s position %.1f, %.1f, %.1f", aLabel, translation.x, translation.y, translation.z);
+		ImGui::Text("%s rotation %.1f, %.1f, %.1f", aLabel, rotation.x, rotation.y, rotation.z);
+		ImGui::Text("%s scale %.1f, %.1f, %.1f", aLabel, scale.x, scale.y, scale.z);
+	}
 }

@@ -1,5 +1,8 @@
 #include "InputManager.hpp"
 
+#include "InputKeys.hpp"
+#include "Math/Types.hpp"
+
 #define GLFW_EXCLUDE_API
 #include <GLFW/glfw3.h>
 
@@ -27,7 +30,7 @@ namespace Input
 
 	void InputManager::FlushInput()
 	{
-		mScrollOffset = glm::vec2{};
+		mScrollOffset = Math::Vector2f{};
 	}
 
 	void InputManager::OnKeyAction(int aKey, int /*aScancode*/, bool aIsKeyDown, int /*aMode*/)
