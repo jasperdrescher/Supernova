@@ -1,6 +1,8 @@
 #include "VulkanRenderer.hpp"
 
 #include "Camera.hpp"
+#include "Core/Constants.hpp"
+#include "Core/Types.hpp"
 #include "EngineProperties.hpp"
 #include "FileLoader.hpp"
 #include "ImGuiOverlay.hpp"
@@ -12,6 +14,7 @@
 #include "Time.hpp"
 #include "Timer.hpp"
 #include "VulkanDebug.hpp"
+#include "VulkanDevice.hpp"
 #include "VulkanGlTFModel.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
@@ -22,7 +25,6 @@
 #include <array>
 #include <chrono>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <format>
@@ -105,7 +107,7 @@ VulkanRenderer::~VulkanRenderer()
 		if (mVkDescriptorPool != VK_NULL_HANDLE)
 			vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, mVkDescriptorPool, nullptr);
 
-		vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mGraphicsCommandPoolBuffer, static_cast<std::uint32_t>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
+		vkFreeCommandBuffers(mVulkanDevice->mLogicalVkDevice, mGraphicsCommandPoolBuffer, static_cast<Core::uint32>(mVkCommandBuffers.size()), mVkCommandBuffers.data());
 
 		for (VkShaderModule& shaderModule : mVkShaderModules)
 			vkDestroyShaderModule(mVulkanDevice->mLogicalVkDevice, shaderModule, nullptr);
@@ -159,7 +161,7 @@ VulkanRenderer::~VulkanRenderer()
 		for (VkSemaphore& semaphore : mVkRenderCompleteSemaphores)
 			vkDestroySemaphore(mVulkanDevice->mLogicalVkDevice, semaphore, nullptr);
 
-		for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
+		for (Core::uint32 i = 0; i < gMaxConcurrentFrames; i++)
 		{
 			vkDestroyFence(mVulkanDevice->mLogicalVkDevice, mWaitVkFences[i], nullptr);
 			vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, mVulkanUniformBuffers[i].mVkBuffer, nullptr);
@@ -256,7 +258,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 
 void VulkanRenderer::LoadAssets()
 {
-	const std::uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
+	const Core::uint32 glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
 	mModels.mVoyagerModel = new vkglTF::Model();
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
 	mModels.mVoyagerModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mVkQueue, glTFLoadingFlags, 1.0f);
@@ -276,7 +278,7 @@ void VulkanRenderer::LoadAssets()
 void VulkanRenderer::CreateSynchronizationPrimitives()
 {
 	// Fences are per frame in flight
-	for (std::uint32_t i = 0; i < gMaxConcurrentFrames; i++)
+	for (Core::uint32 i = 0; i < gMaxConcurrentFrames; i++)
 	{
 		// Fence used to ensure that command buffer has completed exection before using it again
 		VkFenceCreateInfo vkFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
@@ -314,7 +316,7 @@ void VulkanRenderer::CreateGraphicsCommandBuffers()
 
 void VulkanRenderer::CreateDescriptorPool()
 {
-	static constexpr std::uint32_t poolPadding = 2;
+	static constexpr Core::uint32 poolPadding = 2;
 	const std::vector<VkDescriptorPoolSize> poolSizes = {
 		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (gMaxConcurrentFrames * 3) + poolPadding),
 		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (gMaxConcurrentFrames * 2) + poolPadding),
@@ -340,7 +342,7 @@ void VulkanRenderer::CreateGraphicsDescriptorSets()
 {
 	// Sets per frame, just like the buffers themselves
 	const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VulkanInitializers::descriptorSetAllocateInfo(mVkDescriptorPool, &mGraphicsDescriptorSetLayout, 1);
-	for (std::size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
+	for (Core::size i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
 		// Instanced models
 		// Binding 0 : Vertex shader uniform buffer
@@ -348,7 +350,7 @@ void VulkanRenderer::CreateGraphicsDescriptorSets()
 		const std::vector<VkWriteDescriptorSet> instancedWriteDescriptorSets = {
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mSuzanneModel, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(instancedWriteDescriptorSets.size()), instancedWriteDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(instancedWriteDescriptorSets.size()), instancedWriteDescriptorSets.data(), 0, nullptr);
 
 		// Static planet
 		//	Binding 0 : Vertex shader uniform buffer
@@ -358,7 +360,7 @@ void VulkanRenderer::CreateGraphicsDescriptorSets()
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mPlanetTexture.mDescriptor),
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
 
 		// Static voyager
 		//	Binding 0 : Vertex shader uniform buffer
@@ -366,7 +368,7 @@ void VulkanRenderer::CreateGraphicsDescriptorSets()
 		const std::vector<VkWriteDescriptorSet> staticVoyagerWriteDescriptorSets = {
 			VulkanInitializers::writeDescriptorSet(mVkDescriptorSets[i].mStaticVoyager, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(staticVoyagerWriteDescriptorSets.size()), staticVoyagerWriteDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(staticVoyagerWriteDescriptorSets.size()), staticVoyagerWriteDescriptorSets.data(), 0, nullptr);
 	}
 }
 
@@ -467,7 +469,7 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	pipelineCI.pViewportState = &viewportState;
 	pipelineCI.pDepthStencilState = &depthStencilState;
 	pipelineCI.pDynamicState = &dynamicState;
-	pipelineCI.stageCount = static_cast<std::uint32_t>(shaderStages.size());
+	pipelineCI.stageCount = static_cast<Core::uint32>(shaderStages.size());
 	pipelineCI.pStages = shaderStages.data();
 
 	// New create info to define color, depth and stencil attachments at pipeline create time
@@ -550,8 +552,8 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	shaderStages[0] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / suzanneVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT);
 	shaderStages[1] = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / suzanneFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT);
 	inputState.pVertexAttributeDescriptions = attributeDescriptions.data();
-	inputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(bindingDescriptions.size());
-	inputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptions.size());
+	inputState.vertexBindingDescriptionCount = static_cast<Core::uint32>(bindingDescriptions.size());
+	inputState.vertexAttributeDescriptionCount = static_cast<Core::uint32>(attributeDescriptions.size());
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mVkPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mInstancedSuzanne));
 
 #ifdef _DEBUG
@@ -607,7 +609,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
 			// Binding 4: LOD info
 			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &mComputeContext.mLoDBuffers.mVkDescriptorBufferInfo)
 		};
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
 	}
 }
 
@@ -622,10 +624,10 @@ void VulkanRenderer::CreateComputePipelines()
 	{
 		.constantID = 0,
 		.offset = 0,
-		.size = sizeof(uint32_t)
+		.size = sizeof(Core::uint32)
 	};
 
-	const uint32_t specializationData = static_cast<uint32_t>(mModels.mSuzanneModel->nodes.size()) - 1;
+	const Core::uint32 specializationData = static_cast<Core::uint32>(mModels.mSuzanneModel->nodes.size()) - 1;
 
 	const VkSpecializationInfo specializationInfo =
 	{
@@ -734,14 +736,14 @@ void VulkanRenderer::PrepareFrameGraphics()
 	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::PrepareFrameGraphics");
 
 	// Use a fence to wait until the command buffer has finished execution before using it again
-	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
+	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex], VK_TRUE, Core::uint64_max));
 	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mWaitVkFences[mCurrentBufferIndex]));
 
 	UpdateUIOverlay();
 
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
-	const VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, UINT64_MAX, mVkPresentCompleteSemaphores[mCurrentBufferIndex], VK_NULL_HANDLE, &mCurrentImageIndex);
+	const VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, Core::uint64_max, mVkPresentCompleteSemaphores[mCurrentBufferIndex], VK_NULL_HANDLE, &mCurrentImageIndex);
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
 	{
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -897,12 +899,12 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
 	{
 		// Index offsets and instance count are taken from the indirect buffer
-		vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, 0, static_cast<uint32_t>(mIndirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, 0, static_cast<Core::uint32>(mIndirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
 	}
 	else
 	{
 		// Issue separate draw commands
-		for (std::size_t j = 0; j < mIndirectCommands.size(); j++)
+		for (Core::size j = 0; j < mIndirectCommands.size(); j++)
 		{
 			vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 		}
@@ -957,7 +959,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 
 void VulkanRenderer::PrepareFrameCompute()
 {
-	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mComputeContext.mFences[mCurrentBufferIndex], VK_TRUE, UINT64_MAX));
+	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mComputeContext.mFences[mCurrentBufferIndex], VK_TRUE, Core::uint64_max));
 	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mComputeContext.mFences[mCurrentBufferIndex]));
 
 	// Get draw count from compute
@@ -1166,7 +1168,7 @@ void VulkanRenderer::CreateVkInstance()
 	mRequestedInstanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	mRequestedInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
-	std::uint32_t extensionCount = 0;
+	Core::uint32 extensionCount = 0;
 	VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr));
 	if (extensionCount > 0)
 	{
@@ -1234,7 +1236,7 @@ void VulkanRenderer::CreateVkInstance()
 
 	if (!mInstanceExtensions.empty())
 	{
-		instanceCreateInfo.enabledExtensionCount = static_cast<std::uint32_t>(mInstanceExtensions.size());
+		instanceCreateInfo.enabledExtensionCount = static_cast<Core::uint32>(mInstanceExtensions.size());
 		instanceCreateInfo.ppEnabledExtensionNames = mInstanceExtensions.data();
 
 #ifdef _DEBUG
@@ -1247,7 +1249,7 @@ void VulkanRenderer::CreateVkInstance()
 
 	if (mEngineProperties->mIsValidationEnabled)
 	{
-		std::uint32_t instanceLayerCount;
+		Core::uint32 instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
 
 		std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
@@ -1282,7 +1284,7 @@ void VulkanRenderer::CreateVkInstance()
 		const VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT,
 			.pNext = instanceCreateInfo.pNext,
-			.settingCount = static_cast<std::uint32_t>(mEnabledLayerSettings.size()),
+			.settingCount = static_cast<Core::uint32>(mEnabledLayerSettings.size()),
 			.pSettings = mEnabledLayerSettings.data(),
 		};
 		instanceCreateInfo.pNext = &layerSettingsCreateInfo;
@@ -1305,7 +1307,7 @@ void VulkanRenderer::CreateVkInstance()
 
 void VulkanRenderer::CreateVulkanDevice()
 {
-	std::uint32_t physicalDeviceCount = 0;
+	Core::uint32 physicalDeviceCount = 0;
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, nullptr));
 	if (physicalDeviceCount == 0)
 	{
@@ -1315,7 +1317,7 @@ void VulkanRenderer::CreateVulkanDevice()
 	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(mVkInstance, &physicalDeviceCount, physicalDevices.data()));
 
-	std::uint32_t selectedDevice = 0;
+	Core::uint32 selectedDevice = 0;
 	VkPhysicalDevice vkPhysicalDevice = physicalDevices[selectedDevice];
 	mVulkanDevice = new VulkanDevice();
 	mVulkanDevice->CreatePhysicalDevice(vkPhysicalDevice);
@@ -1335,13 +1337,13 @@ void VulkanRenderer::PrepareIndirectData()
 	mIndirectDrawCount = gModelInstanceCount * gModelInstanceCount * gModelInstanceCount;
 	mIndirectCommands.resize(mIndirectDrawCount);
 
-	for (std::uint8_t x = 0; x < gModelInstanceCount; x++)
+	for (Core::uint8 x = 0; x < gModelInstanceCount; x++)
 	{
-		for (std::uint8_t y = 0; y < gModelInstanceCount; y++)
+		for (Core::uint8 y = 0; y < gModelInstanceCount; y++)
 		{
-			for (std::uint8_t z = 0; z < gModelInstanceCount; z++)
+			for (Core::uint8 z = 0; z < gModelInstanceCount; z++)
 			{
-				const std::uint32_t index = x + y * gModelInstanceCount + z * gModelInstanceCount * gModelInstanceCount;
+				const Core::uint32 index = x + y * gModelInstanceCount + z * gModelInstanceCount * gModelInstanceCount;
 				mIndirectCommands[index].instanceCount = 1;
 				mIndirectCommands[index].firstInstance = index;
 				// firstIndex and indexCount are written by the compute shader
@@ -1349,7 +1351,7 @@ void VulkanRenderer::PrepareIndirectData()
 		}
 	}
 
-	mIndrectDrawInfo.mDrawCount = static_cast<std::uint32_t>(mIndirectCommands.size());
+	mIndrectDrawInfo.mDrawCount = static_cast<Core::uint32>(mIndirectCommands.size());
 
 	VulkanBuffer stagingBuffer;
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(
@@ -1410,13 +1412,13 @@ void VulkanRenderer::PrepareInstanceData()
 {
 	std::vector<VulkanInstanceData> instanceData(mIndirectDrawCount);
 
-	for (std::uint8_t x = 0; x < gModelInstanceCount; x++)
+	for (Core::uint8 x = 0; x < gModelInstanceCount; x++)
 	{
-		for (std::uint8_t y = 0; y < gModelInstanceCount; y++)
+		for (Core::uint8 y = 0; y < gModelInstanceCount; y++)
 		{
-			for (std::uint8_t z = 0; z < gModelInstanceCount; z++)
+			for (Core::uint8 z = 0; z < gModelInstanceCount; z++)
 			{
-				const std::uint32_t index = x + y * gModelInstanceCount + z * gModelInstanceCount * gModelInstanceCount;
+				const Core::uint32 index = x + y * gModelInstanceCount + z * gModelInstanceCount * gModelInstanceCount;
 				instanceData[index].mPosition = Math::Vector3f((float)x, (float)y, (float)z) - Math::Vector3f((float)gModelInstanceCount / 2.0f);
 				instanceData[index].mScale = 2.0f;
 			}
@@ -1456,14 +1458,14 @@ void VulkanRenderer::PrepareInstanceData()
 	// Shader storage buffer containing index offsets and counts for the LODs
 	struct LOD
 	{
-		std::uint32_t firstIndex;
-		std::uint32_t indexCount;
+		Core::uint32 firstIndex;
+		Core::uint32 indexCount;
 		float distance;
 		float _pad0;
 	};
 	std::vector<LOD> LODLevels;
 
-	std::uint32_t nodeIndex = 0;
+	Core::uint32 nodeIndex = 0;
 	for (const vkglTF::Node* node : mModels.mSuzanneModel->nodes)
 	{
 		LOD lod{};
@@ -1539,7 +1541,7 @@ void VulkanRenderer::RenderFrame()
 	const float fpsTimer = static_cast<float>(Time::GetDurationMilliseconds(mFrameTimer->GetEndTime(), mLastTimestamp));
 	if (fpsTimer > mFPSTimerInterval)
 	{
-		mAverageFPS = static_cast<std::uint32_t>(static_cast<float>(mFrameCounter) * (mFPSTimerInterval / fpsTimer));
+		mAverageFPS = static_cast<Core::uint32>(static_cast<float>(mFrameCounter) * (mFPSTimerInterval / fpsTimer));
 		mFrameCounter = 0;
 		mLastTimestamp = mFrameTimer->GetEndTime();
 	}

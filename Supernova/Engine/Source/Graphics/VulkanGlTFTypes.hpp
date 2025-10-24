@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Core/Types.hpp"
 #include "Math/Types.hpp"
 
-#include <cstdint>
 #include <filesystem>
 #include <limits>
 #include <string>
@@ -27,7 +27,7 @@ namespace vkglTF
 	extern VkDescriptorSetLayout gDescriptorSetLayoutImage;
 	extern VkDescriptorSetLayout gDescriptorSetLayoutUbo;
 	extern VkMemoryPropertyFlags gMemoryPropertyFlags;
-	extern std::uint32_t gDescriptorBindingFlags;
+	extern Core::uint32 gDescriptorBindingFlags;
 
 	struct Node;
 
@@ -46,11 +46,11 @@ namespace vkglTF
 		VkImageView mImageView;
 		VkSampler mSampler;
 		VkImageLayout imageLayout{};
-		std::uint32_t mWidth;
-		std::uint32_t mHeight;
-		std::uint32_t mMipLevels;
-		std::uint32_t mLayerCount;
-		std::uint32_t mIndex;
+		Core::uint32 mWidth;
+		Core::uint32 mHeight;
+		Core::uint32 mMipLevels;
+		Core::uint32 mLayerCount;
+		Core::uint32 mIndex;
 	};
 
 	struct Material
@@ -59,7 +59,7 @@ namespace vkglTF
 
 		Material(VulkanDevice* aDevice);
 
-		void CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, std::uint32_t aDescriptorBindingFlags);
+		void CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, Core::uint32 aDescriptorBindingFlags);
 
 		VulkanDevice* mVulkanDevice;
 		AlphaMode mAlphaMode;
@@ -90,15 +90,15 @@ namespace vkglTF
 
 	struct Primitive
 	{
-		Primitive(std::uint32_t firstIndex, std::uint32_t indexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), firstVertex{0}, vertexCount{0}, material(material) {};
+		Primitive(Core::uint32 firstIndex, Core::uint32 indexCount, Material& material) : firstIndex(firstIndex), indexCount(indexCount), firstVertex{0}, vertexCount{0}, material(material) {};
 
 		void SetDimensions(const Math::Vector3f& aMin, const Math::Vector3f& aMax);
 
 		Dimensions mDimensions;
-		std::uint32_t firstIndex;
-		std::uint32_t indexCount;
-		std::uint32_t firstVertex;
-		std::uint32_t vertexCount;
+		Core::uint32 firstIndex;
+		Core::uint32 indexCount;
+		Core::uint32 firstVertex;
+		Core::uint32 vertexCount;
 		Material& material;
 	};
 
@@ -173,13 +173,13 @@ namespace vkglTF
 		Math::Matrix4f GetMatrix() const;
 
 		Node* mParent;
-		std::uint32_t mIndex;
+		Core::uint32 mIndex;
 		std::vector<Node*> mChildren{};
 		Math::Matrix4f mMatrix{};
 		std::string mName{};
 		Mesh* mMesh;
 		Skin* mSkin;
-		std::int32_t mSkinIndex;
+		Core::int32 mSkinIndex;
 		Math::Vector3f mTranslation{};
 		Math::Vector3f mScale{};
 		Math::Quaternionf mRotation{};
@@ -193,7 +193,7 @@ namespace vkglTF
 
 		PathType mPathType;
 		Node* mNode;
-		std::uint32_t mSamplerIndex;
+		Core::uint32 mSamplerIndex;
 	};
 
 	struct AnimationSampler
@@ -224,9 +224,9 @@ namespace vkglTF
 	{
 		Vertex() {}
 
-		static VkVertexInputBindingDescription inputBindingDescription(std::uint32_t aBinding);
-		static VkVertexInputAttributeDescription inputAttributeDescription(std::uint32_t aBinding, std::uint32_t aLocation, VertexComponent aComponent);
-		static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(std::uint32_t aBinding, const std::vector<VertexComponent>& aComponents);
+		static VkVertexInputBindingDescription inputBindingDescription(Core::uint32 aBinding);
+		static VkVertexInputAttributeDescription inputAttributeDescription(Core::uint32 aBinding, Core::uint32 aLocation, VertexComponent aComponent);
+		static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(Core::uint32 aBinding, const std::vector<VertexComponent>& aComponents);
 		static VkPipelineVertexInputStateCreateInfo* getPipelineVertexInputState(const std::vector<VertexComponent>& aComponents); // Returns the default pipeline vertex input state create info structure for the requested vertex components
 
 		Math::Vector3f mPosition{};

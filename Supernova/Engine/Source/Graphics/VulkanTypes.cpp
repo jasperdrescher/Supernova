@@ -1,5 +1,6 @@
 #include "VulkanTypes.hpp"
 
+#include "Core/Types.hpp"
 #include "FileLoader.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanInitializers.hpp"
@@ -8,7 +9,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <format>
@@ -252,7 +252,7 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 	VK_CHECK_RESULT(vkBindBufferMemory(mDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
 
 	// Copy texture data into staging buffer
-	std::uint8_t* data{nullptr};
+	Core::uint8* data{nullptr};
 	VK_CHECK_RESULT(vkMapMemory(mDevice->mLogicalVkDevice, stagingMemory, 0, memoryRequirements.size, 0, (void**)&data));
 	std::memcpy(data, ktxTextureData, ktxTextureSize);
 	vkUnmapMemory(mDevice->mLogicalVkDevice, stagingMemory);
@@ -260,7 +260,7 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 	// Setup buffer copy regions for each mip level
 	std::vector<VkBufferImageCopy> bufferCopyRegions;
 
-	for (std::uint32_t i = 0; i < mMipLevels; i++)
+	for (Core::uint32 i = 0; i < mMipLevels; i++)
 	{
 		ktx_size_t offset;
 		const KTX_error_code getImageOffsetResult = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
@@ -329,7 +329,7 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 		stagingBuffer,
 		mImage,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		static_cast<std::uint32_t>(bufferCopyRegions.size()),
+		static_cast<Core::uint32>(bufferCopyRegions.size()),
 		bufferCopyRegions.data()
 	);
 
@@ -402,7 +402,7 @@ void VulkanTexture2D::LoadFromFile(const std::filesystem::path& aPath, VkFormat 
 * @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 * @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 */
-void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkFormat aFormat, std::uint32_t aWidth, std::uint32_t aHeight, VulkanDevice* aDevice, VkQueue aCopyQueue, VkFilter aFilter, VkImageUsageFlags aImageUsageFlags, VkImageLayout aImageLayout)
+void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkFormat aFormat, Core::uint32 aWidth, Core::uint32 aHeight, VulkanDevice* aDevice, VkQueue aCopyQueue, VkFilter aFilter, VkImageUsageFlags aImageUsageFlags, VkImageLayout aImageLayout)
 {
 	if (!aBuffer)
 	{
@@ -440,7 +440,7 @@ void VulkanTexture2D::FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkForm
 	VK_CHECK_RESULT(vkBindBufferMemory(mDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
 
 	// Copy texture data into staging buffer
-	std::uint8_t* data{nullptr};
+	Core::uint8* data{nullptr};
 	VK_CHECK_RESULT(vkMapMemory(mDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
 	std::memcpy(data, aBuffer, aBufferSize);
 	vkUnmapMemory(mDevice->mLogicalVkDevice, stagingMemory);
@@ -601,9 +601,9 @@ void VulkanTexture2DArray::LoadFromFile(const std::filesystem::path& aPath, VkFo
 	// Setup buffer copy regions for each layer including all of its miplevels
 	std::vector<VkBufferImageCopy> bufferCopyRegions;
 
-	for (std::uint32_t layer = 0; layer < mLayerCount; layer++)
+	for (Core::uint32 layer = 0; layer < mLayerCount; layer++)
 	{
-		for (std::uint32_t level = 0; level < mMipLevels; level++)
+		for (Core::uint32 level = 0; level < mMipLevels; level++)
 		{
 			ktx_size_t offset;
 			const KTX_error_code getImageOffsetResult = ktxTexture_GetImageOffset(ktxTexture, level, layer, 0, &offset);
@@ -668,7 +668,7 @@ void VulkanTexture2DArray::LoadFromFile(const std::filesystem::path& aPath, VkFo
 	VulkanTools::SetImageLayout(copyCommandBuffer, mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, imageSubresourceRange);
 
 	// Copy the layers and mip levels from the staging buffer to the optimal tiled image
-	vkCmdCopyBufferToImage(copyCommandBuffer, stagingBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<std::uint32_t>(bufferCopyRegions.size()), bufferCopyRegions.data());
+	vkCmdCopyBufferToImage(copyCommandBuffer, stagingBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<Core::uint32>(bufferCopyRegions.size()), bufferCopyRegions.data());
 
 	// Change texture image layout to shader read after all faces have been copied
 	mImageLayout = aImageLayout;

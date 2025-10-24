@@ -1,14 +1,14 @@
 #pragma once
 
+#include "Core/Types.hpp"
 #include "Math/Types.hpp"
 
 #include <array>
-#include <cstdint>
 #include <filesystem>
 #include <ktx.h>
 #include <vulkan/vulkan_core.h>
 
-static constexpr std::uint32_t gMaxConcurrentFrames = 2;
+static constexpr Core::uint32 gMaxConcurrentFrames = 2;
 static constexpr int gModelInstanceCount = 64;
 static constexpr int gMaxLOD = 5;
 
@@ -79,7 +79,7 @@ struct VulkanBuffer
 	void* mMappedData;
 	VkBufferUsageFlags mUsageFlags{}; // Usage flags to be filled by external source at buffer creation (to query at some later point)
 	VkMemoryPropertyFlags mMemoryPropertyFlags{}; // Memory property flags to be filled by external source at buffer creation (to query at some later point)
-	std::uint64_t mDeviceAddress;
+	Core::uint64 mDeviceAddress;
 };
 
 struct VulkanShaderData
@@ -115,10 +115,10 @@ public:
 	VkImageLayout mImageLayout;
 	VkDeviceMemory mDeviceMemory;
 	VkImageView mView;
-	std::uint32_t mWidth;
-	std::uint32_t mHeight;
-	std::uint32_t mMipLevels;
-	std::uint32_t mLayerCount;
+	Core::uint32 mWidth;
+	Core::uint32 mHeight;
+	Core::uint32 mMipLevels;
+	Core::uint32 mLayerCount;
 	VkDescriptorImageInfo mDescriptor;
 	VkSampler mSampler;
 };
@@ -127,7 +127,7 @@ class VulkanTexture2D : public VulkanTexture
 {
 public:
 	void LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	void FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkFormat aFormat, std::uint32_t aWidth, std::uint32_t aHeight, VulkanDevice* aDevice, VkQueue aCopyQueue, VkFilter aFilter = VK_FILTER_LINEAR, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	void FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkFormat aFormat, Core::uint32 aWidth, Core::uint32 aHeight, VulkanDevice* aDevice, VkQueue aCopyQueue, VkFilter aFilter = VK_FILTER_LINEAR, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 };
 
 class VulkanTexture2DArray : public VulkanTexture

@@ -1,12 +1,14 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
-// Standard memory types
-namespace Types
+namespace Core
 {
 	using float32 = float; // 32-bit floating-point
 	using float64 = double; // 64-bit floating-point
+
+	using size = std::size_t; // Large unsigned integer
 
 	using int8 = std::int8_t; // 8-bit integer
 	using int16 = std::int16_t; // 16-bit integer

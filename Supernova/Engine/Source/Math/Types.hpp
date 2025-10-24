@@ -11,7 +11,6 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-// Standard math types
 namespace Math
 {
 	using Vector2f = glm::vec2; // 2D floating-point vector

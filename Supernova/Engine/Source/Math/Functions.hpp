@@ -100,7 +100,7 @@ namespace Math
 		return glm::make_vec4(aData);
 	}
 
-	inline Vector4f MakeVector4f(const Types::uint16* aData)
+	inline Vector4f MakeVector4f(const Core::uint16* aData)
 	{
 		return glm::make_vec4(aData);
 	}

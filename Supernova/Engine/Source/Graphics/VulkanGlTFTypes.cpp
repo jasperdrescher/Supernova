@@ -1,5 +1,6 @@
 #include "VulkanGlTFTypes.hpp"
 
+#include "Core/Types.hpp"
 #include "FileLoader.hpp"
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
@@ -14,7 +15,6 @@
 #include <tiny_gltf.h>
 
 #include <vulkan/vulkan_core.h>
-#include <cstdint>
 #include <format>
 #include <ktx.h>
 #include <ktxvulkan.h>
@@ -110,9 +110,9 @@ namespace vkglTF
 				buffer = new unsigned char[bufferSize];
 				unsigned char* rgba = buffer;
 				unsigned char* rgb = &aGlTFimage->image[0];
-				for (size_t i = 0; i < aGlTFimage->width * aGlTFimage->height; ++i)
+				for (Core::size i = 0; i < aGlTFimage->width * aGlTFimage->height; ++i)
 				{
-					for (int32_t j = 0; j < 3; ++j)
+					for (Core::int32 j = 0; j < 3; ++j)
 					{
 						rgba[j] = rgb[j];
 					}
@@ -136,7 +136,7 @@ namespace vkglTF
 
 			mWidth = aGlTFimage->width;
 			mHeight = aGlTFimage->height;
-			mMipLevels = static_cast<std::uint32_t>(std::floor(std::log2(std::max(mWidth, mHeight))) + 1.0);
+			mMipLevels = static_cast<Core::uint32>(std::floor(std::log2(std::max(mWidth, mHeight))) + 1.0);
 
 			VkFormatProperties formatProperties;
 			vkGetPhysicalDeviceFormatProperties(aDevice->mVkPhysicalDevice, format, &formatProperties);
@@ -174,7 +174,7 @@ namespace vkglTF
 			VK_CHECK_RESULT(vkAllocateMemory(aDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &stagingMemory));
 			VK_CHECK_RESULT(vkBindBufferMemory(aDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
 
-			std::uint8_t* data{nullptr};
+			Core::uint8* data{nullptr};
 			VK_CHECK_RESULT(vkMapMemory(aDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
 			std::memcpy(data, buffer, bufferSize);
 			vkUnmapMemory(aDevice->mLogicalVkDevice, stagingMemory);
@@ -246,7 +246,7 @@ namespace vkglTF
 
 			// Generate the mip chain (glTF uses jpg and png, so we need to create this manually)
 			VkCommandBuffer blitCmd = aDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-			for (std::uint32_t i = 1; i < mMipLevels; i++)
+			for (Core::uint32 i = 1; i < mMipLevels; i++)
 			{
 				VkImageBlit imageBlit{};
 				imageBlit.srcSubresource = {
@@ -255,8 +255,8 @@ namespace vkglTF
 					.layerCount = 1,
 				};
 				imageBlit.srcOffsets[1] = {
-					.x = int32_t(mWidth >> (i - 1)),
-					.y = int32_t(mHeight >> (i - 1)),
+					.x = Core::int32(mWidth >> (i - 1)),
+					.y = Core::int32(mHeight >> (i - 1)),
 					.z = 1
 				};
 				imageBlit.dstSubresource = {
@@ -265,8 +265,8 @@ namespace vkglTF
 					.layerCount = 1,
 				};
 				imageBlit.dstOffsets[1] = {
-					.x = int32_t(mWidth >> i),
-					.y = int32_t(mHeight >> i),
+					.x = Core::int32(mWidth >> i),
+					.y = Core::int32(mHeight >> i),
 					.z = 1
 				};
 
@@ -378,7 +378,7 @@ namespace vkglTF
 			vkUnmapMemory(aDevice->mLogicalVkDevice, stagingMemory);
 
 			std::vector<VkBufferImageCopy> bufferCopyRegions;
-			for (std::uint32_t i = 0; i < mMipLevels; i++)
+			for (Core::uint32 i = 0; i < mMipLevels; i++)
 			{
 				ktx_size_t offset;
 				const KTX_error_code getImageOffsetResult = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
@@ -428,7 +428,7 @@ namespace vkglTF
 
 			VkImageSubresourceRange subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = mMipLevels, .layerCount = 1};
 			VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
-			vkCmdCopyBufferToImage(copyCmd, stagingBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<std::uint32_t>(bufferCopyRegions.size()), bufferCopyRegions.data());
+			vkCmdCopyBufferToImage(copyCmd, stagingBuffer, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<Core::uint32>(bufferCopyRegions.size()), bufferCopyRegions.data());
 			VulkanTools::SetImageLayout(copyCmd, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange);
 			aDevice->FlushCommandBuffer(copyCmd, aCopyQueue, true);
 			imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -469,7 +469,7 @@ namespace vkglTF
 		mDescriptorImageInfo.imageLayout = imageLayout;
 	}
 
-	void Material::CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, std::uint32_t aDescriptorBindingFlags)
+	void Material::CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, Core::uint32 aDescriptorBindingFlags)
 	{
 		VkDescriptorSetAllocateInfo descriptorSetAllocInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -486,7 +486,7 @@ namespace vkglTF
 			VkWriteDescriptorSet writeDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = mDescriptorSet,
-				.dstBinding = static_cast<std::uint32_t>(writeDescriptorSets.size()),
+				.dstBinding = static_cast<Core::uint32>(writeDescriptorSets.size()),
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				.pImageInfo = &mBaseColorTexture->mDescriptorImageInfo
@@ -499,14 +499,14 @@ namespace vkglTF
 			VkWriteDescriptorSet writeDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = mDescriptorSet,
-				.dstBinding = static_cast<std::uint32_t>(writeDescriptorSets.size()),
+				.dstBinding = static_cast<Core::uint32>(writeDescriptorSets.size()),
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				.pImageInfo = &mNormalTexture->mDescriptorImageInfo
 			};
 			writeDescriptorSets.push_back(writeDescriptorSet);
 		}
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<std::uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
 	void vkglTF::Primitive::SetDimensions(const Math::Vector3f& aMin, const Math::Vector3f& aMax)
@@ -570,7 +570,7 @@ namespace vkglTF
 				mMesh->mUniformBlock.mMatrix = m;
 				// Update join matrices
 				Math::Matrix4f inverseTransform = Math::Inverse(m);
-				for (size_t i = 0; i < mSkin->joints.size(); i++)
+				for (Core::size i = 0; i < mSkin->joints.size(); i++)
 				{
 					vkglTF::Node* jointNode = mSkin->joints[i];
 					Math::Matrix4f jointMat = jointNode->GetMatrix() * mSkin->inverseBindMatrices[i];
@@ -609,12 +609,12 @@ namespace vkglTF
 	std::vector<VkVertexInputAttributeDescription> Vertex::mVertexInputAttributeDescriptions;
 	VkPipelineVertexInputStateCreateInfo Vertex::mPipelineVertexInputStateCreateInfo;
 
-	VkVertexInputBindingDescription vkglTF::Vertex::inputBindingDescription(std::uint32_t aBinding)
+	VkVertexInputBindingDescription vkglTF::Vertex::inputBindingDescription(Core::uint32 aBinding)
 	{
 		return VkVertexInputBindingDescription({aBinding, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX});
 	}
 
-	VkVertexInputAttributeDescription vkglTF::Vertex::inputAttributeDescription(std::uint32_t aBinding, std::uint32_t aLocation, VertexComponent aComponent)
+	VkVertexInputAttributeDescription vkglTF::Vertex::inputAttributeDescription(Core::uint32 aBinding, Core::uint32 aLocation, VertexComponent aComponent)
 	{
 		switch (aComponent)
 		{
@@ -637,10 +637,10 @@ namespace vkglTF
 		}
 	}
 
-	std::vector<VkVertexInputAttributeDescription> vkglTF::Vertex::inputAttributeDescriptions(std::uint32_t aBinding, const std::vector<VertexComponent>& aComponents)
+	std::vector<VkVertexInputAttributeDescription> vkglTF::Vertex::inputAttributeDescriptions(Core::uint32 aBinding, const std::vector<VertexComponent>& aComponents)
 	{
 		std::vector<VkVertexInputAttributeDescription> result;
-		std::uint32_t location = 0;
+		Core::uint32 location = 0;
 		for (VertexComponent component : aComponents)
 		{
 			result.push_back(Vertex::inputAttributeDescription(aBinding, location, component));
@@ -657,7 +657,7 @@ namespace vkglTF
 		mPipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		mPipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
 		mPipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = &Vertex::mVertexInputBindingDescription;
-		mPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(Vertex::mVertexInputAttributeDescriptions.size());
+		mPipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<Core::uint32>(Vertex::mVertexInputAttributeDescriptions.size());
 		mPipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = Vertex::mVertexInputAttributeDescriptions.data();
 		return &mPipelineVertexInputStateCreateInfo;
 	}

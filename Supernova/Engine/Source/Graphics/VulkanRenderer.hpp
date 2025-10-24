@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Types.hpp"
 #include "Math/Types.hpp"
 #include "Time.hpp"
 #include "VulkanDevice.hpp"
@@ -9,7 +10,6 @@
 #include <vulkan/vulkan_core.h>
 
 #include <array>
-#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -114,8 +114,8 @@ private:
 
 	struct
 	{
-		std::uint32_t mDrawCount; // Total number of indirect draw counts to be issued
-		std::uint32_t mLoDCount[gMaxLOD + 1]; // Statistics for number of draws per LOD level (written by compute shader)
+		Core::uint32 mDrawCount; // Total number of indirect draw counts to be issued
+		Core::uint32 mLoDCount[gMaxLOD + 1]; // Statistics for number of draws per LOD level (written by compute shader)
 	} mIndrectDrawInfo{};
 
 	ComputeContext mComputeContext{};
@@ -149,14 +149,14 @@ private:
 	std::array<DescriptorSets, gMaxConcurrentFrames> mVkDescriptorSets{};
 	std::array<VulkanBuffer, gMaxConcurrentFrames> mIndirectCommandsBuffers;
 	std::array<VulkanBuffer, gMaxConcurrentFrames> mIndirectDrawCountBuffers;
-	std::uint32_t mFramebufferWidth;
-	std::uint32_t mFramebufferHeight;
-	std::uint32_t mFrameCounter;
-	std::uint32_t mAverageFPS;
-	std::uint32_t mBufferIndexCount;
-	std::uint32_t mCurrentImageIndex;
-	std::uint32_t mCurrentBufferIndex;
-	std::uint32_t mIndirectDrawCount;
+	Core::uint32 mFramebufferWidth;
+	Core::uint32 mFramebufferHeight;
+	Core::uint32 mFrameCounter;
+	Core::uint32 mAverageFPS;
+	Core::uint32 mBufferIndexCount;
+	Core::uint32 mCurrentImageIndex;
+	Core::uint32 mCurrentBufferIndex;
+	Core::uint32 mIndirectDrawCount;
 	Math::Matrix4f mVoyagerModelMatrix;
 	Math::Matrix4f mPlanetModelMatrix;
 	Math::Vector4f mClearColor;

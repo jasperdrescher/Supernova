@@ -1,18 +1,18 @@
 #pragma once
 
-#include <cstdint>
+#include "Core/Types.hpp"
 
 class UniqueIdentifier
 {
 public:
 	UniqueIdentifier();
-	UniqueIdentifier(std::uint64_t aUniqueIdentifier);
+	UniqueIdentifier(Core::uint64 aUniqueIdentifier);
 	UniqueIdentifier(const UniqueIdentifier&) = default;
 
-	operator std::uint64_t() const { return mUniqueIdentifier; }
+	operator Core::uint64() const { return mUniqueIdentifier; }
 
 private:
-	std::uint64_t mUniqueIdentifier;
+	Core::uint64 mUniqueIdentifier;
 };
 
 namespace std
@@ -22,9 +22,9 @@ namespace std
 	template<>
 	struct hash<UniqueIdentifier>
 	{
-		size_t operator()(const UniqueIdentifier& aUniqueIdentifier) const
+		Core::size operator()(const UniqueIdentifier& aUniqueIdentifier) const
 		{
-			return static_cast<uint64_t>(aUniqueIdentifier);
+			return static_cast<Core::uint64>(aUniqueIdentifier);
 		}
 	};
 }
