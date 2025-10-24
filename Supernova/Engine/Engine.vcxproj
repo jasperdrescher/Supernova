@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Camera.hpp" />
+    <ClInclude Include="Source\Core\Types.hpp" />
     <ClInclude Include="Source\ECS\Components.hpp" />
     <ClInclude Include="Source\ECS\Entity.hpp" />
     <ClInclude Include="Source\ECS\EntityContainer.hpp" />

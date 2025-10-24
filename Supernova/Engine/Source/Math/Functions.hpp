@@ -90,11 +90,6 @@ namespace Math
 		return glm::make_vec3(aData);
 	}
 
-	inline Vector3f MakeVector3f(const Types::uint8* aData)
-	{
-		return glm::make_vec3(aData);
-	}
-
 	inline Vector4f MakeVector4f(const float* aData)
 	{
 		return glm::make_vec4(aData);
@@ -105,7 +100,7 @@ namespace Math
 		return glm::make_vec4(aData);
 	}
 
-	inline Vector4f MakeVector4f(const Types::uint8* aData)
+	inline Vector4f MakeVector4f(const Types::uint16* aData)
 	{
 		return glm::make_vec4(aData);
 	}
