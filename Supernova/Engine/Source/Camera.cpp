@@ -131,6 +131,12 @@ void Camera::Update(float aDeltaTime)
 
 	if (mType == CameraType::FirstPerson)
 	{
+		const float rotationSpeed = (aDeltaTime * mRotationSpeed);
+		if (mMouse.mIsLeftDown)
+		{
+			Rotate(Math::Vector3f(mMouse.mDeltaY * rotationSpeed, -mMouse.mDeltaX * rotationSpeed, 0.0f));
+		}
+
 		if (IsMoving())
 		{
 			Math::Vector3f cameraFront{0.0f};

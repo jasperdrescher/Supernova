@@ -89,6 +89,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	mCamera = new Camera();
 	mCamera->SetType(CameraType::FirstPerson);
 	mCamera->SetPosition(Math::Vector3f(0.5f, 0.0f, -18.5f));
+	mCamera->SetRotationSpeed(10.0f);
 	mCamera->SetPerspective(60.0f, static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight), 0.1f, 512.0f);
 
 	mVoyagerModelMatrix = Math::Translate(mVoyagerModelMatrix, Math::Vector3f{1.0f, -2.0f, 10.0f});
