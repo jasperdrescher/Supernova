@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// Standard math types
+// Standard memory types
 namespace Types
 {
 	using float32 = float; // 32-bit floating-point

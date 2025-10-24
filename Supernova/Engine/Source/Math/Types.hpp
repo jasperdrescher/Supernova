@@ -10,12 +10,16 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+// Standard math types
 namespace Math
 {
-	using Vector2f = glm::vec2;
-	using Vector3f = glm::vec3;
-	using Vector4f = glm::vec4;
-	using Matrix3f = glm::mat3;
-	using Matrix4f = glm::mat4;
-	using Quaternionf = glm::quat;
+	using Vector2f = glm::vec2; // 2D floating-point vector
+	using Vector3f = glm::vec3; // 3D floating-point vector
+	using Vector4f = glm::vec4; // 4D floating-point vector
+
+	using Matrix2f = glm::mat2; // 2D floating-point matrix
+	using Matrix3f = glm::mat3; // 3D floating-point matrix
+	using Matrix4f = glm::mat4; // 4D floating-point matrix
+
+	using Quaternionf = glm::quat; // Floating-point quaternion
 }
