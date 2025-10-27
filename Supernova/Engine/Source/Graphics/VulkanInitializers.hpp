@@ -39,7 +39,7 @@ namespace VulkanInitializers
 	inline VkCommandBufferAllocateInfo commandBufferAllocateInfo(
 		VkCommandPool commandPool,
 		VkCommandBufferLevel level,
-		uint32_t bufferCount)
+		std::uint32_t bufferCount)
 	{
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
 		commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -91,7 +91,7 @@ namespace VulkanInitializers
 
 	inline VkDescriptorPoolSize descriptorPoolSize(
 		VkDescriptorType type,
-		uint32_t descriptorCount)
+		std::uint32_t descriptorCount)
 	{
 		VkDescriptorPoolSize descriptorPoolSize{};
 		descriptorPoolSize.type = type;
@@ -100,9 +100,9 @@ namespace VulkanInitializers
 	}
 
 	inline VkDescriptorPoolCreateInfo descriptorPoolCreateInfo(
-		uint32_t poolSizeCount,
-		VkDescriptorPoolSize* pPoolSizes,
-		uint32_t maxSets)
+		std::uint32_t poolSizeCount,
+		const VkDescriptorPoolSize* pPoolSizes,
+		std::uint32_t maxSets)
 	{
 		VkDescriptorPoolCreateInfo descriptorPoolInfo{};
 		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -114,11 +114,11 @@ namespace VulkanInitializers
 
 	inline VkDescriptorPoolCreateInfo descriptorPoolCreateInfo(
 		const std::vector<VkDescriptorPoolSize>& poolSizes,
-		uint32_t maxSets)
+		std::uint32_t maxSets)
 	{
 		VkDescriptorPoolCreateInfo descriptorPoolInfo{};
 		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+		descriptorPoolInfo.poolSizeCount = static_cast<std::uint32_t>(poolSizes.size());
 		descriptorPoolInfo.pPoolSizes = poolSizes.data();
 		descriptorPoolInfo.maxSets = maxSets;
 		return descriptorPoolInfo;
@@ -127,8 +127,8 @@ namespace VulkanInitializers
 	inline VkDescriptorSetLayoutBinding descriptorSetLayoutBinding(
 		VkDescriptorType type,
 		VkShaderStageFlags stageFlags,
-		uint32_t binding,
-		uint32_t descriptorCount = 1)
+		std::uint32_t binding,
+		std::uint32_t descriptorCount = 1)
 	{
 		VkDescriptorSetLayoutBinding setLayoutBinding{};
 		setLayoutBinding.descriptorType = type;
@@ -140,7 +140,7 @@ namespace VulkanInitializers
 
 	inline VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo(
 		const VkDescriptorSetLayoutBinding* pBindings,
-		uint32_t bindingCount)
+		std::uint32_t bindingCount)
 	{
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
 		descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -155,14 +155,14 @@ namespace VulkanInitializers
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
 		descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		descriptorSetLayoutCreateInfo.pBindings = bindings.data();
-		descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+		descriptorSetLayoutCreateInfo.bindingCount = static_cast<std::uint32_t>(bindings.size());
 		return descriptorSetLayoutCreateInfo;
 	}
 
 	inline VkDescriptorSetAllocateInfo descriptorSetAllocateInfo(
 		VkDescriptorPool descriptorPool,
 		const VkDescriptorSetLayout* pSetLayouts,
-		uint32_t descriptorSetCount)
+		std::uint32_t descriptorSetCount)
 	{
 		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
 		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -175,9 +175,9 @@ namespace VulkanInitializers
 	inline VkWriteDescriptorSet writeDescriptorSet(
 		VkDescriptorSet dstSet,
 		VkDescriptorType type,
-		uint32_t binding,
-		VkDescriptorBufferInfo* bufferInfo,
-		uint32_t descriptorCount = 1)
+		std::uint32_t binding,
+		const VkDescriptorBufferInfo* bufferInfo,
+		std::uint32_t descriptorCount = 1)
 	{
 		VkWriteDescriptorSet writeDescriptorSet{};
 		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -192,9 +192,9 @@ namespace VulkanInitializers
 	inline VkWriteDescriptorSet writeDescriptorSet(
 		VkDescriptorSet dstSet,
 		VkDescriptorType type,
-		uint32_t binding,
+		std::uint32_t binding,
 		const VkDescriptorImageInfo* imageInfo,
-		uint32_t descriptorCount = 1)
+		std::uint32_t descriptorCount = 1)
 	{
 		VkWriteDescriptorSet writeDescriptorSet{};
 		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -208,7 +208,7 @@ namespace VulkanInitializers
 
 	inline VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
 		const VkDescriptorSetLayout* pSetLayouts,
-		uint32_t setLayoutCount = 1)
+		std::uint32_t setLayoutCount = 1)
 	{
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -218,7 +218,7 @@ namespace VulkanInitializers
 	}
 
 	inline VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
-		uint32_t setLayoutCount = 1)
+		std::uint32_t setLayoutCount = 1)
 	{
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -291,7 +291,7 @@ namespace VulkanInitializers
 	}
 
 	inline VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo(
-		uint32_t attachmentCount,
+		std::uint32_t attachmentCount,
 		const VkPipelineColorBlendAttachmentState* pAttachments)
 	{
 		VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo{};
@@ -316,8 +316,8 @@ namespace VulkanInitializers
 	}
 
 	inline VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo(
-		uint32_t viewportCount,
-		uint32_t scissorCount,
+		std::uint32_t viewportCount,
+		std::uint32_t scissorCount,
 		VkPipelineViewportStateCreateFlags flags = 0)
 	{
 		VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo{};
@@ -341,7 +341,7 @@ namespace VulkanInitializers
 
 	inline VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo(
 		const VkDynamicState* pDynamicStates,
-		uint32_t dynamicStateCount,
+		std::uint32_t dynamicStateCount,
 		VkPipelineDynamicStateCreateFlags flags = 0)
 	{
 		VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
@@ -359,7 +359,7 @@ namespace VulkanInitializers
 		VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
 		pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates.data();
-		pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(pDynamicStates.size());
+		pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<std::uint32_t>(pDynamicStates.size());
 		pipelineDynamicStateCreateInfo.flags = flags;
 		return pipelineDynamicStateCreateInfo;
 	}
@@ -379,10 +379,10 @@ namespace VulkanInitializers
 	}
 
 	inline VkRect2D rect2D(
-		int32_t width,
-		int32_t height,
-		int32_t offsetX,
-		int32_t offsetY)
+		std::uint32_t width,
+		std::uint32_t height,
+		std::int32_t offsetX,
+		std::int32_t offsetY)
 	{
 		VkRect2D rect2D{};
 		rect2D.extent.width = width;
@@ -400,8 +400,8 @@ namespace VulkanInitializers
 	}
 
 	inline VkVertexInputBindingDescription vertexInputBindingDescription(
-		uint32_t binding,
-		uint32_t stride,
+		std::uint32_t binding,
+		std::uint32_t stride,
 		VkVertexInputRate inputRate)
 	{
 		VkVertexInputBindingDescription vInputBindDescription{};
@@ -412,10 +412,10 @@ namespace VulkanInitializers
 	}
 
 	inline VkVertexInputAttributeDescription vertexInputAttributeDescription(
-		uint32_t binding,
-		uint32_t location,
+		std::uint32_t binding,
+		std::uint32_t location,
 		VkFormat format,
-		uint32_t offset)
+		std::uint32_t offset)
 	{
 		VkVertexInputAttributeDescription vInputAttribDescription{};
 		vInputAttribDescription.location = location;
