@@ -277,32 +277,25 @@ void VulkanRenderer::LoadAssets()
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
 {
-	// Fences are per frame in flight
-	for (Core::uint32 i = 0; i < gMaxConcurrentFrames; i++)
+	// Wait fences to sync command buffer access
+	const VkFenceCreateInfo fenceCreateInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
+	for (VkFence& fence : mWaitVkFences)
 	{
-		// Fence used to ensure that command buffer has completed exection before using it again
-		VkFenceCreateInfo vkFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-		// Create the fences in signaled state (so we don't wait on first render of each command buffer)
-		vkFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &vkFenceCreateInfo, nullptr, &mWaitVkFences[i]));
+		VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &fenceCreateInfo, nullptr, &fence));
 	}
 
-	// Semaphores are used for correct command ordering within a queue
 	// Used to ensure that image presentation is complete before starting to submit again
-	mVkPresentCompleteSemaphores.resize(gMaxConcurrentFrames);
-	for (VkSemaphore& vkSemaphore : mVkPresentCompleteSemaphores)
+	const VkSemaphoreCreateInfo semaphoreCreateInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+	for (VkSemaphore& semaphore : mVkPresentCompleteSemaphores)
 	{
-		const VkSemaphoreCreateInfo vkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &vkSemaphoreCreateInfo, nullptr, &vkSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreCreateInfo, nullptr, &semaphore));
 	}
 
-	// Render completion
 	// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
 	mVkRenderCompleteSemaphores.resize(mVulkanSwapChain.mVkImages.size());
-	for (VkSemaphore& vkSemaphore : mVkRenderCompleteSemaphores)
+	for (VkSemaphore& semaphore : mVkRenderCompleteSemaphores)
 	{
-		const VkSemaphoreCreateInfo vkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &vkSemaphoreCreateInfo, nullptr, &vkSemaphore));
+		VK_CHECK_RESULT(vkCreateSemaphore(mVulkanDevice->mLogicalVkDevice, &semaphoreCreateInfo, nullptr, &semaphore));
 	}
 }
 
@@ -708,11 +701,11 @@ void VulkanRenderer::PrepareVulkanResources()
 	InitializeSwapchain();
 	CreateGraphicsCommandPool();
 	SetupSwapchain();
+	CreateGraphicsCommandBuffers();
+	CreateSynchronizationPrimitives();
 	SetupDepthStencil();
 	CreatePipelineCache();
-	CreateSynchronizationPrimitives();
-	CreateGraphicsCommandBuffers();
-	
+
 	CreateUIOverlay();
 
 	LoadAssets();
@@ -959,6 +952,8 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 
 void VulkanRenderer::PrepareFrameCompute()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::PrepareFrameCompute");
+
 	VK_CHECK_RESULT(vkWaitForFences(mVulkanDevice->mLogicalVkDevice, 1, &mComputeContext.mFences[mCurrentBufferIndex], VK_TRUE, Core::uint64_max));
 	VK_CHECK_RESULT(vkResetFences(mVulkanDevice->mLogicalVkDevice, 1, &mComputeContext.mFences[mCurrentBufferIndex]));
 
@@ -968,6 +963,8 @@ void VulkanRenderer::PrepareFrameCompute()
 
 void VulkanRenderer::BuildComputeCommandBuffer()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::BuildComputeCommandBuffer");
+
 	VkCommandBuffer commandBuffer = mComputeContext.mCommandBuffers[mCurrentBufferIndex];
 
 	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
@@ -1148,6 +1145,8 @@ void VulkanRenderer::SubmitFrameGraphics()
 
 void VulkanRenderer::SubmitFrameCompute()
 {
+	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::SubmitFrameCompute");
+
 	const VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 	const VkSubmitInfo submitInfo =
 	{
@@ -1584,8 +1583,6 @@ void VulkanRenderer::CreateGraphicsCommandPool()
 
 void VulkanRenderer::OnResizeWindow()
 {
-	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::OnResizeWindow");
-
 	if (!mEngineProperties->mIsRendererPrepared)
 		return;
 	
@@ -1601,6 +1598,7 @@ void VulkanRenderer::OnResizeWindow()
 	vkDestroyImageView(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImageView, nullptr);
 	vkDestroyImage(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkImage, nullptr);
 	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, mVulkanDepthStencil.mVkDeviceMemory, nullptr);
+
 	SetupDepthStencil();
 
 	if ((mFramebufferWidth > 0.0f) && (mFramebufferHeight > 0.0f))

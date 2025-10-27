@@ -141,8 +141,8 @@ private:
 	std::vector<VkLayerSettingEXT> mEnabledLayerSettings{}; // Set of layer settings to be enabled for this example
 	std::vector<const char*> mInstanceExtensions{}; // Set of active instance extensions
 	std::vector<VkShaderModule> mVkShaderModules{}; // List of shader modules created (stored for cleanup)
-	std::vector<VkSemaphore> mVkPresentCompleteSemaphores{};
 	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
+	std::array<VkSemaphore, gMaxConcurrentFrames> mVkPresentCompleteSemaphores{};
 	std::array<VulkanBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
 	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
 	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
