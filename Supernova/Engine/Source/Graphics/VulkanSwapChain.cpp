@@ -1,6 +1,7 @@
 #include "VulkanSwapChain.hpp"
 
 #include "Core/Constants.hpp"
+#include "Core/Types.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanTools.hpp"
 
@@ -23,7 +24,7 @@ VulkanSwapChain::VulkanSwapChain()
 
 void VulkanSwapChain::InitializeSurface()
 {
-	std::uint32_t queueCount = 0;
+	Core::uint32 queueCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(mActiveVulkanDevice->mVkPhysicalDevice, &queueCount, nullptr);
 	assert(queueCount >= 1);
 
@@ -34,16 +35,16 @@ void VulkanSwapChain::InitializeSurface()
 	// Find a queue with present support
 	// Will be used to present the swap chain images to the windowing system
 	std::vector<VkBool32> supportsPresent(queueCount);
-	for (std::uint32_t i = 0; i < queueCount; i++)
+	for (Core::uint32 i = 0; i < queueCount; i++)
 	{
 		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(mActiveVulkanDevice->mVkPhysicalDevice, i, mVkSurfaceKHR, &supportsPresent[i]));
 	}
 
 	// Search for a graphics and a present queue in the array of queue
 	// families, try to find one that supports both
-	std::uint32_t graphicsQueueNodeIndex = Core::uint32_max;
-	std::uint32_t presentQueueNodeIndex = Core::uint32_max;
-	for (std::uint32_t i = 0; i < queueCount; i++)
+	Core::uint32 graphicsQueueNodeIndex = Core::uint32_max;
+	Core::uint32 presentQueueNodeIndex = Core::uint32_max;
+	for (Core::uint32 i = 0; i < queueCount; i++)
 	{
 		if ((queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 		{
@@ -64,7 +65,7 @@ void VulkanSwapChain::InitializeSurface()
 	{
 		// If there's no queue that supports both present and graphics
 		// try to find a separate present queue
-		for (std::uint32_t i = 0; i < queueCount; ++i)
+		for (Core::uint32 i = 0; i < queueCount; ++i)
 		{
 			if (supportsPresent[i] == VK_TRUE)
 			{
@@ -88,7 +89,7 @@ void VulkanSwapChain::InitializeSurface()
 	mQueueNodeIndex = graphicsQueueNodeIndex;
 
 	// Get list of supported surface formats
-	std::uint32_t formatCount;
+	Core::uint32 formatCount;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &formatCount, nullptr));
 	assert(formatCount > 0);
 
@@ -123,7 +124,7 @@ void VulkanSwapChain::SetContext(VkInstance aVkInstance, VulkanDevice* aVulkanDe
 	mActiveVulkanDevice = aVulkanDevice;
 }
 
-void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHeight, bool aUseVSync)
+void VulkanSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeight, bool aUseVSync)
 {
 	assert(mActiveVulkanDevice);
 	assert(mActiveVkInstance);
@@ -137,7 +138,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 
 	VkExtent2D swapchainExtent = {};
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
-	if (surfaceCapabilities.currentExtent.width == static_cast<std::uint32_t>(-1))
+	if (surfaceCapabilities.currentExtent.width == static_cast<Core::uint32>(-1))
 	{
 		// If the surface size is undefined, the size is set to the size of the images requested
 		swapchainExtent.width = aWidth;
@@ -153,7 +154,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 
 
 	// Select a present mode for the swapchain
-	std::uint32_t presentModeCount;
+	Core::uint32 presentModeCount;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, nullptr));
 	assert(presentModeCount > 0);
 
@@ -184,7 +185,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 	}
 
 	// Determine the number of images
-	std::uint32_t desiredNumberOfSwapchainImages = surfaceCapabilities.minImageCount + 1;
+	Core::uint32 desiredNumberOfSwapchainImages = surfaceCapabilities.minImageCount + 1;
 	if ((surfaceCapabilities.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfaceCapabilities.maxImageCount))
 	{
 		desiredNumberOfSwapchainImages = surfaceCapabilities.maxImageCount;
@@ -297,7 +298,7 @@ void VulkanSwapChain::CreateSwapchain(std::uint32_t& aWidth, std::uint32_t& aHei
 	}
 }
 
-VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore aPresentCompleteSemaphore, std::uint32_t& aImageIndex) const
+VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore aPresentCompleteSemaphore, Core::uint32& aImageIndex) const
 {
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
