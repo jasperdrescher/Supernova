@@ -734,9 +734,7 @@ void VulkanRenderer::PrepareFrameGraphics()
 
 	UpdateUIOverlay();
 
-	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
-	// With that we don't have to handle VK_NOT_READY
-	const VkResult result = vkAcquireNextImageKHR(mVulkanDevice->mLogicalVkDevice, mVulkanSwapChain.mVkSwapchainKHR, Core::uint64_max, mVkPresentCompleteSemaphores[mCurrentBufferIndex], VK_NULL_HANDLE, &mCurrentImageIndex);
+	const VkResult result = mVulkanSwapChain.AcquireNextImage(mVkPresentCompleteSemaphores[mCurrentBufferIndex], mCurrentImageIndex);
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
 	{
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)

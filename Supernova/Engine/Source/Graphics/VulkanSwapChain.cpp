@@ -1,5 +1,6 @@
 #include "VulkanSwapChain.hpp"
 
+#include "Core/Constants.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanTools.hpp"
 
@@ -15,7 +16,7 @@ VulkanSwapChain::VulkanSwapChain()
 	, mColorVkFormat{VK_FORMAT_UNDEFINED}
 	, mVkColorSpaceKHR{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}
 	, mVkSwapchainKHR{VK_NULL_HANDLE}
-	, mQueueNodeIndex{UINT32_MAX}
+	, mQueueNodeIndex{Core::uint32_max}
 	, mImageCount{0}
 {
 }
@@ -40,13 +41,13 @@ void VulkanSwapChain::InitializeSurface()
 
 	// Search for a graphics and a present queue in the array of queue
 	// families, try to find one that supports both
-	std::uint32_t graphicsQueueNodeIndex = UINT32_MAX;
-	std::uint32_t presentQueueNodeIndex = UINT32_MAX;
+	std::uint32_t graphicsQueueNodeIndex = Core::uint32_max;
+	std::uint32_t presentQueueNodeIndex = Core::uint32_max;
 	for (std::uint32_t i = 0; i < queueCount; i++)
 	{
 		if ((queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 		{
-			if (graphicsQueueNodeIndex == UINT32_MAX)
+			if (graphicsQueueNodeIndex == Core::uint32_max)
 			{
 				graphicsQueueNodeIndex = i;
 			}
@@ -59,7 +60,7 @@ void VulkanSwapChain::InitializeSurface()
 			}
 		}
 	}
-	if (presentQueueNodeIndex == UINT32_MAX)
+	if (presentQueueNodeIndex == Core::uint32_max)
 	{
 		// If there's no queue that supports both present and graphics
 		// try to find a separate present queue
@@ -74,7 +75,7 @@ void VulkanSwapChain::InitializeSurface()
 	}
 
 	// Exit if either a graphics or a presenting queue hasn't been found
-	if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX)
+	if (graphicsQueueNodeIndex == Core::uint32_max || presentQueueNodeIndex == Core::uint32_max)
 	{
 		throw std::runtime_error("Could not find a graphics and/or presenting queue!");
 	}
@@ -300,7 +301,7 @@ VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore aPresentCompleteSemaphore
 {
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
-	return vkAcquireNextImageKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, UINT64_MAX, aPresentCompleteSemaphore, static_cast<VkFence>(nullptr), &aImageIndex);
+	return vkAcquireNextImageKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, UINT64_MAX, aPresentCompleteSemaphore, static_cast<VkFence>(VK_NULL_HANDLE), &aImageIndex);
 }
 
 void VulkanSwapChain::CleanUp()
