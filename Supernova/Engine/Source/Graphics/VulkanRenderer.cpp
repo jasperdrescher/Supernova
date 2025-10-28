@@ -69,6 +69,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mLightPosition{0.5f, 0.0f, 35.0f, 1.0f}
 	, mShouldShowEditorInfo{true}
 	, mShouldShowProfiler{false}
+	, mShouldShowModelInspector{false}
 	, mShouldFreezeFrustum{false}
 #ifdef _DEBUG
 	, mShouldDrawWireframe{false}
@@ -1680,6 +1681,7 @@ void VulkanRenderer::UpdateUIOverlay()
 
 void VulkanRenderer::OnUpdateUIOverlay()
 {
+	static vkglTF::Model* selectedModel = nullptr;
 	if (mShouldShowEditorInfo)
 	{
 		ImGui::SetNextWindowPos(ImVec2(10.0f * mImGuiOverlay->GetScale(), 40.0f * mImGuiOverlay->GetScale()));
@@ -1724,6 +1726,18 @@ void VulkanRenderer::OnUpdateUIOverlay()
 
 			ImGui::NewLine();
 
+			if (ImGui::Button("Planet"))
+			{
+				selectedModel = mModels.mPlanetModel;
+				mShouldShowModelInspector = true;
+			}
+
+			if (ImGui::Button("Voyager"))
+			{
+				selectedModel = mModels.mVoyagerModel;
+				mShouldShowModelInspector = true;
+			}
+
 			ImGui::InputFloat4("Light position", Math::ValuePointer(mLightPosition), "%.1f");
 
 			const Math::Vector3f& cameraPosition = mCamera->GetPosition();
@@ -1745,6 +1759,80 @@ void VulkanRenderer::OnUpdateUIOverlay()
 		}
 
 		ImGui::PopItemWidth();
+		ImGui::End();
+	}
+
+	if (mShouldShowModelInspector)
+	{
+		ImGui::Begin("Model Inspector", &mShouldShowModelInspector, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
+		ImGui::Text("Vertices %i", selectedModel->vertices.mCount);
+		ImGui::Text("Indices %i", selectedModel->indices.mCount);
+
+		if (ImGui::TreeNode(std::format("Textures ({})", selectedModel->textures.size()).c_str()))
+		{
+			for (const vkglTF::Texture& texture : selectedModel->textures)
+			{
+				if (ImGui::TreeNode(std::format("Index ({})", texture.mIndex).c_str()))
+				{
+					ImGui::BulletText("Width %u", texture.mWidth);
+					ImGui::BulletText("Height %u", texture.mHeight);
+					ImGui::BulletText("Mips %u", texture.mMipLevels);
+					ImGui::BulletText("Layers %u", texture.mLayerCount);
+					ImGui::TreePop();
+				}
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode(std::format("Materials ({})", selectedModel->materials.size()).c_str()))
+		{
+			int materialIndex = 0;
+			for (const vkglTF::Material& material : selectedModel->materials)
+			{
+				if (ImGui::TreeNode(std::format("Index ({})", materialIndex).c_str()))
+				{
+					switch (material.mAlphaMode)
+					{
+						case vkglTF::Material::AlphaMode::ALPHAMODE_BLEND:
+							ImGui::Text("Alpha mode ALPHAMODE_BLEND");
+							break;
+						case vkglTF::Material::AlphaMode::ALPHAMODE_MASK:
+							ImGui::Text("Alpha mode ALPHAMODE_MASK");
+							break;
+						case vkglTF::Material::AlphaMode::ALPHAMODE_OPAQUE:
+							ImGui::Text("Alpha mode ALPHAMODE_OPAQUE");
+							break;
+					}
+
+					ImGui::Text("Alpha cutoff %f", material.mAlphaCutoff);
+					ImGui::Text("Base color factor %f", material.mBaseColorFactor);
+					ImGui::Text("Roughness factor %f", material.mRoughnessFactor);
+
+					if (material.mBaseColorTexture)
+						ImGui::Text("Base color texture %u", material.mBaseColorTexture->mIndex);
+
+					if (material.mDiffuseTexture)
+						ImGui::Text("Diffuse texture %u", material.mDiffuseTexture->mIndex);
+
+					if (material.mEmissiveTexture)
+						ImGui::Text("Emissive texture %u", material.mEmissiveTexture->mIndex);
+
+					if (material.mMetallicRoughnessTexture)
+						ImGui::Text("Metallic texture %u", material.mMetallicRoughnessTexture->mIndex);
+
+					if (material.mOcclusionTexture)
+						ImGui::Text("Occlusion texture %u", material.mOcclusionTexture->mIndex);
+
+					if (material.mSpecularGlossinessTexture)
+						ImGui::Text("Specular glossiness texture %u", material.mSpecularGlossinessTexture->mIndex);
+					ImGui::TreePop();
+				}
+
+				++materialIndex;
+			}
+			ImGui::TreePop();
+		}
+
 		ImGui::End();
 	}
 

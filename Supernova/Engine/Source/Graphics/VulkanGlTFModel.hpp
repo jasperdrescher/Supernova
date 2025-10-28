@@ -32,6 +32,8 @@ namespace vkglTF
 		Vertices vertices{};
 		Indices indices{};
 		std::vector<Node*> nodes;
+		std::vector<Texture> textures{};
+		std::vector<Material> materials{};
 
 	private:
 		void LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale);
@@ -54,8 +56,6 @@ namespace vkglTF
 		VkDescriptorPool descriptorPool;
 		std::vector<Node*> linearNodes;
 		std::vector<Skin*> skins;
-		std::vector<Texture> textures{};
-		std::vector<Material> materials{};
 		std::vector<Animation> animations{};
 		Dimensions mDimensions;
 		std::string path;
