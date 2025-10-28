@@ -1738,6 +1738,12 @@ void VulkanRenderer::OnUpdateUIOverlay()
 				mShouldShowModelInspector = true;
 			}
 
+			if (ImGui::Button("Suzanne"))
+			{
+				selectedModel = mModels.mSuzanneModel;
+				mShouldShowModelInspector = true;
+			}
+
 			ImGui::InputFloat4("Light position", Math::ValuePointer(mLightPosition), "%.1f");
 
 			const Math::Vector3f& cameraPosition = mCamera->GetPosition();
