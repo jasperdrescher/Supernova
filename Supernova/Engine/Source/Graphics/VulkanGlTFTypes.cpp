@@ -486,19 +486,21 @@ namespace vkglTF
 
 	void Material::CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, Core::uint32 aDescriptorBindingFlags)
 	{
-		VkDescriptorSetAllocateInfo descriptorSetAllocInfo{
+		const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 			.descriptorPool = aDescriptorPool,
 			.descriptorSetCount = 1,
 			.pSetLayouts = &aDescriptorSetLayout,
 		};
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocInfo, &mDescriptorSet));
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mDescriptorSet));
+
 		std::vector<VkDescriptorImageInfo> imageDescriptors{};
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets{};
 		if (aDescriptorBindingFlags & DescriptorBindingFlags::ImageBaseColor)
 		{
 			imageDescriptors.push_back(mBaseColorTexture->mDescriptorImageInfo);
-			VkWriteDescriptorSet writeDescriptorSet{
+
+			const VkWriteDescriptorSet writeDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = mDescriptorSet,
 				.dstBinding = static_cast<Core::uint32>(writeDescriptorSets.size()),
@@ -508,10 +510,12 @@ namespace vkglTF
 			};
 			writeDescriptorSets.push_back(writeDescriptorSet);
 		}
+
 		if (mNormalTexture && aDescriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap)
 		{
 			imageDescriptors.push_back(mNormalTexture->mDescriptorImageInfo);
-			VkWriteDescriptorSet writeDescriptorSet{
+
+			const VkWriteDescriptorSet writeDescriptorSet{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = mDescriptorSet,
 				.dstBinding = static_cast<Core::uint32>(writeDescriptorSets.size()),
@@ -521,6 +525,7 @@ namespace vkglTF
 			};
 			writeDescriptorSets.push_back(writeDescriptorSet);
 		}
+
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 	}
 
