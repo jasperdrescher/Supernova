@@ -9,6 +9,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 VulkanSwapChain::VulkanSwapChain()
 	: mActiveVulkanDevice{nullptr}
@@ -302,7 +303,7 @@ VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore aPresentCompleteSemaphore
 {
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
-	return vkAcquireNextImageKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, UINT64_MAX, aPresentCompleteSemaphore, static_cast<VkFence>(VK_NULL_HANDLE), &aImageIndex);
+	return vkAcquireNextImageKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, Core::uint64_max, aPresentCompleteSemaphore, static_cast<VkFence>(VK_NULL_HANDLE), &aImageIndex);
 }
 
 void VulkanSwapChain::CleanUp()
