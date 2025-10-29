@@ -582,7 +582,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
 	const VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(&mComputeContext.mDescriptorSetLayout, 1);
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mComputeContext.mPipelineLayout));
 
-	for (size_t i = 0; i < mVulkanUniformBuffers.size(); i++)
+	for (Core::size i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
 		VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mDescriptorPool, &mComputeContext.mDescriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mComputeContext.mDescriptorSets[i]));
@@ -858,7 +858,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	mPushConstant.mModelMatrix = mPlanetModelMatrix;
 	vkCmdPushConstants(commandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
 
-	mModels.mPlanetModel->Draw(commandBuffer);
+	DrawModel(mModels.mPlanetModel, commandBuffer);
 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsContext.mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
@@ -866,7 +866,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	mPushConstant.mModelMatrix = mVoyagerModelMatrix;
 	vkCmdPushConstants(commandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
 
-	mModels.mVoyagerModel->Draw(commandBuffer, vkglTF::RenderFlags::BindImages, mGraphicsContext.mPipelineLayout);
+	DrawModel(mModels.mVoyagerModel, commandBuffer, vkglTF::RenderFlags::BindImages, mGraphicsContext.mPipelineLayout);
 
 	// Draw instanced multi draw models
 	const VkDeviceSize offsets[1] = {0};
@@ -1508,6 +1508,62 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem
 
 	mShaderModules.push_back(pipelineShaderStageCreateInfo.module);
 	return pipelineShaderStageCreateInfo;
+}
+
+void VulkanRenderer::DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aCommandBuffer, Core::uint32 aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet)
+{
+	if (aNode->mMesh)
+	{
+		for (const vkglTF::Primitive* primitive : aNode->mMesh->mPrimitives)
+		{
+			bool shouldSkipPrimitive = false;
+			const vkglTF::Material& material = primitive->material;
+			if (aRenderFlags & vkglTF::RenderFlags::RenderOpaqueNodes)
+			{
+				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::ALPHAMODE_OPAQUE);
+			}
+
+			if (aRenderFlags & vkglTF::RenderFlags::RenderAlphaMaskedNodes)
+			{
+				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::ALPHAMODE_MASK);
+			}
+
+			if (aRenderFlags & vkglTF::RenderFlags::RenderAlphaBlendedNodes)
+			{
+				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::ALPHAMODE_BLEND);
+			}
+
+			if (!shouldSkipPrimitive)
+			{
+				if (aRenderFlags & vkglTF::RenderFlags::BindImages)
+				{
+					vkCmdBindDescriptorSets(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, aPipelineLayout, aBindImageSet, 1, &material.mDescriptorSet, 0, nullptr);
+				}
+
+				vkCmdDrawIndexed(aCommandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
+			}
+		}
+	}
+
+	for (const vkglTF::Node* child : aNode->mChildren)
+	{
+		DrawNode(child, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
+	}
+}
+
+void VulkanRenderer::DrawModel(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer, Core::uint32 aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet)
+{
+	if (!aModel->buffersBound)
+	{
+		const VkDeviceSize offsets[1] = {0};
+		vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &aModel->vertices.mBuffer, offsets);
+		vkCmdBindIndexBuffer(aCommandBuffer, aModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
+	}
+
+	for (const vkglTF::Node* node : aModel->nodes)
+	{
+		DrawNode(node, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
+	}
 }
 
 void VulkanRenderer::RenderFrame()

@@ -992,62 +992,6 @@ void vkglTF::Model::BindBuffers(VkCommandBuffer aCommandBuffer)
 	buffersBound = true;
 }
 
-void vkglTF::Model::DrawNode(const Node* aNode, VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags, VkPipelineLayout aPipelineLayout, std::uint32_t aBindImageSet)
-{
-	if (aNode->mMesh)
-	{
-		for (const Primitive* primitive : aNode->mMesh->mPrimitives)
-		{
-			bool skip = false;
-			const vkglTF::Material& material = primitive->material;
-			if (aRenderFlags & RenderFlags::RenderOpaqueNodes)
-			{
-				skip = (material.mAlphaMode != Material::AlphaMode::ALPHAMODE_OPAQUE);
-			}
-
-			if (aRenderFlags & RenderFlags::RenderAlphaMaskedNodes)
-			{
-				skip = (material.mAlphaMode != Material::AlphaMode::ALPHAMODE_MASK);
-			}
-
-			if (aRenderFlags & RenderFlags::RenderAlphaBlendedNodes)
-			{
-				skip = (material.mAlphaMode != Material::AlphaMode::ALPHAMODE_BLEND);
-			}
-
-			if (!skip)
-			{
-				if (aRenderFlags & RenderFlags::BindImages)
-				{
-					vkCmdBindDescriptorSets(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, aPipelineLayout, aBindImageSet, 1, &material.mDescriptorSet, 0, nullptr);
-				}
-
-				vkCmdDrawIndexed(aCommandBuffer, primitive->indexCount, 1, primitive->firstIndex, 0, 0);
-			}
-		}
-	}
-
-	for (const vkglTF::Node* child : aNode->mChildren)
-	{
-		DrawNode(child, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
-	}
-}
-
-void vkglTF::Model::Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags, VkPipelineLayout aPipelineLayout, std::uint32_t aBindImageSet)
-{
-	if (!buffersBound)
-	{
-		const VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &vertices.mBuffer, offsets);
-		vkCmdBindIndexBuffer(aCommandBuffer, indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
-	}
-
-	for (const vkglTF::Node* node : nodes)
-	{
-		DrawNode(node, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
-	}
-}
-
 void vkglTF::Model::GetNodeDimensions(const Node* aNode, Math::Vector3f& aMin, Math::Vector3f& aMax)
 {
 	if (aNode->mMesh)

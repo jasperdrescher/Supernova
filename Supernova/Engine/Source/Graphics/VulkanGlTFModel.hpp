@@ -26,7 +26,6 @@ namespace vkglTF
 		~Model();
 
 		void LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags = vkglTF::FileLoadingFlags::None, float aScale = 1.0f);
-		void Draw(VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags = 0, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, std::uint32_t aBindImageSet = 1);
 		void BindBuffers(VkCommandBuffer aCommandBuffer);
 
 		Vertices vertices{};
@@ -34,6 +33,7 @@ namespace vkglTF
 		std::vector<Node*> nodes;
 		std::vector<Texture> textures{};
 		std::vector<Material> materials{};
+		bool buffersBound;
 
 	private:
 		void LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale);
@@ -45,7 +45,6 @@ namespace vkglTF
 		void GetSceneDimensions();
 		void UpdateAnimation(std::uint32_t aIndex, float aTime);
 		void PrepareNodeDescriptor(vkglTF::Node* aNode, VkDescriptorSetLayout aDescriptorSetLayout);
-		void DrawNode(const Node* aNode, VkCommandBuffer aCommandBuffer, std::uint32_t aRenderFlags = 0, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, std::uint32_t aBindImageSet = 1);
 		void CreateEmptyTexture(VkQueue aTransferQueue);
 
 		Node* FindNode(Node* aParent, std::uint32_t aIndex);
@@ -62,6 +61,5 @@ namespace vkglTF
 		tinygltf::Model* mCurrentModel;
 		VulkanDevice* mVulkanDevice;
 		bool metallicRoughnessWorkflow;
-		bool buffersBound;
 	};
 }
