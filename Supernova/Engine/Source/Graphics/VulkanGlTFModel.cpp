@@ -378,7 +378,7 @@ void vkglTF::Model::LoadImages(VulkanDevice* aDevice, VkQueue aTransferQueue)
 	for (tinygltf::Image& image : mCurrentModel->images)
 	{
 		vkglTF::Texture texture;
-		texture.FromGlTfImage(&image, path, aDevice, aTransferQueue);
+		texture.CreateTexture(&image, path, aDevice, aTransferQueue);
 		texture.mIndex = static_cast<std::uint32_t>(textures.size());
 		textures.push_back(texture);
 	}

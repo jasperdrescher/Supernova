@@ -35,9 +35,9 @@ namespace vkglTF
 	{
 		Texture();
 
+		void CreateTexture(tinygltf::Image* aGlTFimage, const std::filesystem::path& aModelPath, VulkanDevice* aDevice, VkQueue aCopyQueue);
 		void UpdateDescriptor();
 		void Destroy();
-		void FromGlTfImage(tinygltf::Image* aGlTFimage, const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aCopyQueue);
 
 		VulkanDevice* mVulkanDevice;
 		VkDescriptorImageInfo mDescriptorImageInfo{};
@@ -51,6 +51,10 @@ namespace vkglTF
 		Core::uint32 mMipLevels;
 		Core::uint32 mLayerCount;
 		Core::uint32 mIndex;
+
+	private:
+		void CreateFromKtxTexture(tinygltf::Image* aGlTFimage, const std::filesystem::path& aModelPath, VkFormat& aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue);
+		void CreateFromIncludedTexture(tinygltf::Image* aGlTFimage, VkFormat& aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue);
 	};
 
 	struct Material
