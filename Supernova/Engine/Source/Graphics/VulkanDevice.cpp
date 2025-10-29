@@ -370,7 +370,7 @@ void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQ
 *
 * @note Source and destination pointers must have the appropriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
 */
-void VulkanDevice::CopyBuffer(VulkanBuffer* aSource, VulkanBuffer* aDestination, VkQueue aQueue, VkBufferCopy* aCopyRegion) const
+void VulkanDevice::CopyBuffer(Buffer* aSource, Buffer* aDestination, VkQueue aQueue, VkBufferCopy* aCopyRegion) const
 {
 	assert(aDestination->mVkDeviceSize >= aSource->mVkDeviceSize);
 	assert(aSource->mVkBuffer);
@@ -500,7 +500,7 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 	return VK_SUCCESS;
 }
 
-VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VulkanBuffer* aBuffer, VkDeviceSize aSize, void* aData) const
+VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, Buffer* aBuffer, VkDeviceSize aSize, void* aData) const
 {
 	aBuffer->mLogicalVkDevice = mLogicalVkDevice;
 

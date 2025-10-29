@@ -118,21 +118,18 @@ private:
 		Core::uint32 mLoDCount[gMaxLOD + 1]; // Statistics for number of draws per LOD level (written by compute shader)
 	} mIndrectDrawInfo{};
 
+	GraphicsContext mGraphicsContext{};
 	ComputeContext mComputeContext{};
-	VulkanFrustum mFrustum{};
-	VulkanUniformData mVulkanUniformData{};
-	VulkanBuffer mInstanceBuffer{};
-	VkPhysicalDeviceVulkan13Features mVkPhysicalDevice13Features;
-	VulkanDepthStencil mVulkanDepthStencil;
-	VkInstance mVkInstance; // Vulkan instance, stores all per-application states
-	VkQueue mVkQueue; // Handle to the device graphics queue that command buffers are submitted to
-	VkDescriptorPool mVkDescriptorPool; // Descriptor set pool
-	VkPipelineCache mVkPipelineCache; // Pipeline cache object
+	ViewFrustum mViewFrustum{};
+	UniformBufferData mUniformBufferData{};
+	Buffer mInstanceBuffer{};
+	VkPhysicalDeviceVulkan13Features mPhysicalDevice13Features;
+	DepthStencil mDepthStencil;
+	VkInstance mInstance; // Vulkan instance, stores all per-application states
+	VkDescriptorPool mDescriptorPool; // Descriptor set pool
+	VkPipelineCache mPipelineCache; // Pipeline cache object
 	VulkanSwapChain mVulkanSwapChain; // Wraps the swap chain to present images (framebuffers) to the windowing system
-	VkPipelineLayout mVkPipelineLayout;
-	VkDescriptorSetLayout mGraphicsDescriptorSetLayout;
-	VkCommandPool mGraphicsCommandPoolBuffer;
-	VulkanPushConstant mVulkanPushConstant{};
+	PushConstant mPushConstant{};
 	Time::TimePoint mLastTimestamp;
 	std::vector<VkDrawIndexedIndirectCommand> mIndirectCommands; // Store the indirect draw commands containing index offsets and instance count per object
 	std::vector<std::string> mSupportedInstanceExtensions{};
@@ -140,15 +137,11 @@ private:
 	std::vector<const char*> mRequestedInstanceExtensions{}; // Set of instance extensions to be enabled for this example
 	std::vector<VkLayerSettingEXT> mEnabledLayerSettings{}; // Set of layer settings to be enabled for this example
 	std::vector<const char*> mInstanceExtensions{}; // Set of active instance extensions
-	std::vector<VkShaderModule> mVkShaderModules{}; // List of shader modules created (stored for cleanup)
-	std::vector<VkSemaphore> mVkRenderCompleteSemaphores{};
-	std::array<VkSemaphore, gMaxConcurrentFrames> mVkPresentCompleteSemaphores{};
-	std::array<VulkanBuffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
-	std::array<VkCommandBuffer, gMaxConcurrentFrames> mVkCommandBuffers{}; // Command buffers used for rendering
-	std::array<VkFence, gMaxConcurrentFrames> mWaitVkFences{};
-	std::array<DescriptorSets, gMaxConcurrentFrames> mVkDescriptorSets{};
-	std::array<VulkanBuffer, gMaxConcurrentFrames> mIndirectCommandsBuffers;
-	std::array<VulkanBuffer, gMaxConcurrentFrames> mIndirectDrawCountBuffers;
+	std::vector<VkShaderModule> mShaderModules{}; // List of shader modules created (stored for cleanup)
+	std::array<DescriptorSets, gMaxConcurrentFrames> mDescriptorSets{};
+	std::array<Buffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
+	std::array<Buffer, gMaxConcurrentFrames> mIndirectCommandsBuffers;
+	std::array<Buffer, gMaxConcurrentFrames> mIndirectDrawCountBuffers;
 	Core::uint32 mFramebufferWidth;
 	Core::uint32 mFramebufferHeight;
 	Core::uint32 mFrameCounter;

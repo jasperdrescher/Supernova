@@ -26,7 +26,7 @@
 *
 * @return VkResult of the buffer mapping call
 */
-VkResult VulkanBuffer::Map(VkDeviceSize aSize, VkDeviceSize aOffset)
+VkResult Buffer::Map(VkDeviceSize aSize, VkDeviceSize aOffset)
 {
 	return vkMapMemory(mLogicalVkDevice, mVkDeviceMemory, aOffset, aSize, 0, &mMappedData);
 }
@@ -36,7 +36,7 @@ VkResult VulkanBuffer::Map(VkDeviceSize aSize, VkDeviceSize aOffset)
 *
 * @note Does not return a result as vkUnmapMemory can't fail
 */
-void VulkanBuffer::Unmap()
+void Buffer::Unmap()
 {
 	if (mMappedData)
 	{
@@ -52,7 +52,7 @@ void VulkanBuffer::Unmap()
 *
 * @return VkResult of the bindBufferMemory call
 */
-VkResult VulkanBuffer::Bind(VkDeviceSize aOffset)
+VkResult Buffer::Bind(VkDeviceSize aOffset)
 {
 	return vkBindBufferMemory(mLogicalVkDevice, mVkBuffer, mVkDeviceMemory, aOffset);
 }
@@ -64,7 +64,7 @@ VkResult VulkanBuffer::Bind(VkDeviceSize aOffset)
 * @param offset (Optional) Byte offset from beginning
 *
 */
-void VulkanBuffer::SetupDescriptor(VkDeviceSize aSize, VkDeviceSize aOffset)
+void Buffer::SetupDescriptor(VkDeviceSize aSize, VkDeviceSize aOffset)
 {
 	mVkDescriptorBufferInfo.offset = aOffset;
 	mVkDescriptorBufferInfo.buffer = mVkBuffer;
@@ -78,7 +78,7 @@ void VulkanBuffer::SetupDescriptor(VkDeviceSize aSize, VkDeviceSize aOffset)
 * @param size Size of the data to copy in machine units
 *
 */
-void VulkanBuffer::CopyTo(void* aData, VkDeviceSize aSize) const
+void Buffer::CopyTo(void* aData, VkDeviceSize aSize) const
 {
 	if (!mMappedData)
 	{
@@ -98,7 +98,7 @@ void VulkanBuffer::CopyTo(void* aData, VkDeviceSize aSize) const
 *
 * @return VkResult of the flush call
 */
-VkResult VulkanBuffer::Flush(VkDeviceSize aSize, VkDeviceSize aOffset) const
+VkResult Buffer::Flush(VkDeviceSize aSize, VkDeviceSize aOffset) const
 {
 	const VkMappedMemoryRange mappedMemoryRange{
 		.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
@@ -119,7 +119,7 @@ VkResult VulkanBuffer::Flush(VkDeviceSize aSize, VkDeviceSize aOffset) const
 *
 * @return VkResult of the invalidate call
 */
-VkResult VulkanBuffer::Invalidate(VkDeviceSize aSize, VkDeviceSize aOffset) const
+VkResult Buffer::Invalidate(VkDeviceSize aSize, VkDeviceSize aOffset) const
 {
 	const VkMappedMemoryRange mappedMemoryRange{
 		.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
@@ -133,7 +133,7 @@ VkResult VulkanBuffer::Invalidate(VkDeviceSize aSize, VkDeviceSize aOffset) cons
 /**
 * Release all Vulkan resources held by this buffer
 */
-void VulkanBuffer::Destroy()
+void Buffer::Destroy()
 {
 	if (mVkBuffer)
 	{
@@ -715,7 +715,7 @@ void VulkanTexture2DArray::LoadFromFile(const std::filesystem::path& aPath, VkFo
 	std::cout << "Loaded texture " << aPath.filename() << std::endl;
 }
 
-void VulkanFrustum::UpdateFrustum(const Math::Matrix4f& aMatrix)
+void ViewFrustum::UpdateFrustum(const Math::Matrix4f& aMatrix)
 {
 	mPlanes[static_cast<std::size_t>(Side::LEFT)].x = aMatrix[0].w + aMatrix[0].x;
 	mPlanes[static_cast<std::size_t>(Side::LEFT)].y = aMatrix[1].w + aMatrix[1].x;
@@ -754,7 +754,7 @@ void VulkanFrustum::UpdateFrustum(const Math::Matrix4f& aMatrix)
 	}
 }
 
-bool VulkanFrustum::IsInSphere(const Math::Vector3f& aPosition, float aRadius) const
+bool ViewFrustum::IsInSphere(const Math::Vector3f& aPosition, float aRadius) const
 {
 	for (std::size_t i = 0; i < mPlanes.size(); i++)
 	{

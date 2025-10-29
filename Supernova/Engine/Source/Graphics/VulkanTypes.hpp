@@ -6,6 +6,7 @@
 #include <array>
 #include <filesystem>
 #include <ktx.h>
+#include <vector>
 #include <vulkan/vulkan_core.h>
 
 static constexpr Core::uint32 gMaxConcurrentFrames = 2;
@@ -14,15 +15,9 @@ static constexpr int gMaxLOD = 5;
 
 struct VulkanDevice;
 
-struct VulkanVertex
+struct UniformBufferData
 {
-	float mVertexPosition[3];
-	float mVertexColor[3];
-};
-
-struct VulkanUniformData
-{
-	VulkanUniformData() : mProjectionMatrix{}, mViewMatrix{}, mViewPosition{0.0f}, mLightPosition{0.0f}, mFrustumPlanes{}, mLightIntensity{1.8f} {}
+	UniformBufferData() : mProjectionMatrix{}, mViewMatrix{}, mViewPosition{0.0f}, mLightPosition{0.0f}, mFrustumPlanes{}, mLightIntensity{1.8f} {}
 
 	Math::Matrix4f mProjectionMatrix;
 	Math::Matrix4f mViewMatrix;
@@ -32,34 +27,24 @@ struct VulkanUniformData
 	float mLightIntensity;
 };
 
-struct VulkanInstanceBuffer
+struct InstanceData
 {
-	VulkanInstanceBuffer() : mVkBuffer{VK_NULL_HANDLE}, mVkDeviceMemory{VK_NULL_HANDLE}, mVkDescriptorBufferInfo{VK_NULL_HANDLE}, mSize{0} {}
-
-	VkBuffer mVkBuffer;
-	VkDeviceMemory mVkDeviceMemory;
-	VkDescriptorBufferInfo mVkDescriptorBufferInfo;
-	std::size_t mSize;
-};
-
-struct VulkanInstanceData
-{
-	VulkanInstanceData() : mPosition{}, mScale{0.0f} {}
+	InstanceData() : mPosition{}, mScale{0.0f} {}
 
 	Math::Vector3f mPosition;
 	float mScale;
 };
 
-struct VulkanPushConstant
+struct PushConstant
 {
-	VulkanPushConstant() : mModelMatrix{} {}
+	PushConstant() : mModelMatrix{} {}
 
 	Math::Matrix4f mModelMatrix;
 };
 
-struct VulkanBuffer
+struct Buffer
 {
-	VulkanBuffer() : mLogicalVkDevice{VK_NULL_HANDLE}, mVkBuffer{VK_NULL_HANDLE}, mVkDeviceMemory{VK_NULL_HANDLE}, mVkDeviceSize{0}, mVkDeviceAlignment{0}, mMappedData{nullptr}, mDeviceAddress{0} {}
+	Buffer() : mLogicalVkDevice{VK_NULL_HANDLE}, mVkBuffer{VK_NULL_HANDLE}, mVkDeviceMemory{VK_NULL_HANDLE}, mVkDeviceSize{0}, mVkDeviceAlignment{0}, mMappedData{nullptr}, mDeviceAddress{0} {}
 
 	VkResult Map(VkDeviceSize aSize = VK_WHOLE_SIZE, VkDeviceSize aOffset = 0);
 	void Unmap();
@@ -82,18 +67,9 @@ struct VulkanBuffer
 	Core::uint64 mDeviceAddress;
 };
 
-struct VulkanShaderData
+struct DepthStencil
 {
-	VulkanShaderData() : mProjectionMatrix{}, mModelMatrix{}, mViewMatrix{} {}
-
-	Math::Matrix4f mProjectionMatrix;
-	Math::Matrix4f mModelMatrix;
-	Math::Matrix4f mViewMatrix;
-};
-
-struct VulkanDepthStencil
-{
-	VulkanDepthStencil() : mVkImage{VK_NULL_HANDLE}, mVkDeviceMemory{VK_NULL_HANDLE}, mVkImageView{VK_NULL_HANDLE} {}
+	DepthStencil() : mVkImage{VK_NULL_HANDLE}, mVkDeviceMemory{VK_NULL_HANDLE}, mVkImageView{VK_NULL_HANDLE} {}
 
 	VkImage mVkImage;
 	VkDeviceMemory mVkDeviceMemory;
@@ -136,7 +112,7 @@ public:
 	void LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 };
 
-class VulkanFrustum
+class ViewFrustum
 {
 public:
 	enum class Side { LEFT = 0, RIGHT = 1, TOP = 2, BOTTOM = 3, BACK = 4, FRONT = 5 };
@@ -147,21 +123,40 @@ public:
 	bool IsInSphere(const Math::Vector3f& aPosition, float aRadius) const;
 };
 
+struct GraphicsContext
+{
+	GraphicsContext() : mQueue{VK_NULL_HANDLE}, mCommandPool{VK_NULL_HANDLE}, mPipelineLayout{VK_NULL_HANDLE}, mDescriptorSetLayout{VK_NULL_HANDLE} {}
+
+	VkQueue mQueue;
+	VkCommandPool mCommandPool;
+	VkPipelineLayout mPipelineLayout;
+	VkDescriptorSetLayout mDescriptorSetLayout;
+	std::array<VkCommandBuffer, gMaxConcurrentFrames> mCommandBuffers{}; // Command buffers used for rendering
+	std::array<VkFence, gMaxConcurrentFrames> mFences{};
+	std::array<VkSemaphore, gMaxConcurrentFrames> mPresentCompleteSemaphores{};
+	std::vector<VkSemaphore> mRenderCompleteSemaphores{};
+};
+
 struct ComputeContext
 {
-	VulkanBuffer mLoDBuffers; // Contains index start and counts for the different lod levels
-	VkQueue mQueue; // Separate queue for compute commands (queue family may differ from the one used for graphics)
-	VkCommandPool mCommandPool; // Use a separate command pool (queue family may differ from the one used for graphics)
-	std::array<VkCommandBuffer, gMaxConcurrentFrames> mCommandBuffers; // Command buffer storing the dispatch commands and barriers
-	std::array<VkFence, gMaxConcurrentFrames> mFences; // Synchronization fence to avoid rewriting compute CB if still in use
 	struct ComputeSemaphores
 	{
-		VkSemaphore mReadySemaphore{VK_NULL_HANDLE};
-		VkSemaphore mCompleteSemaphore{VK_NULL_HANDLE};
+		ComputeSemaphores() : mReadySemaphore{VK_NULL_HANDLE}, mCompleteSemaphore{VK_NULL_HANDLE} {}
+
+		VkSemaphore mReadySemaphore;
+		VkSemaphore mCompleteSemaphore;
 	};
+
+	ComputeContext() : mQueue{VK_NULL_HANDLE}, mCommandPool{VK_NULL_HANDLE}, mDescriptorSetLayout{VK_NULL_HANDLE}, mPipelineLayout{VK_NULL_HANDLE} {}
+
+	Buffer mLoDBuffers{}; // Contains index start and counts for the different lod levels
+	VkQueue mQueue; // Separate queue for compute commands (queue family may differ from the one used for graphics)
+	VkCommandPool mCommandPool; // Use a separate command pool (queue family may differ from the one used for graphics)
+	std::array<VkCommandBuffer, gMaxConcurrentFrames> mCommandBuffers{}; // Command buffer storing the dispatch commands and barriers
+	std::array<VkFence, gMaxConcurrentFrames> mFences{}; // Synchronization fence to avoid rewriting compute CB if still in use
 	std::array<ComputeSemaphores, gMaxConcurrentFrames> mSemaphores{}; // Used as a wait semaphore for graphics submission
 	VkDescriptorSetLayout mDescriptorSetLayout; // Compute shader binding layout
 	std::array<VkDescriptorSet, gMaxConcurrentFrames> mDescriptorSets{}; // Compute shader bindings
 	VkPipelineLayout mPipelineLayout; // Layout of the compute pipeline
-	VkPipeline mPipeline; // Compute pipeline
+	VkPipeline mPipeline{}; // Compute pipeline
 };

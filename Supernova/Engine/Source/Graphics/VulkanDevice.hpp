@@ -31,12 +31,12 @@ struct VulkanDevice
 	void CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice);
 	void FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, VkCommandPool aPool, bool aIsFree = true) const;
 	void FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, bool aIsFree = true) const;
-	void CopyBuffer(VulkanBuffer* aSource, VulkanBuffer* aDestination, VkQueue aQueue, VkBufferCopy* aCopyRegion = nullptr) const;
+	void CopyBuffer(Buffer* aSource, Buffer* aDestination, VkQueue aQueue, VkBufferCopy* aCopyRegion = nullptr) const;
 
 	VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel aLevel, VkCommandPool aPool, bool aIsBeginBuffer = false) const;
 	VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel aLevel, bool aIsBeginBuffer = false) const;
 	VkResult CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VkDeviceSize aSize, VkBuffer* aBuffer, VkDeviceMemory* aMemory, void* aData = nullptr);
-	VkResult CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VulkanBuffer* aBuffer, VkDeviceSize aSize, void* aData = nullptr) const;
+	VkResult CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, Buffer* aBuffer, VkDeviceSize aSize, void* aData = nullptr) const;
 
 	std::uint32_t GetMemoryTypeIndex(std::uint32_t aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32 * aMemTypeFound = nullptr) const;
 	std::uint32_t GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) const;

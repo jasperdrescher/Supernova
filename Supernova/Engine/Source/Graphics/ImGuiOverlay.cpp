@@ -109,7 +109,7 @@ void ImGuiOverlay::PrepareResources()
 	};
 	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &imageViewCreateInfo, nullptr, &mFontImageView));
 
-	VulkanBuffer stagingBuffer;
+	Buffer stagingBuffer;
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, uploadSize));
 	VK_CHECK_RESULT(stagingBuffer.Map());
 	std::memcpy(stagingBuffer.mMappedData, fontData, uploadSize);

@@ -45,8 +45,8 @@ private:
 	{
 		Buffers() : vertexCount{0}, indexCount{0} {}
 
-		VulkanBuffer vertexBuffer;
-		VulkanBuffer indexBuffer;
+		Buffer vertexBuffer;
+		Buffer indexBuffer;
 		std::int32_t vertexCount;
 		std::int32_t indexCount;
 	};
