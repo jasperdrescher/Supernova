@@ -2,6 +2,7 @@
 
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
+#include "Timer.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanTools.hpp"
 
@@ -388,114 +389,125 @@ void vkglTF::Model::LoadImages(VulkanDevice* aDevice, VkQueue aTransferQueue)
 
 void vkglTF::Model::LoadMaterials()
 {
-    for (tinygltf::Material& mat : mCurrentModel->materials)
+    for (tinygltf::Material& gltfMaterial : mCurrentModel->materials)
 	{
 		vkglTF::Material material(mVulkanDevice);
-		if (mat.values.find("baseColorTexture") != mat.values.end())
+		if (gltfMaterial.values.find("baseColorTexture") != gltfMaterial.values.end())
 		{
-            material.mBaseColorTexture = GetTexture(mCurrentModel->textures[mat.values["baseColorTexture"].TextureIndex()].source);
+            material.mBaseColorTexture = GetTexture(mCurrentModel->textures[gltfMaterial.values["baseColorTexture"].TextureIndex()].source);
 		}
+
 		// Metallic roughness workflow
-		if (mat.values.find("metallicRoughnessTexture") != mat.values.end())
+		if (gltfMaterial.values.find("metallicRoughnessTexture") != gltfMaterial.values.end())
 		{
-            material.mMetallicRoughnessTexture = GetTexture(mCurrentModel->textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source);
+            material.mMetallicRoughnessTexture = GetTexture(mCurrentModel->textures[gltfMaterial.values["metallicRoughnessTexture"].TextureIndex()].source);
 		}
-		if (mat.values.find("roughnessFactor") != mat.values.end())
+
+		if (gltfMaterial.values.find("roughnessFactor") != gltfMaterial.values.end())
 		{
-			material.mRoughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
+			material.mRoughnessFactor = static_cast<float>(gltfMaterial.values["roughnessFactor"].Factor());
 		}
-		if (mat.values.find("metallicFactor") != mat.values.end())
+
+		if (gltfMaterial.values.find("metallicFactor") != gltfMaterial.values.end())
 		{
-			material.mMetallicFactor = static_cast<float>(mat.values["metallicFactor"].Factor());
+			material.mMetallicFactor = static_cast<float>(gltfMaterial.values["metallicFactor"].Factor());
 		}
-		if (mat.values.find("baseColorFactor") != mat.values.end())
+
+		if (gltfMaterial.values.find("baseColorFactor") != gltfMaterial.values.end())
 		{
-			material.mBaseColorFactor = Math::MakeVector4f(mat.values["baseColorFactor"].ColorFactor().data());
+			material.mBaseColorFactor = Math::MakeVector4f(gltfMaterial.values["baseColorFactor"].ColorFactor().data());
 		}
-		if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end())
+
+		if (gltfMaterial.additionalValues.find("normalTexture") != gltfMaterial.additionalValues.end())
 		{
-            material.mNormalTexture = GetTexture(mCurrentModel->textures[mat.additionalValues["normalTexture"].TextureIndex()].source);
+            material.mNormalTexture = GetTexture(mCurrentModel->textures[gltfMaterial.additionalValues["normalTexture"].TextureIndex()].source);
 		}
 		else
 		{
 			material.mNormalTexture = &mEmptyTexture;
 		}
-		if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end())
+
+		if (gltfMaterial.additionalValues.find("emissiveTexture") != gltfMaterial.additionalValues.end())
 		{
-            material.mEmissiveTexture = GetTexture(mCurrentModel->textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source);
+            material.mEmissiveTexture = GetTexture(mCurrentModel->textures[gltfMaterial.additionalValues["emissiveTexture"].TextureIndex()].source);
 		}
-		if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end())
+
+		if (gltfMaterial.additionalValues.find("occlusionTexture") != gltfMaterial.additionalValues.end())
 		{
-            material.mOcclusionTexture = GetTexture(mCurrentModel->textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source);
+            material.mOcclusionTexture = GetTexture(mCurrentModel->textures[gltfMaterial.additionalValues["occlusionTexture"].TextureIndex()].source);
 		}
-		if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end())
+
+		if (gltfMaterial.additionalValues.find("alphaMode") != gltfMaterial.additionalValues.end())
 		{
-			const tinygltf::Parameter param = mat.additionalValues["alphaMode"];
+			const tinygltf::Parameter param = gltfMaterial.additionalValues["alphaMode"];
 			if (param.string_value == "BLEND")
 			{
 				material.mAlphaMode = Material::AlphaMode::ALPHAMODE_BLEND;
 			}
+
 			if (param.string_value == "MASK")
 			{
 				material.mAlphaMode = Material::AlphaMode::ALPHAMODE_MASK;
 			}
 		}
-		if (mat.additionalValues.find("alphaCutoff") != mat.additionalValues.end())
+
+		if (gltfMaterial.additionalValues.find("alphaCutoff") != gltfMaterial.additionalValues.end())
 		{
-			material.mAlphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
+			material.mAlphaCutoff = static_cast<float>(gltfMaterial.additionalValues["alphaCutoff"].Factor());
 		}
 
 		materials.push_back(material);
 	}
+
 	// Push a default material at the end of the list for meshes with no material assigned
 	materials.push_back(Material(mVulkanDevice));
 }
 
 void vkglTF::Model::LoadAnimations()
 {
-    for (const tinygltf::Animation& anim : mCurrentModel->animations)
+    for (const tinygltf::Animation& gltfAnimation : mCurrentModel->animations)
 	{
 		vkglTF::Animation animation{};
-		animation.mName = anim.name;
-		if (anim.name.empty())
+		animation.mName = gltfAnimation.name;
+
+		if (gltfAnimation.name.empty())
 		{
 			animation.mName = std::to_string(animations.size());
 		}
 
-		// Samplers
-		for (const tinygltf::AnimationSampler& samp : anim.samplers)
+		for (const tinygltf::AnimationSampler& gltfAnimationSampler : gltfAnimation.samplers)
 		{
 			vkglTF::AnimationSampler sampler{};
 
-			if (samp.interpolation == "LINEAR")
+			if (gltfAnimationSampler.interpolation == "LINEAR")
 			{
 				sampler.mInterpolation = AnimationSampler::InterpolationType::LINEAR;
 			}
-			if (samp.interpolation == "STEP")
+			else if (gltfAnimationSampler.interpolation == "STEP")
 			{
 				sampler.mInterpolation = AnimationSampler::InterpolationType::STEP;
 			}
-			if (samp.interpolation == "CUBICSPLINE")
+			else if (gltfAnimationSampler.interpolation == "CUBICSPLINE")
 			{
 				sampler.mInterpolation = AnimationSampler::InterpolationType::CUBICSPLINE;
 			}
 
 			// Read sampler input time values
 			{
-                const tinygltf::Accessor& accessor = mCurrentModel->accessors[samp.input];
-                const tinygltf::BufferView& bufferView = mCurrentModel->bufferViews[accessor.bufferView];
-                const tinygltf::Buffer& buffer = mCurrentModel->buffers[bufferView.buffer];
+                const tinygltf::Accessor& gltfAccessor = mCurrentModel->accessors[gltfAnimationSampler.input];
+                const tinygltf::BufferView& gltfBufferView = mCurrentModel->bufferViews[gltfAccessor.bufferView];
+                const tinygltf::Buffer& gltfBuffer = mCurrentModel->buffers[gltfBufferView.buffer];
 
-				assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+				assert(gltfAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
-				float* buf = new float[accessor.count];
-				std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(float));
-				for (size_t index = 0; index < accessor.count; index++)
+				float* buffer = new float[gltfAccessor.count];
+				std::memcpy(buffer, &gltfBuffer.data[gltfAccessor.byteOffset + gltfBufferView.byteOffset], gltfAccessor.count * sizeof(float));
+				for (size_t index = 0; index < gltfAccessor.count; index++)
 				{
-					sampler.mInputs.push_back(buf[index]);
+					sampler.mInputs.push_back(buffer[index]);
 				}
 
-				delete[] buf;
+				delete[] buffer;
 
 				for (float input : sampler.mInputs)
 				{
@@ -513,30 +525,30 @@ void vkglTF::Model::LoadAnimations()
 
 			// Read sampler output T/R/S values 
 			{
-                const tinygltf::Accessor& accessor = mCurrentModel->accessors[samp.output];
-                const tinygltf::BufferView& bufferView = mCurrentModel->bufferViews[accessor.bufferView];
-                const tinygltf::Buffer& buffer = mCurrentModel->buffers[bufferView.buffer];
+                const tinygltf::Accessor& gltfAccessor = mCurrentModel->accessors[gltfAnimationSampler.output];
+                const tinygltf::BufferView& gltfBufferView = mCurrentModel->bufferViews[gltfAccessor.bufferView];
+                const tinygltf::Buffer& gltfBuffer = mCurrentModel->buffers[gltfBufferView.buffer];
 
-				assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+				assert(gltfAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
-				switch (accessor.type)
+				switch (gltfAccessor.type)
 				{
 					case TINYGLTF_TYPE_VEC3:
 					{
-						Math::Vector3f* buf = new Math::Vector3f[accessor.count];
-						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(Math::Vector3f));
-						for (size_t index = 0; index < accessor.count; index++)
+						Math::Vector3f* buffer = new Math::Vector3f[gltfAccessor.count];
+						std::memcpy(buffer, &gltfBuffer.data[gltfAccessor.byteOffset + gltfBufferView.byteOffset], gltfAccessor.count * sizeof(Math::Vector3f));
+						for (size_t index = 0; index < gltfAccessor.count; index++)
 						{
-							sampler.mOutputsVec4.push_back(Math::Vector4f(buf[index], 0.0f));
+							sampler.mOutputsVec4.push_back(Math::Vector4f(buffer[index], 0.0f));
 						}
-						delete[] buf;
+						delete[] buffer;
 						break;
 					}
 					case TINYGLTF_TYPE_VEC4:
 					{
-						Math::Vector4f* buf = new Math::Vector4f[accessor.count];
-						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(Math::Vector4f));
-						for (size_t index = 0; index < accessor.count; index++)
+						Math::Vector4f* buf = new Math::Vector4f[gltfAccessor.count];
+						std::memcpy(buf, &gltfBuffer.data[gltfAccessor.byteOffset + gltfBufferView.byteOffset], gltfAccessor.count * sizeof(Math::Vector4f));
+						for (size_t index = 0; index < gltfAccessor.count; index++)
 						{
 							sampler.mOutputsVec4.push_back(buf[index]);
 						}
@@ -555,29 +567,30 @@ void vkglTF::Model::LoadAnimations()
 		}
 
 		// Channels
-		for (const tinygltf::AnimationChannel& source : anim.channels)
+		for (const tinygltf::AnimationChannel& gltfAnimationChhannel : gltfAnimation.channels)
 		{
 			vkglTF::AnimationChannel channel{};
 
-			if (source.target_path == "rotation")
+			if (gltfAnimationChhannel.target_path == "rotation")
 			{
 				channel.mPathType = AnimationChannel::PathType::ROTATION;
 			}
-			if (source.target_path == "translation")
+			else if (gltfAnimationChhannel.target_path == "translation")
 			{
 				channel.mPathType = AnimationChannel::PathType::TRANSLATION;
 			}
-			if (source.target_path == "scale")
+			else if (gltfAnimationChhannel.target_path == "scale")
 			{
 				channel.mPathType = AnimationChannel::PathType::SCALE;
 			}
-			if (source.target_path == "weights")
+			else if (gltfAnimationChhannel.target_path == "weights")
 			{
 				std::cout << "weights not yet supported, skipping channel" << std::endl;
 				continue;
 			}
-			channel.mSamplerIndex = source.sampler;
-			channel.mNode = NodeFromIndex(source.target_node);
+
+			channel.mSamplerIndex = gltfAnimationChhannel.sampler;
+			channel.mNode = NodeFromIndex(gltfAnimationChhannel.target_node);
 			if (!channel.mNode)
 			{
 				continue;
@@ -592,6 +605,9 @@ void vkglTF::Model::LoadAnimations()
 
 void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags, float aScale)
 {
+	Time::Timer loadTimer;
+	loadTimer.StartTimer();
+
 	tinygltf::TinyGLTF gltfContext;
 	if (aFileLoadingFlags & FileLoadingFlags::DontLoadImages)
 	{
@@ -869,7 +885,9 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		}
 	}
 
-	std::cout << "Loaded GLTF model " << aPath.filename() << std::endl;
+	loadTimer.EndTimer();
+
+	std::cout << "Loaded GLTF model " << aPath.filename() << " " << std::format("({:.2f}s)", loadTimer.GetDurationSeconds()) << std::endl;
 
 	delete mCurrentModel;
 }
