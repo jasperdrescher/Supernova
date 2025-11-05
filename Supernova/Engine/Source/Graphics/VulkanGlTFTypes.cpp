@@ -63,51 +63,6 @@ namespace vkglTF
 		}
 	}
 
-	void Material::CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, Core::uint32 aDescriptorBindingFlags)
-	{
-		const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = aDescriptorPool,
-			.descriptorSetCount = 1,
-			.pSetLayouts = &aDescriptorSetLayout,
-		};
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mDescriptorSet));
-
-		std::vector<VkDescriptorImageInfo> imageDescriptors{};
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets{};
-		if (aDescriptorBindingFlags & DescriptorBindingFlags::ImageBaseColor)
-		{
-			imageDescriptors.push_back(mBaseColorTexture->mDescriptorImageInfo);
-
-			const VkWriteDescriptorSet writeDescriptorSet{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = mDescriptorSet,
-				.dstBinding = static_cast<Core::uint32>(writeDescriptorSets.size()),
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				.pImageInfo = &mBaseColorTexture->mDescriptorImageInfo
-			};
-			writeDescriptorSets.push_back(writeDescriptorSet);
-		}
-
-		if (mNormalTexture && aDescriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap)
-		{
-			imageDescriptors.push_back(mNormalTexture->mDescriptorImageInfo);
-
-			const VkWriteDescriptorSet writeDescriptorSet{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = mDescriptorSet,
-				.dstBinding = static_cast<Core::uint32>(writeDescriptorSets.size()),
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				.pImageInfo = &mNormalTexture->mDescriptorImageInfo
-			};
-			writeDescriptorSets.push_back(writeDescriptorSet);
-		}
-
-		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-	}
-
 	void vkglTF::Primitive::SetDimensions(const Math::Vector3f& aMin, const Math::Vector3f& aMax)
 	{
 		mDimensions.mMin = aMin;

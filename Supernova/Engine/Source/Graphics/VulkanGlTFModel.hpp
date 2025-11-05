@@ -26,6 +26,9 @@ namespace vkglTF
 		~Model();
 
 		void LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags = vkglTF::FileLoadingFlags::None, float aScale = 1.0f);
+		void CreateDescriptorSets(VulkanDevice* aDevice);
+		void CreateMaterialDescriptorSets(vkglTF::Material& material);
+		void CreateDescriptorPool(uint32_t uboCount, uint32_t imageCount, VulkanDevice* aDevice);
 		void BindBuffers(VkCommandBuffer aCommandBuffer);
 
 		Vertices vertices{};
@@ -44,7 +47,8 @@ namespace vkglTF
 		void GetNodeDimensions(const Node* aNode, Math::Vector3f& aMin, Math::Vector3f& aMax);
 		void GetSceneDimensions();
 		void UpdateAnimation(std::uint32_t aIndex, float aTime);
-		void PrepareNodeDescriptor(vkglTF::Node* aNode, VkDescriptorSetLayout aDescriptorSetLayout);
+		void CreateNodeDescriptorSets(vkglTF::Node* aNode, const VkDescriptorSetLayout aDescriptorSetLayout);
+		void CreateBuffers(std::vector<std::uint32_t>& indexBuffer, std::vector<vkglTF::Vertex>& vertexBuffer, size_t vertexBufferSize, size_t indexBufferSize, VulkanDevice* aDevice, VkQueue aTransferQueue);
 
 		Node* FindNode(Node* aParent, std::uint32_t aIndex);
 		Node* NodeFromIndex(std::uint32_t aIndex);

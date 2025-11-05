@@ -68,8 +68,6 @@ namespace vkglTF
 
 		Material(VulkanDevice* aDevice);
 
-		void CreateDescriptorSet(VkDescriptorPool aDescriptorPool, VkDescriptorSetLayout aDescriptorSetLayout, Core::uint32 aDescriptorBindingFlags);
-
 		VulkanDevice* mVulkanDevice;
 		AlphaMode mAlphaMode;
 		float mAlphaCutoff;
