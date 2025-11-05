@@ -61,6 +61,5 @@ namespace vkglTF
 		std::string path;
 		tinygltf::Model* mCurrentModel;
 		VulkanDevice* mVulkanDevice;
-		bool metallicRoughnessWorkflow;
 	};
 }

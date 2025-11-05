@@ -58,7 +58,6 @@ vkglTF::Model::Model(TextureManager* aTextureManager)
 	, mCurrentModel{nullptr}
 	, mVulkanDevice{nullptr}
 	, descriptorPool{VK_NULL_HANDLE}
-	, metallicRoughnessWorkflow{false}
 	, buffersBound{false}
 {
 }
@@ -632,6 +631,16 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		throw std::runtime_error(std::format("Could not load glTF file: {} {}", aPath.generic_string(), error));
 	}
 
+	for (const std::string& extension : mCurrentModel->extensionsRequired)
+	{
+		std::cout << " Required extension: " << extension;
+	}
+
+	for (const std::string& extension : mCurrentModel->extensionsUsed)
+	{
+		std::cout << " Used extension: " << extension;
+	}
+
 	std::vector<std::uint32_t> indexBuffer;
 	std::vector<Vertex> vertexBuffer;
 
@@ -709,15 +718,6 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 					}
 				}
 			}
-		}
-	}
-
-	for (const std::string& extension : mCurrentModel->extensionsUsed)
-	{
-		if (extension == "KHR_materials_pbrSpecularGlossiness")
-		{
-			std::cout << "Required extension: " << extension;
-			metallicRoughnessWorkflow = false;
 		}
 	}
 
