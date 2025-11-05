@@ -401,72 +401,58 @@ vkglTF::Texture* vkglTF::Model::GetTexture(std::uint32_t aIndex)
 
 void vkglTF::Model::LoadMaterials()
 {
-    for (tinygltf::Material& gltfMaterial : mCurrentModel->materials)
+    for (const tinygltf::Material& gltfMaterial : mCurrentModel->materials)
 	{
 		vkglTF::Material material(mVulkanDevice);
-		if (gltfMaterial.values.find("baseColorTexture") != gltfMaterial.values.end())
+
+		if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
 		{
-            material.mBaseColorTexture = GetTexture(mCurrentModel->textures[gltfMaterial.values["baseColorTexture"].TextureIndex()].source);
+            material.mBaseColorTexture = GetTexture(mCurrentModel->textures[gltfMaterial.pbrMetallicRoughness.baseColorTexture.index].source);
 		}
 
-		// Metallic roughness workflow
-		if (gltfMaterial.values.find("metallicRoughnessTexture") != gltfMaterial.values.end())
+		if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
 		{
-            material.mMetallicRoughnessTexture = GetTexture(mCurrentModel->textures[gltfMaterial.values["metallicRoughnessTexture"].TextureIndex()].source);
+            material.mMetallicRoughnessTexture = GetTexture(mCurrentModel->textures[gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index].source);
 		}
 
-		if (gltfMaterial.values.find("roughnessFactor") != gltfMaterial.values.end())
-		{
-			material.mRoughnessFactor = static_cast<float>(gltfMaterial.values["roughnessFactor"].Factor());
-		}
+		material.mBaseColorFactor = Math::MakeVector4f(gltfMaterial.pbrMetallicRoughness.baseColorFactor.data());
+		material.mRoughnessFactor = static_cast<float>(gltfMaterial.pbrMetallicRoughness.roughnessFactor);
+		material.mMetallicFactor = static_cast<float>(gltfMaterial.pbrMetallicRoughness.metallicFactor);
 
-		if (gltfMaterial.values.find("metallicFactor") != gltfMaterial.values.end())
+		if (gltfMaterial.normalTexture.index != -1)
 		{
-			material.mMetallicFactor = static_cast<float>(gltfMaterial.values["metallicFactor"].Factor());
-		}
-
-		if (gltfMaterial.values.find("baseColorFactor") != gltfMaterial.values.end())
-		{
-			material.mBaseColorFactor = Math::MakeVector4f(gltfMaterial.values["baseColorFactor"].ColorFactor().data());
-		}
-
-		if (gltfMaterial.additionalValues.find("normalTexture") != gltfMaterial.additionalValues.end())
-		{
-            material.mNormalTexture = GetTexture(mCurrentModel->textures[gltfMaterial.additionalValues["normalTexture"].TextureIndex()].source);
+            material.mNormalTexture = GetTexture(mCurrentModel->textures[gltfMaterial.normalTexture.index].source);
 		}
 		else
 		{
 			material.mNormalTexture = &mEmptyTexture;
 		}
 
-		if (gltfMaterial.additionalValues.find("emissiveTexture") != gltfMaterial.additionalValues.end())
+		if (gltfMaterial.emissiveTexture.index != -1)
 		{
-            material.mEmissiveTexture = GetTexture(mCurrentModel->textures[gltfMaterial.additionalValues["emissiveTexture"].TextureIndex()].source);
+            material.mEmissiveTexture = GetTexture(mCurrentModel->textures[gltfMaterial.emissiveTexture.index].source);
 		}
 
-		if (gltfMaterial.additionalValues.find("occlusionTexture") != gltfMaterial.additionalValues.end())
+		if (gltfMaterial.occlusionTexture.index != -1)
 		{
-            material.mOcclusionTexture = GetTexture(mCurrentModel->textures[gltfMaterial.additionalValues["occlusionTexture"].TextureIndex()].source);
+            material.mOcclusionTexture = GetTexture(mCurrentModel->textures[gltfMaterial.occlusionTexture.index].source);
 		}
 
-		if (gltfMaterial.additionalValues.find("alphaMode") != gltfMaterial.additionalValues.end())
+		const std::string alphaMode = gltfMaterial.alphaMode;
+		if (alphaMode == "OPAQUE")
 		{
-			const tinygltf::Parameter param = gltfMaterial.additionalValues["alphaMode"];
-			if (param.string_value == "BLEND")
-			{
-				material.mAlphaMode = Material::AlphaMode::ALPHAMODE_BLEND;
-			}
-
-			if (param.string_value == "MASK")
-			{
-				material.mAlphaMode = Material::AlphaMode::ALPHAMODE_MASK;
-			}
+			material.mAlphaMode = Material::AlphaMode::ALPHAMODE_OPAQUE;
+		}
+		else if (alphaMode == "BLEND")
+		{
+			material.mAlphaMode = Material::AlphaMode::ALPHAMODE_BLEND;
+		}
+		else if (alphaMode == "MASK")
+		{
+			material.mAlphaMode = Material::AlphaMode::ALPHAMODE_MASK;
 		}
 
-		if (gltfMaterial.additionalValues.find("alphaCutoff") != gltfMaterial.additionalValues.end())
-		{
-			material.mAlphaCutoff = static_cast<float>(gltfMaterial.additionalValues["alphaCutoff"].Factor());
-		}
+		material.mAlphaCutoff = static_cast<float>(gltfMaterial.alphaCutoff);
 
 		materials.push_back(material);
 	}
