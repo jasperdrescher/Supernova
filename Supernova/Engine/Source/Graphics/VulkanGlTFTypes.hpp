@@ -31,11 +31,20 @@ namespace vkglTF
 
 	struct Node;
 
+	struct Image
+	{
+		std::vector<unsigned char> image;
+		std::filesystem::path uri;
+		unsigned int textureIndex{0};
+		unsigned int width{0};
+		unsigned int height{0};
+		unsigned int component{0};
+	};
+
 	struct Texture
 	{
 		Texture();
 
-		void CreateTexture(tinygltf::Image* aGlTFimage, const std::filesystem::path& aModelPath, VulkanDevice* aDevice, VkQueue aCopyQueue);
 		void UpdateDescriptor();
 		void Destroy();
 
@@ -51,10 +60,6 @@ namespace vkglTF
 		Core::uint32 mMipLevels;
 		Core::uint32 mLayerCount;
 		Core::uint32 mIndex;
-
-	private:
-		void CreateFromKtxTexture(tinygltf::Image* aGlTFimage, const std::filesystem::path& aModelPath, VkFormat& aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue);
-		void CreateFromIncludedTexture(tinygltf::Image* aGlTFimage, VkFormat& aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue);
 	};
 
 	struct Material

@@ -29,6 +29,7 @@ struct EngineProperties;
 class Camera;
 class Window;
 class ImGuiOverlay;
+class TextureManager;
 
 class VulkanRenderer
 {
@@ -162,6 +163,7 @@ private:
 	ImGuiOverlay* mImGuiOverlay;
 	EngineProperties* mEngineProperties;
 	Window* mWindow;
+	TextureManager* mTextureManager;
 	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
 	float mFrametime;

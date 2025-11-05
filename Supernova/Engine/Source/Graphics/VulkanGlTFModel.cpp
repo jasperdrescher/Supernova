@@ -2,6 +2,7 @@
 
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
+#include "TextureManager.hpp"
 #include "Timer.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanTools.hpp"
@@ -52,8 +53,9 @@ namespace VulkanGlTFModelLocal
 	}
 }
 
-vkglTF::Model::Model()
-	: mCurrentModel{nullptr}
+vkglTF::Model::Model(TextureManager* aTextureManager)
+	: mTextureManager{aTextureManager}
+	, mCurrentModel{nullptr}
 	, mVulkanDevice{nullptr}
 	, descriptorPool{VK_NULL_HANDLE}
 	, metallicRoughnessWorkflow{false}
@@ -67,10 +69,6 @@ vkglTF::Model::~Model()
 	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, vertices.mMemory, nullptr);
 	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, indices.mBuffer, nullptr);
 	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, indices.mMemory, nullptr);
-	for (vkglTF::Texture& texture : textures)
-	{
-		texture.Destroy();
-	}
 
 	for (vkglTF::Node*& node : nodes)
 	{
@@ -374,17 +372,31 @@ void vkglTF::Model::LoadSkins()
 	}
 }
 
-void vkglTF::Model::LoadImages(VulkanDevice* aDevice, VkQueue aTransferQueue)
+void vkglTF::Model::LoadImages()
 {
-	for (tinygltf::Image& image : mCurrentModel->images)
+	for (const tinygltf::Image& gltfImage : mCurrentModel->images)
 	{
-		vkglTF::Texture texture;
-		texture.CreateTexture(&image, path, aDevice, aTransferQueue);
+		vkglTF::Image image;
+		image.component = gltfImage.component;
+		image.width = gltfImage.width;
+		image.height = gltfImage.height;
+		image.uri = gltfImage.uri;
+		image.image = gltfImage.image;
+		vkglTF::Texture texture = mTextureManager->CreateTexture(path, image);
 		texture.mIndex = static_cast<std::uint32_t>(textures.size());
 		textures.push_back(texture);
 	}
+
 	// Create an empty texture to be used for empty material images
-	CreateEmptyTexture(aTransferQueue);
+	mEmptyTexture = mTextureManager->CreateEmptyTexture();
+}
+
+vkglTF::Texture* vkglTF::Model::GetTexture(std::uint32_t aIndex)
+{
+	if (aIndex < textures.size())
+		return &textures[aIndex];
+
+	return nullptr;
 }
 
 void vkglTF::Model::LoadMaterials()
@@ -639,7 +651,7 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 
 	if (!(aFileLoadingFlags & FileLoadingFlags::DontLoadImages))
 	{
-		LoadImages(aDevice, aTransferQueue);
+		LoadImages();
 	}
 
     LoadMaterials();
@@ -890,116 +902,6 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 	std::cout << "Loaded GLTF model " << aPath.filename() << " " << std::format("({:.2f}s)", loadTimer.GetDurationSeconds()) << std::endl;
 
 	delete mCurrentModel;
-}
-
-vkglTF::Texture* vkglTF::Model::GetTexture(std::uint32_t aIndex)
-{
-	if (aIndex < textures.size())
-		return &textures[aIndex];
-
-	return nullptr;
-}
-
-void vkglTF::Model::CreateEmptyTexture(VkQueue aTransferQueue)
-{
-	mEmptyTexture.mVulkanDevice = mVulkanDevice;
-	mEmptyTexture.mWidth = 1;
-	mEmptyTexture.mHeight = 1;
-	mEmptyTexture.mLayerCount = 1;
-	mEmptyTexture.mMipLevels = 1;
-
-	size_t bufferSize = static_cast<std::size_t>(mEmptyTexture.mWidth * mEmptyTexture.mHeight * 4);
-	unsigned char* buffer = new unsigned char[bufferSize];
-	memset(buffer, 0, bufferSize);
-
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingMemory;
-	VkBufferCreateInfo bufferCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-		.size = bufferSize,
-		.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	};
-	VK_CHECK_RESULT(vkCreateBuffer(mVulkanDevice->mLogicalVkDevice, &bufferCreateInfo, nullptr, &stagingBuffer));
-
-	VkMemoryRequirements memReqs;
-	vkGetBufferMemoryRequirements(mVulkanDevice->mLogicalVkDevice, stagingBuffer, &memReqs);
-	VkMemoryAllocateInfo memAllocInfo{
-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-		.allocationSize = memReqs.size,
-		.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-	};
-	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &stagingMemory));
-	VK_CHECK_RESULT(vkBindBufferMemory(mVulkanDevice->mLogicalVkDevice, stagingBuffer, stagingMemory, 0));
-
-	// Copy texture data into staging buffer
-	uint8_t* data{nullptr};
-	VK_CHECK_RESULT(vkMapMemory(mVulkanDevice->mLogicalVkDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
-	std::memcpy(data, buffer, bufferSize);
-	vkUnmapMemory(mVulkanDevice->mLogicalVkDevice, stagingMemory);
-
-	// Create optimal tiled target image
-	VkImageCreateInfo imageCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-		.imageType = VK_IMAGE_TYPE_2D,
-		.format = VK_FORMAT_R8G8B8A8_UNORM,
-		.extent = {.width = mEmptyTexture.mWidth, .height = mEmptyTexture.mHeight, .depth = 1 },
-		.mipLevels = 1,
-		.arrayLayers = 1,
-		.samples = VK_SAMPLE_COUNT_1_BIT,
-		.tiling = VK_IMAGE_TILING_OPTIMAL,
-		.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-	};
-	VK_CHECK_RESULT(vkCreateImage(mVulkanDevice->mLogicalVkDevice, &imageCreateInfo, nullptr, &mEmptyTexture.mImage));
-
-	vkGetImageMemoryRequirements(mVulkanDevice->mLogicalVkDevice, mEmptyTexture.mImage, &memReqs);
-	memAllocInfo.allocationSize = memReqs.size;
-	memAllocInfo.memoryTypeIndex = mVulkanDevice->GetMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-	VK_CHECK_RESULT(vkAllocateMemory(mVulkanDevice->mLogicalVkDevice, &memAllocInfo, nullptr, &mEmptyTexture.mDeviceMemory));
-	VK_CHECK_RESULT(vkBindImageMemory(mVulkanDevice->mLogicalVkDevice, mEmptyTexture.mImage, mEmptyTexture.mDeviceMemory, 0));
-
-	VkBufferImageCopy bufferCopyRegion{
-		.imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .layerCount = 1 },
-		.imageExtent = {.width = mEmptyTexture.mWidth, .height = mEmptyTexture.mHeight, .depth = 1 }
-	};
-	VkImageSubresourceRange subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .layerCount = 1};
-	VkCommandBuffer copyCmd = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-	VulkanTools::SetImageLayout(copyCmd, mEmptyTexture.mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
-	vkCmdCopyBufferToImage(copyCmd, stagingBuffer, mEmptyTexture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
-	VulkanTools::SetImageLayout(copyCmd, mEmptyTexture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange);
-	mVulkanDevice->FlushCommandBuffer(copyCmd, aTransferQueue, true);
-	mEmptyTexture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-	// Clean up staging resources
-	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, stagingBuffer, nullptr);
-	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, stagingMemory, nullptr);
-
-	VkSamplerCreateInfo samplerCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-		.magFilter = VK_FILTER_LINEAR,
-		.minFilter = VK_FILTER_LINEAR,
-		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		.maxAnisotropy = 1.0f,
-		.compareOp = VK_COMPARE_OP_NEVER,
-	};
-	VK_CHECK_RESULT(vkCreateSampler(mVulkanDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &mEmptyTexture.mSampler));
-
-	VkImageViewCreateInfo viewCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		.image = mEmptyTexture.mImage,
-		.viewType = VK_IMAGE_VIEW_TYPE_2D,
-		.format = VK_FORMAT_R8G8B8A8_UNORM,
-		.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1 },
-	};
-	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &viewCreateInfo, nullptr, &mEmptyTexture.mImageView));
-
-	mEmptyTexture.mDescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	mEmptyTexture.mDescriptorImageInfo.imageView = mEmptyTexture.mImageView;
-	mEmptyTexture.mDescriptorImageInfo.sampler = mEmptyTexture.mSampler;
 }
 
 void vkglTF::Model::BindBuffers(VkCommandBuffer aCommandBuffer)

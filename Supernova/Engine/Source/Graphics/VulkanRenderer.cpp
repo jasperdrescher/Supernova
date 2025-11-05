@@ -20,6 +20,7 @@
 #include "VulkanTools.hpp"
 #include "VulkanTypes.hpp"
 #include "Window.hpp"
+#include "TextureManager.hpp"
 
 #include <algorithm>
 #include <array>
@@ -46,6 +47,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mImGuiOverlay{nullptr}
 	, mCamera{nullptr}
 	, mFrameTimer{nullptr}
+	, mTextureManager{nullptr}
 	, mFrameCounter{0}
 	, mAverageFPS{0}
 	, mFPSTimerInterval{1000.0f}
@@ -71,6 +73,8 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 #endif
 {
 	mFrameTimer = new Time::Timer();
+
+	mTextureManager = new TextureManager{};
 	
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_4;
 	mEngineProperties->mIsValidationEnabled = true;
@@ -172,6 +176,7 @@ VulkanRenderer::~VulkanRenderer()
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mInstance);
 
+	delete mTextureManager;
 	delete mModels.mPlanetModel;
 	delete mModels.mSuzanneModel;
 	delete mModels.mVoyagerModel;
@@ -254,16 +259,18 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 
 void VulkanRenderer::LoadAssets()
 {
+	mTextureManager->SetContext(mVulkanDevice, mGraphicsContext.mQueue);
+
 	const Core::uint32 glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-	mModels.mVoyagerModel = new vkglTF::Model();
+	mModels.mVoyagerModel = new vkglTF::Model(mTextureManager);
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
 	mModels.mVoyagerModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
-	mModels.mSuzanneModel = new vkglTF::Model();
+	mModels.mSuzanneModel = new vkglTF::Model(mTextureManager);
 	const std::filesystem::path suzanneModelPath = "Suzanne_lods.gltf";
 	mModels.mSuzanneModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / suzanneModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
-	mModels.mPlanetModel = new vkglTF::Model();
+	mModels.mPlanetModel = new vkglTF::Model(mTextureManager);
 	const std::filesystem::path planetModelPath = "Lavaplanet.gltf";
 	mModels.mPlanetModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 

@@ -10,6 +10,7 @@
 #include <vulkan/vulkan_core.h>
 
 struct VulkanDevice;
+class TextureManager;
 
 namespace tinygltf
 {
@@ -22,7 +23,7 @@ namespace vkglTF
 	class Model
 	{
 	public:
-		Model();
+		Model(TextureManager* aTextureManager);
 		~Model();
 
 		void LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags = vkglTF::FileLoadingFlags::None, float aScale = 1.0f);
@@ -38,19 +39,19 @@ namespace vkglTF
 	private:
 		void LoadNode(vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<Vertex>& aVertexBuffer, float aGlobalscale);
 		void LoadSkins();
-		void LoadImages(VulkanDevice* aDevice, VkQueue aTransferQueue);
+		void LoadImages();
 		void LoadMaterials();
 		void LoadAnimations();
 		void GetNodeDimensions(const Node* aNode, Math::Vector3f& aMin, Math::Vector3f& aMax);
 		void GetSceneDimensions();
 		void UpdateAnimation(std::uint32_t aIndex, float aTime);
 		void PrepareNodeDescriptor(vkglTF::Node* aNode, VkDescriptorSetLayout aDescriptorSetLayout);
-		void CreateEmptyTexture(VkQueue aTransferQueue);
 
 		Node* FindNode(Node* aParent, std::uint32_t aIndex);
 		Node* NodeFromIndex(std::uint32_t aIndex);
 		vkglTF::Texture* GetTexture(std::uint32_t aIndex);
 
+		TextureManager* mTextureManager;
 		vkglTF::Texture mEmptyTexture;
 		VkDescriptorPool descriptorPool;
 		std::vector<Node*> linearNodes;
