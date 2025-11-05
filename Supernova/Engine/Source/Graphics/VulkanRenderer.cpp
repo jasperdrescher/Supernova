@@ -1527,17 +1527,17 @@ void VulkanRenderer::DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aComman
 			const vkglTF::Material& material = primitive->material;
 			if (aRenderFlags & vkglTF::RenderFlags::RenderOpaqueNodes)
 			{
-				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::ALPHAMODE_OPAQUE);
+				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Opaque);
 			}
 
 			if (aRenderFlags & vkglTF::RenderFlags::RenderAlphaMaskedNodes)
 			{
-				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::ALPHAMODE_MASK);
+				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Mask);
 			}
 
 			if (aRenderFlags & vkglTF::RenderFlags::RenderAlphaBlendedNodes)
 			{
-				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::ALPHAMODE_BLEND);
+				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Blend);
 			}
 
 			if (!shouldSkipPrimitive)
@@ -1857,14 +1857,14 @@ void VulkanRenderer::OnUpdateUIOverlay()
 				{
 					switch (material.mAlphaMode)
 					{
-						case vkglTF::Material::AlphaMode::ALPHAMODE_BLEND:
-							ImGui::Text("Alpha mode ALPHAMODE_BLEND");
+						case vkglTF::Material::AlphaMode::Blend:
+							ImGui::Text("Alpha mode Blend");
 							break;
-						case vkglTF::Material::AlphaMode::ALPHAMODE_MASK:
-							ImGui::Text("Alpha mode ALPHAMODE_MASK");
+						case vkglTF::Material::AlphaMode::Mask:
+							ImGui::Text("Alpha mode Mask");
 							break;
-						case vkglTF::Material::AlphaMode::ALPHAMODE_OPAQUE:
-							ImGui::Text("Alpha mode ALPHAMODE_OPAQUE");
+						case vkglTF::Material::AlphaMode::Opaque:
+							ImGui::Text("Alpha mode Opaque");
 							break;
 					}
 

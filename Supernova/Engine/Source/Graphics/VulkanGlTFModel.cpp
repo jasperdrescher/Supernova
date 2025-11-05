@@ -441,15 +441,15 @@ void vkglTF::Model::LoadMaterials()
 		const std::string alphaMode = gltfMaterial.alphaMode;
 		if (alphaMode == "OPAQUE")
 		{
-			material.mAlphaMode = Material::AlphaMode::ALPHAMODE_OPAQUE;
+			material.mAlphaMode = Material::AlphaMode::Opaque;
 		}
 		else if (alphaMode == "BLEND")
 		{
-			material.mAlphaMode = Material::AlphaMode::ALPHAMODE_BLEND;
+			material.mAlphaMode = Material::AlphaMode::Blend;
 		}
 		else if (alphaMode == "MASK")
 		{
-			material.mAlphaMode = Material::AlphaMode::ALPHAMODE_MASK;
+			material.mAlphaMode = Material::AlphaMode::Mask;
 		}
 
 		material.mAlphaCutoff = static_cast<float>(gltfMaterial.alphaCutoff);

@@ -64,7 +64,7 @@ namespace vkglTF
 
 	struct Material
 	{
-		enum class AlphaMode { ALPHAMODE_OPAQUE, ALPHAMODE_MASK, ALPHAMODE_BLEND };
+		enum class AlphaMode { Opaque, Mask, Blend };
 
 		Material(VulkanDevice* aDevice);
 

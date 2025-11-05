@@ -29,7 +29,7 @@ namespace vkglTF
 
 	Material::Material(VulkanDevice* aDevice)
 		: mVulkanDevice{aDevice}
-		, mAlphaMode{AlphaMode::ALPHAMODE_OPAQUE}
+		, mAlphaMode{AlphaMode::Opaque}
 		, mAlphaCutoff{1.0f}
 		, mMetallicFactor{1.0f}
 		, mRoughnessFactor{1.0f}
