@@ -23,11 +23,10 @@
     <ClCompile Include="Source\EngineProperties.cpp" />
     <ClCompile Include="Source\FileLoader.cpp" />
     <ClCompile Include="Source\Graphics\ImGuiOverlay.cpp" />
-    <ClCompile Include="Source\Graphics\ModelLoader.cpp" />
+    <ClCompile Include="Source\Graphics\ModelManager.cpp" />
     <ClCompile Include="Source\Graphics\TextureManager.cpp" />
     <ClCompile Include="Source\Graphics\VulkanDebug.cpp" />
     <ClCompile Include="Source\Graphics\VulkanDevice.cpp" />
-    <ClCompile Include="Source\Graphics\VulkanGlTFModel.cpp" />
     <ClCompile Include="Source\Graphics\VulkanGlTFTypes.cpp" />
     <ClCompile Include="Source\Graphics\VulkanRenderer.cpp" />
     <ClCompile Include="Source\Graphics\VulkanSwapChain.cpp" />
@@ -51,11 +50,10 @@
     <ClInclude Include="Source\EngineProperties.hpp" />
     <ClInclude Include="Source\FileLoader.hpp" />
     <ClInclude Include="Source\Graphics\ImGuiOverlay.hpp" />
-    <ClInclude Include="Source\Graphics\ModelLoader.hpp" />
+    <ClInclude Include="Source\Graphics\ModelManager.hpp" />
     <ClInclude Include="Source\Graphics\TextureManager.hpp" />
     <ClInclude Include="Source\Graphics\VulkanDebug.hpp" />
     <ClInclude Include="Source\Graphics\VulkanDevice.hpp" />
-    <ClInclude Include="Source\Graphics\VulkanGlTFModel.hpp" />
     <ClInclude Include="Source\Graphics\VulkanGlTFTypes.hpp" />
     <ClInclude Include="Source\Graphics\VulkanInitializers.hpp" />
     <ClInclude Include="Source\Graphics\VulkanRenderer.hpp" />

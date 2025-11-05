@@ -75,9 +75,6 @@
     <ClCompile Include="Source\Graphics\VulkanDevice.cpp">
       <Filter>Source Files\Grapics</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\VulkanGlTFModel.cpp">
-      <Filter>Source Files\Grapics</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Graphics\VulkanGlTFTypes.cpp">
       <Filter>Source Files\Grapics</Filter>
     </ClCompile>
@@ -105,7 +102,7 @@
     <ClCompile Include="Source\Time.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\ModelLoader.cpp">
+    <ClCompile Include="Source\Graphics\ModelManager.cpp">
       <Filter>Source Files\Grapics</Filter>
     </ClCompile>
     <ClCompile Include="Source\Graphics\TextureManager.cpp">
@@ -147,9 +144,6 @@
       <Filter>Header Files\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\VulkanDevice.hpp">
-      <Filter>Header Files\Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\VulkanGlTFModel.hpp">
       <Filter>Header Files\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\VulkanGlTFTypes.hpp">
@@ -203,7 +197,7 @@
     <ClInclude Include="Source\Core\Constants.hpp">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\ModelLoader.hpp">
+    <ClInclude Include="Source\Graphics\ModelManager.hpp">
       <Filter>Header Files\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\TextureManager.hpp">

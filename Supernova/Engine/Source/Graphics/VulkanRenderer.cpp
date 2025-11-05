@@ -9,18 +9,18 @@
 #include "Input/InputManager.hpp"
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
+#include "ModelManager.hpp"
 #include "Profiler/SimpleProfiler.hpp"
 #include "Profiler/SimpleProfilerImGui.hpp"
+#include "TextureManager.hpp"
 #include "Time.hpp"
 #include "Timer.hpp"
 #include "VulkanDebug.hpp"
 #include "VulkanDevice.hpp"
-#include "VulkanGlTFModel.hpp"
 #include "VulkanInitializers.hpp"
 #include "VulkanTools.hpp"
 #include "VulkanTypes.hpp"
 #include "Window.hpp"
-#include "TextureManager.hpp"
 
 #include <algorithm>
 #include <array>
@@ -48,6 +48,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mCamera{nullptr}
 	, mFrameTimer{nullptr}
 	, mTextureManager{nullptr}
+	, mModelManager{nullptr}
 	, mFrameCounter{0}
 	, mAverageFPS{0}
 	, mFPSTimerInterval{1000.0f}
@@ -75,6 +76,7 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	mFrameTimer = new Time::Timer();
 
 	mTextureManager = new TextureManager{};
+	mModelManager = new ModelManager{mTextureManager};
 	
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_4;
 	mEngineProperties->mIsValidationEnabled = true;
@@ -176,6 +178,7 @@ VulkanRenderer::~VulkanRenderer()
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mInstance);
 
+	delete mModelManager;
 	delete mTextureManager;
 	delete mModels.mPlanetModel;
 	delete mModels.mSuzanneModel;
@@ -261,18 +264,15 @@ void VulkanRenderer::LoadAssets()
 {
 	mTextureManager->SetContext(mVulkanDevice, mGraphicsContext.mQueue);
 
-	const Core::uint32 glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-	mModels.mVoyagerModel = new vkglTF::Model(mTextureManager);
+	const Core::uint32 glTFLoadingFlags = FileLoadingFlags::PreTransformVertices | FileLoadingFlags::PreMultiplyVertexColors | FileLoadingFlags::FlipY;
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
-	mModels.mVoyagerModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModels.mVoyagerModel = mModelManager->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
-	mModels.mSuzanneModel = new vkglTF::Model(mTextureManager);
 	const std::filesystem::path suzanneModelPath = "Suzanne_lods.gltf";
-	mModels.mSuzanneModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / suzanneModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModels.mSuzanneModel = mModelManager->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / suzanneModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
-	mModels.mPlanetModel = new vkglTF::Model(mTextureManager);
 	const std::filesystem::path planetModelPath = "Lavaplanet.gltf";
-	mModels.mPlanetModel->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModels.mPlanetModel = mModelManager->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
 	const std::filesystem::path planetTexturePath = "Lavaplanet_rgba.ktx";
 	mTextures.mPlanetTexture.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / planetTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mGraphicsContext.mQueue);
@@ -873,7 +873,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	mPushConstant.mModelMatrix = mVoyagerModelMatrix;
 	vkCmdPushConstants(commandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
 
-	DrawModel(mModels.mVoyagerModel, commandBuffer, vkglTF::RenderFlags::BindImages, mGraphicsContext.mPipelineLayout);
+	DrawModel(mModels.mVoyagerModel, commandBuffer, RenderFlags::BindImages, mGraphicsContext.mPipelineLayout);
 
 	// Draw instanced multi draw models
 	const VkDeviceSize offsets[1] = {0};
@@ -1525,24 +1525,24 @@ void VulkanRenderer::DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aComman
 		{
 			bool shouldSkipPrimitive = false;
 			const vkglTF::Material& material = primitive->material;
-			if (aRenderFlags & vkglTF::RenderFlags::RenderOpaqueNodes)
+			if (aRenderFlags & RenderFlags::RenderOpaqueNodes)
 			{
 				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Opaque);
 			}
 
-			if (aRenderFlags & vkglTF::RenderFlags::RenderAlphaMaskedNodes)
+			if (aRenderFlags & RenderFlags::RenderAlphaMaskedNodes)
 			{
 				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Mask);
 			}
 
-			if (aRenderFlags & vkglTF::RenderFlags::RenderAlphaBlendedNodes)
+			if (aRenderFlags & RenderFlags::RenderAlphaBlendedNodes)
 			{
 				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Blend);
 			}
 
 			if (!shouldSkipPrimitive)
 			{
-				if (aRenderFlags & vkglTF::RenderFlags::BindImages)
+				if (aRenderFlags & RenderFlags::BindImages)
 				{
 					vkCmdBindDescriptorSets(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, aPipelineLayout, aBindImageSet, 1, &material.mDescriptorSet, 0, nullptr);
 				}
