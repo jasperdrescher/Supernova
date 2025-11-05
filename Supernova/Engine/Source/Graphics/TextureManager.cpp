@@ -43,7 +43,7 @@ vkglTF::Texture TextureManager::CreateEmptyTexture()
 	texture.mLayerCount = 1;
 	texture.mMipLevels = 1;
 
-	Core::size bufferSize = static_cast<Core::size>(texture.mWidth * texture.mHeight * 4);
+	const Core::size bufferSize = static_cast<Core::size>(texture.mWidth * texture.mHeight * 4);
 	unsigned char* buffer = new unsigned char[bufferSize];
 	std::memset(buffer, 0, bufferSize);
 
