@@ -5,7 +5,6 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -58,7 +57,7 @@ namespace vkglTF
 		std::vector<Skin*> skins;
 		std::vector<Animation> animations{};
 		Dimensions mDimensions;
-		std::string path;
+		std::filesystem::path path;
 		tinygltf::Model* mCurrentModel;
 		VulkanDevice* mVulkanDevice;
 	};

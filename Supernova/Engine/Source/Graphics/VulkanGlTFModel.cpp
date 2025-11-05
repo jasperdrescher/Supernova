@@ -381,7 +381,7 @@ void vkglTF::Model::LoadImages()
 		image.height = gltfImage.height;
 		image.uri = gltfImage.uri;
 		image.image = gltfImage.image;
-		vkglTF::Texture texture = mTextureManager->CreateTexture(path, image);
+		vkglTF::Texture texture = mTextureManager->CreateTexture(path.relative_path(), image);
 		texture.mIndex = static_cast<std::uint32_t>(textures.size());
 		textures.push_back(texture);
 	}
@@ -615,20 +615,22 @@ void vkglTF::Model::LoadFromFile(const std::filesystem::path& aPath, VulkanDevic
 		gltfContext.SetImageLoader(VulkanGlTFModelLocal::loadImageDataFunc, nullptr);
 	}
 
-	const std::string pathString = aPath.generic_string();
-	size_t pos = pathString.find_last_of('/');
-	path = pathString.substr(0, pos);
+	path = aPath;
+	mVulkanDevice = aDevice;
 
 	std::string error;
 	std::string warning;
 
-	mVulkanDevice = aDevice;
-
 	mCurrentModel = new tinygltf::Model();
-	const bool isFileLoaded = gltfContext.LoadASCIIFromFile(mCurrentModel, &error, &warning, pathString);
+	const bool isFileLoaded = gltfContext.LoadASCIIFromFile(mCurrentModel, &error, &warning, aPath.generic_string());
 	if (!isFileLoaded)
 	{
 		throw std::runtime_error(std::format("Could not load glTF file: {} {}", aPath.generic_string(), error));
+	}
+
+	if (!warning.empty())
+	{
+		std::cout << "Warning for " << aPath << ": " << warning << std::endl;
 	}
 
 	for (const std::string& extension : mCurrentModel->extensionsRequired)
