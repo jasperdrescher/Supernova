@@ -3,6 +3,7 @@
 #include "Core/Types.hpp"
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
+#include "ModelFlags.hpp"
 #include "TextureManager.hpp"
 #include "Timer.hpp"
 #include "VulkanDevice.hpp"
@@ -607,13 +608,13 @@ void ModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfM
 	}
 }
 
-vkglTF::Model* ModelManager::LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, std::uint32_t aFileLoadingFlags, float aScale)
+vkglTF::Model* ModelManager::LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags, float aScale)
 {
 	Time::Timer loadTimer;
 	loadTimer.StartTimer();
 
 	tinygltf::TinyGLTF gltfContext;
-	if (aFileLoadingFlags & FileLoadingFlags::DontLoadImages)
+	if ((aFileLoadingFlags & FileLoadingFlags::DontLoadImages) == FileLoadingFlags::DontLoadImages)
 	{
 		gltfContext.SetImageLoader(VulkanGlTFModelLocal::LoadImageDataFuncEmpty, nullptr);
 	}
@@ -654,7 +655,7 @@ vkglTF::Model* ModelManager::LoadFromFile(const std::filesystem::path& aPath, Vu
 	std::vector<std::uint32_t> indexBuffer;
 	std::vector<vkglTF::Vertex> vertexBuffer;
 
-	if (!(aFileLoadingFlags & FileLoadingFlags::DontLoadImages))
+	if ((aFileLoadingFlags & FileLoadingFlags::DontLoadImages) != FileLoadingFlags::DontLoadImages)
 	{
 		LoadImages(*newModel, sourceGltfModel);
 	}
@@ -691,11 +692,11 @@ vkglTF::Model* ModelManager::LoadFromFile(const std::filesystem::path& aPath, Vu
 	}
 
 	// Pre-Calculations for requested features
-	if ((aFileLoadingFlags & FileLoadingFlags::PreTransformVertices) || (aFileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors) || (aFileLoadingFlags & FileLoadingFlags::FlipY))
+	const bool preTransform = (aFileLoadingFlags & FileLoadingFlags::PreTransformVertices) == FileLoadingFlags::PreTransformVertices;
+	const bool preMultiplyColor = (aFileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors) == FileLoadingFlags::PreMultiplyVertexColors;
+	const bool flipY = (aFileLoadingFlags & FileLoadingFlags::FlipY) == FileLoadingFlags::FlipY;
+	if (preTransform || preMultiplyColor || flipY)
 	{
-		const bool preTransform = aFileLoadingFlags & FileLoadingFlags::PreTransformVertices;
-		const bool preMultiplyColor = aFileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors;
-		const bool flipY = aFileLoadingFlags & FileLoadingFlags::FlipY;
 		for (const vkglTF::Node* node : newModel->linearNodes)
 		{
 			if (node->mMesh)

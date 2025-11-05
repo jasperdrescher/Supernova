@@ -50,6 +50,7 @@
     <ClInclude Include="Source\EngineProperties.hpp" />
     <ClInclude Include="Source\FileLoader.hpp" />
     <ClInclude Include="Source\Graphics\ImGuiOverlay.hpp" />
+    <ClInclude Include="Source\Graphics\ModelFlags.hpp" />
     <ClInclude Include="Source\Graphics\ModelManager.hpp" />
     <ClInclude Include="Source\Graphics\TextureManager.hpp" />
     <ClInclude Include="Source\Graphics\VulkanDebug.hpp" />

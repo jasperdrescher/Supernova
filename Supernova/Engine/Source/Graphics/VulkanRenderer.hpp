@@ -6,6 +6,7 @@
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanTypes.hpp"
+#include "ModelFlags.hpp"
 
 #include <vulkan/vulkan_core.h>
 
@@ -76,8 +77,8 @@ private:
 
 	void OnResizeWindow();
 
-	void DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aCommandBuffer, Core::uint32 aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet);
-	void DrawModel(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer, Core::uint32 aRenderFlags = 0, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, Core::uint32 aBindImageSet = 1);
+	void DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aCommandBuffer, RenderFlags aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet);
+	void DrawModel(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer, RenderFlags aRenderFlags = RenderFlags::None, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, Core::uint32 aBindImageSet = 1);
 	void RenderFrame();
 	void CreatePipelineCache();
 	void PrepareIndirectData();

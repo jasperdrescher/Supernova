@@ -264,7 +264,7 @@ void VulkanRenderer::LoadAssets()
 {
 	mTextureManager->SetContext(mVulkanDevice, mGraphicsContext.mQueue);
 
-	const Core::uint32 glTFLoadingFlags = FileLoadingFlags::PreTransformVertices | FileLoadingFlags::PreMultiplyVertexColors | FileLoadingFlags::FlipY;
+	const FileLoadingFlags glTFLoadingFlags = FileLoadingFlags::PreTransformVertices | FileLoadingFlags::PreMultiplyVertexColors | FileLoadingFlags::FlipY;
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
 	mModels.mVoyagerModel = mModelManager->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
@@ -1517,7 +1517,7 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(const std::filesystem
 	return pipelineShaderStageCreateInfo;
 }
 
-void VulkanRenderer::DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aCommandBuffer, Core::uint32 aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet)
+void VulkanRenderer::DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aCommandBuffer, RenderFlags aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet)
 {
 	if (aNode->mMesh)
 	{
@@ -1525,24 +1525,24 @@ void VulkanRenderer::DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aComman
 		{
 			bool shouldSkipPrimitive = false;
 			const vkglTF::Material& material = primitive->material;
-			if (aRenderFlags & RenderFlags::RenderOpaqueNodes)
+			if ((aRenderFlags & RenderFlags::RenderOpaqueNodes) == RenderFlags::RenderOpaqueNodes)
 			{
 				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Opaque);
 			}
 
-			if (aRenderFlags & RenderFlags::RenderAlphaMaskedNodes)
+			if ((aRenderFlags & RenderFlags::RenderAlphaMaskedNodes) == RenderFlags::RenderAlphaMaskedNodes)
 			{
 				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Mask);
 			}
 
-			if (aRenderFlags & RenderFlags::RenderAlphaBlendedNodes)
+			if ((aRenderFlags & RenderFlags::RenderAlphaBlendedNodes) == RenderFlags::RenderAlphaBlendedNodes)
 			{
 				shouldSkipPrimitive = (material.mAlphaMode != vkglTF::Material::AlphaMode::Blend);
 			}
 
 			if (!shouldSkipPrimitive)
 			{
-				if (aRenderFlags & RenderFlags::BindImages)
+				if ((aRenderFlags & RenderFlags::BindImages) == RenderFlags::BindImages)
 				{
 					vkCmdBindDescriptorSets(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, aPipelineLayout, aBindImageSet, 1, &material.mDescriptorSet, 0, nullptr);
 				}
@@ -1558,7 +1558,7 @@ void VulkanRenderer::DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aComman
 	}
 }
 
-void VulkanRenderer::DrawModel(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer, Core::uint32 aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet)
+void VulkanRenderer::DrawModel(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer, RenderFlags aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet)
 {
 	if (!aModel->buffersBound)
 	{

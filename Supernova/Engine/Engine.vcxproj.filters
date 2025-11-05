@@ -203,6 +203,9 @@
     <ClInclude Include="Source\Graphics\TextureManager.hpp">
       <Filter>Header Files\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Graphics\ModelFlags.hpp">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Timer.hpp">
