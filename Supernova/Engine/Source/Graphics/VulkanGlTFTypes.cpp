@@ -13,11 +13,6 @@
 
 namespace vkglTF
 {
-	Model::Model()
-		: buffersBound{false}
-	{
-	}
-
 	Texture::Texture()
 		: mVulkanDevice{nullptr}
 		, mImage{VK_NULL_HANDLE}

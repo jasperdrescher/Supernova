@@ -1560,17 +1560,19 @@ void VulkanRenderer::DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aComman
 
 void VulkanRenderer::DrawModel(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer, RenderFlags aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet)
 {
-	if (!aModel->buffersBound)
-	{
-		const VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &aModel->vertices.mBuffer, offsets);
-		vkCmdBindIndexBuffer(aCommandBuffer, aModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
-	}
+	BindModelBuffers(aModel, aCommandBuffer);
 
 	for (const vkglTF::Node* node : aModel->nodes)
 	{
 		DrawNode(node, aCommandBuffer, aRenderFlags, aPipelineLayout, aBindImageSet);
 	}
+}
+
+void VulkanRenderer::BindModelBuffers(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer)
+{
+	const VkDeviceSize offsets[1] = {0};
+	vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &aModel->vertices.mBuffer, offsets);
+	vkCmdBindIndexBuffer(aCommandBuffer, aModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
 void VulkanRenderer::RenderFrame()

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Math/Types.hpp"
-#include "VulkanGlTFTypes.hpp"
 #include "ModelFlags.hpp"
+#include "VulkanGlTFTypes.hpp"
 
 #include <cstdint>
 #include <filesystem>
@@ -25,7 +25,6 @@ public:
 	~ModelManager();
 
 	vkglTF::Model* LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags = FileLoadingFlags::None, float aScale = 1.0f);
-	void BindBuffers(vkglTF::Model& aModel, VkCommandBuffer aCommandBuffer);
 
 private:
 	void LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale);

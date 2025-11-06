@@ -250,19 +250,16 @@ namespace vkglTF
 
 	struct Model
 	{
-		Model();
-
 		Vertices vertices{};
 		Indices indices{};
-		std::vector<Node*> nodes;
+		std::vector<Node*> nodes{};
 		std::vector<Texture> textures{};
 		std::vector<Material> materials{};
-		vkglTF::Texture mEmptyTexture;
-		std::vector<Node*> linearNodes;
-		std::vector<Skin*> skins;
+		vkglTF::Texture mEmptyTexture{};
+		std::vector<Node*> linearNodes{};
+		std::vector<Skin*> skins{};
 		std::vector<Animation> animations{};
-		Dimensions mDimensions;
-		std::filesystem::path path;
-		bool buffersBound;
+		Dimensions mDimensions{};
+		std::filesystem::path path{};
 	};
 }

@@ -966,14 +966,6 @@ void ModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<std::uint32_
 	vkFreeMemory(aDevice->mLogicalVkDevice, indexStaging.memory, nullptr);
 }
 
-void ModelManager::BindBuffers(vkglTF::Model& aModel, VkCommandBuffer aCommandBuffer)
-{
-	const VkDeviceSize offsets[1] = {0};
-	vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &aModel.vertices.mBuffer, offsets);
-	vkCmdBindIndexBuffer(aCommandBuffer, aModel.indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
-	aModel.buffersBound = true;
-}
-
 void ModelManager::GetNodeDimensions(const vkglTF::Node* aNode, Math::Vector3f& aMin, Math::Vector3f& aMax)
 {
 	if (aNode->mMesh)

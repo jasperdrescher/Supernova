@@ -2,22 +2,21 @@
 
 #include "Core/Types.hpp"
 #include "Math/Types.hpp"
+#include "ModelFlags.hpp"
 #include "Time.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanTypes.hpp"
-#include "ModelFlags.hpp"
-
-#include <vulkan/vulkan_core.h>
 
 #include <array>
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace vkglTF
 {
-	class Model;
+	struct Model;
 	struct Node;
 }
 
@@ -79,6 +78,7 @@ private:
 
 	void DrawNode(const vkglTF::Node* aNode, VkCommandBuffer aCommandBuffer, RenderFlags aRenderFlags, VkPipelineLayout aPipelineLayout, Core::uint32 aBindImageSet);
 	void DrawModel(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer, RenderFlags aRenderFlags = RenderFlags::None, VkPipelineLayout aPipelineLayout = VK_NULL_HANDLE, Core::uint32 aBindImageSet = 1);
+	void BindModelBuffers(vkglTF::Model* aModel, VkCommandBuffer aCommandBuffer);
 	void RenderFrame();
 	void CreatePipelineCache();
 	void PrepareIndirectData();
