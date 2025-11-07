@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -21,10 +22,10 @@ namespace tinygltf
 class ModelManager
 {
 public:
-	ModelManager(TextureManager* aTextureManager);
+	ModelManager(const std::shared_ptr<TextureManager>& aTextureManager);
 	~ModelManager();
 
-	vkglTF::Model* LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags = FileLoadingFlags::None, float aScale = 1.0f);
+	vkglTF::Model* LoadModel(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags = FileLoadingFlags::None, float aScale = 1.0f);
 
 private:
 	void LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale);
@@ -45,8 +46,7 @@ private:
 	vkglTF::Node* NodeFromIndex(vkglTF::Model& aModel, std::uint32_t aIndex);
 	vkglTF::Texture* GetTexture(vkglTF::Model& aModel, std::uint32_t aIndex);
 
-	TextureManager* mTextureManager;
+	std::weak_ptr<TextureManager> mTextureManager;
 	VulkanDevice* mVulkanDevice;
 	VkDescriptorPool descriptorPool;
-	std::vector<vkglTF::Model> mModels;
 };

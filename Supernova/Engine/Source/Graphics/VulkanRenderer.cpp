@@ -31,13 +31,14 @@
 #include <format>
 #include <imgui.h>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
 VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
-	Window* aWindow)
+	const std::shared_ptr<Window>& aWindow)
 	: mEngineProperties{aEngineProperties}
 	, mWindow{aWindow}
 	, mFramebufferWidth{0}
@@ -73,24 +74,24 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	, mShouldDrawWireframe{false}
 #endif
 {
-	mFrameTimer = new Time::Timer();
+	mFrameTimer = std::make_unique<Time::Timer>();
 
-	mTextureManager = new TextureManager{};
-	mModelManager = new ModelManager{mTextureManager};
+	mTextureManager = std::make_shared<TextureManager>();
+	mModelManager = std::make_unique<ModelManager>(mTextureManager);
 	
 	mEngineProperties->mAPIVersion = VK_API_VERSION_1_4;
 	mEngineProperties->mIsValidationEnabled = true;
 	mEngineProperties->mIsVSyncEnabled = true;
 
-	mFramebufferWidth = mWindow->GetWindowProperties().mWindowWidth;
-	mFramebufferHeight = mWindow->GetWindowProperties().mWindowHeight;
+	mFramebufferWidth = mWindow.lock()->GetWindowProperties().mWindowWidth;
+	mFramebufferHeight = mWindow.lock()->GetWindowProperties().mWindowHeight;
 
 	mPhysicalDevice13Features.dynamicRendering = VK_TRUE;
 
-	mImGuiOverlay = new ImGuiOverlay();
+	mImGuiOverlay = std::make_unique<ImGuiOverlay>();
 
 	// Setup a default look-at camera
-	mCamera = new Camera();
+	mCamera = std::make_unique<Camera>();
 	mCamera->SetType(CameraType::FirstPerson);
 	mCamera->SetPosition(Math::Vector3f(0.5f, 0.0f, -18.5f));
 	mCamera->SetRotationSpeed(10.0f);
@@ -178,13 +179,42 @@ VulkanRenderer::~VulkanRenderer()
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mInstance);
 
-	delete mModelManager;
-	delete mTextureManager;
+	auto destroyModel = [](VkDevice aLogicalDevice, vkglTF::Model* aModel)
+		{
+			vkDestroyBuffer(aLogicalDevice, aModel->vertices.mBuffer, nullptr);
+			vkFreeMemory(aLogicalDevice, aModel->vertices.mMemory, nullptr);
+			vkDestroyBuffer(aLogicalDevice, aModel->indices.mBuffer, nullptr);
+			vkFreeMemory(aLogicalDevice, aModel->indices.mMemory, nullptr);
+
+			for (vkglTF::Node*& node : aModel->nodes)
+			{
+				delete node;
+			}
+
+			for (vkglTF::Skin*& skin : aModel->skins)
+			{
+				delete skin;
+			}
+
+			for (vkglTF::Texture& texture : aModel->textures)
+			{
+				texture.Destroy();
+			}
+
+			aModel->mEmptyTexture.Destroy();
+		};
+
+	destroyModel(mVulkanDevice->mLogicalVkDevice, mModels.mPlanetModel);
+	destroyModel(mVulkanDevice->mLogicalVkDevice, mModels.mSuzanneModel);
+	destroyModel(mVulkanDevice->mLogicalVkDevice, mModels.mVoyagerModel);
+
 	delete mModels.mPlanetModel;
 	delete mModels.mSuzanneModel;
 	delete mModels.mVoyagerModel;
-	delete mFrameTimer;
-	delete mImGuiOverlay;
+
+	mModelManager.reset();
+	mTextureManager.reset();
+
 	delete mVulkanDevice;
 
 	vkDestroyInstance(mInstance, nullptr);
@@ -213,7 +243,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 {
 	SIMPLE_PROFILER_PROFILE_SCOPE("VulkanRenderer::UpdateRenderer");
 
-	if (!mWindow->GetWindowProperties().mIsMinimized)
+	if (!mWindow.lock()->GetWindowProperties().mIsMinimized)
 	{
 		if (mEngineProperties->mIsRendererPrepared)
 		{
@@ -257,7 +287,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 		mCamera->Update(mFrametime);
 	}
 
-	mWindow->UpdateWindow();
+	mWindow.lock()->UpdateWindow();
 }
 
 void VulkanRenderer::LoadAssets()
@@ -266,16 +296,16 @@ void VulkanRenderer::LoadAssets()
 
 	const FileLoadingFlags glTFLoadingFlags = FileLoadingFlags::PreTransformVertices | FileLoadingFlags::PreMultiplyVertexColors | FileLoadingFlags::FlipY;
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
-	mModels.mVoyagerModel = mModelManager->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModels.mVoyagerModel = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
 	const std::filesystem::path suzanneModelPath = "Suzanne_lods.gltf";
-	mModels.mSuzanneModel = mModelManager->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / suzanneModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModels.mSuzanneModel = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / suzanneModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
 	const std::filesystem::path planetModelPath = "Lavaplanet.gltf";
-	mModels.mPlanetModel = mModelManager->LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModels.mPlanetModel = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
 	const std::filesystem::path planetTexturePath = "Lavaplanet_rgba.ktx";
-	mTextures.mPlanetTexture.LoadFromFile(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / planetTexturePath, VK_FORMAT_R8G8B8A8_UNORM, mVulkanDevice, mGraphicsContext.mQueue);
+	mTextures.mPlanetTexture = mTextureManager->CreateTexture(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / planetTexturePath);
 }
 
 void VulkanRenderer::CreateSynchronizationPrimitives()
@@ -354,7 +384,7 @@ void VulkanRenderer::CreateGraphicsDescriptorSets()
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mDescriptorSets[i].mStaticPlanet));
 		const std::vector<VkWriteDescriptorSet> staticPlanetWriteDescriptorSets = {
 			VulkanInitializers::writeDescriptorSet(mDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
-			VulkanInitializers::writeDescriptorSet(mDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mPlanetTexture.mDescriptor),
+			VulkanInitializers::writeDescriptorSet(mDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mPlanetTexture.mDescriptorImageInfo),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
 
@@ -692,7 +722,7 @@ void VulkanRenderer::CreateUIOverlay()
 	mImGuiOverlay->SetMaxConcurrentFrames(gMaxConcurrentFrames);
 	mImGuiOverlay->SetVulkanDevice(mVulkanDevice);
 	mImGuiOverlay->SetVkQueue(mGraphicsContext.mQueue);
-	mImGuiOverlay->SetScale(mWindow->GetContentScaleForMonitor());
+	mImGuiOverlay->SetScale(mWindow.lock()->GetContentScaleForMonitor());
 	mImGuiOverlay->AddShader(LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / UIVertexShaderPath, VK_SHADER_STAGE_VERTEX_BIT));
 	mImGuiOverlay->AddShader(LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / UIFragmentShaderPath, VK_SHADER_STAGE_FRAGMENT_BIT));
 	mImGuiOverlay->PrepareResources();
@@ -1124,9 +1154,9 @@ void VulkanRenderer::SubmitFrameGraphics()
 
 	const VkResult result = vkQueuePresentKHR(mGraphicsContext.mQueue, &presentInfo);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR) || mWindow->GetWindowProperties().mIsFramebufferResized)
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR) || mWindow.lock()->GetWindowProperties().mIsFramebufferResized)
 	{
-		mWindow->OnFramebufferResizeProcessed();
+		mWindow.lock()->OnFramebufferResizeProcessed();
 
 		OnResizeWindow();
 
@@ -1220,7 +1250,7 @@ void VulkanRenderer::CreateVkInstance()
 	if (mEngineProperties->mIsValidationEnabled || std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
 		mInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-	const std::vector<const char*> glfwRequiredExtensions = mWindow->GetGlfwRequiredExtensions();
+	const std::vector<const char*> glfwRequiredExtensions = mWindow.lock()->GetGlfwRequiredExtensions();
 	for (const char* glfwRequiredExtension : glfwRequiredExtensions)
 	{
 		auto iterator = std::ranges::find_if(mInstanceExtensions, [&](const char* aInstanceExtension)
@@ -1296,7 +1326,7 @@ void VulkanRenderer::CreateVkInstance()
 		throw std::runtime_error(std::format("Could not create Vulkan instance: {}", VulkanTools::GetErrorString(result)));
 	}
 
-	mWindow->CreateWindowSurface(&mInstance, &mVulkanSwapChain.mVkSurfaceKHR);
+	mWindow.lock()->CreateWindowSurface(&mInstance, &mVulkanSwapChain.mVkSurfaceKHR);
 
 	// If the debug utils extension is present we set up debug functions, so samples can label objects for debugging
 	if (std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())

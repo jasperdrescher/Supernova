@@ -5,11 +5,13 @@
 #include "ModelFlags.hpp"
 #include "Time.hpp"
 #include "VulkanDevice.hpp"
+#include "VulkanGlTFTypes.hpp"
 #include "VulkanSwapChain.hpp"
 #include "VulkanTypes.hpp"
 
 #include <array>
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -18,6 +20,7 @@ namespace vkglTF
 {
 	struct Model;
 	struct Node;
+	struct Texture;
 }
 
 namespace Time
@@ -35,7 +38,7 @@ class ModelManager;
 class VulkanRenderer
 {
 public:
-	VulkanRenderer(EngineProperties* aEngineProperties, Window* aWindow);
+	VulkanRenderer(EngineProperties* aEngineProperties, const std::shared_ptr<Window>& aWindow);
 	~VulkanRenderer();
 
 	void InitializeRenderer();
@@ -108,7 +111,7 @@ private:
 
 	struct
 	{
-		VulkanTexture2D mPlanetTexture;
+		vkglTF::Texture mPlanetTexture;
 	} mTextures{};
 
 	struct
@@ -160,13 +163,13 @@ private:
 	Math::Matrix4f mPlanetModelMatrix;
 	Math::Vector4f mClearColor;
 	Math::Vector4f mLightPosition;
-	Time::Timer* mFrameTimer;
-	Camera* mCamera;
-	ImGuiOverlay* mImGuiOverlay;
+	std::unique_ptr<Time::Timer> mFrameTimer;
+	std::unique_ptr<Camera> mCamera;
+	std::unique_ptr<ImGuiOverlay> mImGuiOverlay;
 	EngineProperties* mEngineProperties;
-	Window* mWindow;
-	TextureManager* mTextureManager;
-	ModelManager* mModelManager;
+	std::weak_ptr<Window> mWindow;
+	std::shared_ptr<TextureManager> mTextureManager;
+	std::unique_ptr<ModelManager> mModelManager;
 	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
 	float mFrametime;

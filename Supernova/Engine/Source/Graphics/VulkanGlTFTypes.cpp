@@ -45,13 +45,6 @@ namespace vkglTF
 	{
 	}
 
-	void Texture::UpdateDescriptor()
-	{
-		mDescriptorImageInfo.sampler = mSampler;
-		mDescriptorImageInfo.imageView = mImageView;
-		mDescriptorImageInfo.imageLayout = imageLayout;
-	}
-
 	void Texture::Destroy()
 	{
 		if (mVulkanDevice)

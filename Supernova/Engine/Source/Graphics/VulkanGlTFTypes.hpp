@@ -35,17 +35,20 @@ namespace vkglTF
 	{
 		std::vector<unsigned char> image;
 		std::filesystem::path uri;
+		std::string name;
 		unsigned int textureIndex{0};
+		unsigned int layers{1};
 		unsigned int width{0};
 		unsigned int height{0};
 		unsigned int component{0};
 	};
 
+	enum class TextureType { Flat, Array };
+
 	struct Texture
 	{
 		Texture();
 
-		void UpdateDescriptor();
 		void Destroy();
 
 		VulkanDevice* mVulkanDevice;
@@ -60,6 +63,7 @@ namespace vkglTF
 		Core::uint32 mMipLevels;
 		Core::uint32 mLayerCount;
 		Core::uint32 mIndex;
+		TextureType mTextureType{vkglTF::TextureType::Flat};
 	};
 
 	struct Material

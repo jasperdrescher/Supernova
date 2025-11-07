@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 namespace Time
 {
 	struct Timer;
@@ -20,9 +22,9 @@ public:
 
 private:
 	EngineProperties* mEngineProperties;
-	Window* mVulkanWindow;
-	VulkanRenderer* mVulkanRenderer;
-	Time::Timer* mTimer;
+	std::shared_ptr<Window> mVulkanWindow;
+	std::unique_ptr<VulkanRenderer> mVulkanRenderer;
+	std::unique_ptr<Time::Timer> mTimer;
 	float mDeltaTime;
 	float mFixedDeltaTime;
 	float mTimeScale;

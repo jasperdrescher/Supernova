@@ -25,6 +25,7 @@
 #include <cstring>
 #include <algorithm>
 #include <limits>
+#include <memory>
 
 VkDescriptorSetLayout vkglTF::gDescriptorSetLayoutImage = VK_NULL_HANDLE;
 VkDescriptorSetLayout vkglTF::gDescriptorSetLayoutUbo = VK_NULL_HANDLE;
@@ -55,7 +56,7 @@ namespace VulkanGlTFModelLocal
 	}
 }
 
-ModelManager::ModelManager(TextureManager* aTextureManager)
+ModelManager::ModelManager(const std::shared_ptr<TextureManager>& aTextureManager)
 	: mTextureManager{aTextureManager}
 	, mVulkanDevice{nullptr}
 	, descriptorPool{VK_NULL_HANDLE}
@@ -64,26 +65,6 @@ ModelManager::ModelManager(TextureManager* aTextureManager)
 
 ModelManager::~ModelManager()
 {
-	for (auto& test : mModels)
-	{
-		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, test.vertices.mBuffer, nullptr);
-		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, test.vertices.mMemory, nullptr);
-		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, test.indices.mBuffer, nullptr);
-		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, test.indices.mMemory, nullptr);
-
-		for (vkglTF::Node*& node : test.nodes)
-		{
-			delete node;
-		}
-
-		for (vkglTF::Skin*& skin : test.skins)
-		{
-			delete skin;
-		}
-
-		test.mEmptyTexture.Destroy();
-	}
-
 	if (vkglTF::gDescriptorSetLayoutUbo != VK_NULL_HANDLE)
 	{
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, vkglTF::gDescriptorSetLayoutUbo, nullptr);
@@ -388,14 +369,24 @@ void ModelManager::LoadImages(vkglTF::Model& aModel, tinygltf::Model* aGltfModel
 		image.width = gltfImage.width;
 		image.height = gltfImage.height;
 		image.uri = gltfImage.uri;
+		image.name = gltfImage.name;
 		image.image = gltfImage.image;
-		vkglTF::Texture texture = mTextureManager->CreateTexture(aModel.path.relative_path(), image);
+
+		if (gltfImage.extensions.find("KHR_texture_basisu") != gltfImage.extensions.end())
+		{
+			if (gltfImage.extensions.at("KHR_texture_basisu").Has("arrayLayers"))
+			{
+				image.layers = gltfImage.extensions.at("KHR_texture_basisu").Get("arrayLayers").GetNumberAsInt();
+			}
+		}
+
+		vkglTF::Texture texture = mTextureManager.lock()->CreateTexture(aModel.path.relative_path(), image);
 		texture.mIndex = static_cast<std::uint32_t>(aModel.textures.size());
 		aModel.textures.push_back(texture);
 	}
 
 	// Create an empty texture to be used for empty material images
-	aModel.mEmptyTexture = mTextureManager->CreateEmptyTexture();
+	aModel.mEmptyTexture = mTextureManager.lock()->CreateEmptyTexture();
 }
 
 vkglTF::Texture* ModelManager::GetTexture(vkglTF::Model& aModel, std::uint32_t aIndex)
@@ -608,7 +599,7 @@ void ModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfM
 	}
 }
 
-vkglTF::Model* ModelManager::LoadFromFile(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags, float aScale)
+vkglTF::Model* ModelManager::LoadModel(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags, float aScale)
 {
 	Time::Timer loadTimer;
 	loadTimer.StartTimer();
@@ -765,8 +756,6 @@ vkglTF::Model* ModelManager::LoadFromFile(const std::filesystem::path& aPath, Vu
 	std::cout << "Loaded GLTF model " << aPath.filename() << " " << std::format("({:.2f}s)", loadTimer.GetDurationSeconds()) << std::endl;
 
 	delete sourceGltfModel;
-
-	mModels.push_back(*newModel);
 
 	return newModel;
 }

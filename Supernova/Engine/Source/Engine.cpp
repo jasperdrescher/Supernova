@@ -9,6 +9,7 @@
 
 #include <format>
 #include <iostream>
+#include <memory>
 
 Engine::Engine()
 	: mEngineProperties{nullptr}
@@ -20,9 +21,9 @@ Engine::Engine()
 	, mDeltaTime{0.0f}
 {
 	mEngineProperties = new EngineProperties();
-	mVulkanWindow = new Window();
-	mVulkanRenderer = new VulkanRenderer(mEngineProperties, mVulkanWindow);
-	mTimer = new Time::Timer();
+	mVulkanWindow = std::make_shared<Window>();
+	mVulkanRenderer = std::make_unique<VulkanRenderer>(mEngineProperties, mVulkanWindow);
+	mTimer = std::make_unique<Time::Timer>();
 
 	mEngineProperties->mApplicationName = "Supernova Editor";
 	mEngineProperties->mEngineName = "Supernova Engine";
@@ -31,9 +32,6 @@ Engine::Engine()
 
 Engine::~Engine()
 {
-	delete mTimer;
-	delete mVulkanRenderer;
-	delete mVulkanWindow;
 	delete mEngineProperties;
 }
 

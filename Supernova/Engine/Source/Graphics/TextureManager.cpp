@@ -2,6 +2,7 @@
 
 #include "Core/Types.hpp"
 #include "FileLoader.cpp"
+#include "Timer.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanGlTFTypes.hpp"
 #include "VulkanTools.hpp"
@@ -11,6 +12,7 @@
 #include <cstring>
 #include <filesystem>
 #include <format>
+#include <iostream>
 #include <ktx.h>
 #include <ktxvulkan.h>
 #include <stdexcept>
@@ -135,7 +137,12 @@ vkglTF::Texture TextureManager::CreateEmptyTexture()
 		.image = texture.mImage,
 		.viewType = VK_IMAGE_VIEW_TYPE_2D,
 		.format = VK_FORMAT_R8G8B8A8_UNORM,
-		.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1 },
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1 },
 	};
 	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &viewCreateInfo, nullptr, &texture.mImageView));
 
@@ -146,9 +153,39 @@ vkglTF::Texture TextureManager::CreateEmptyTexture()
 	return texture;
 }
 
+vkglTF::Texture TextureManager::CreateTexture(const std::filesystem::path& aPath)
+{
+	Time::Timer loadTimer;
+	loadTimer.StartTimer();
+
+	const bool isKtx = aPath.extension() == ".ktx";
+	if (!isKtx)
+	{
+		throw std::runtime_error(std::format("Texture is not ktx: {}", aPath.generic_string()));
+	}
+
+	VkFormat format = VK_FORMAT_UNDEFINED;
+
+	vkglTF::Texture texture{};
+	texture.mVulkanDevice = mVulkanDevice;
+
+	CreateFromKtxTexture(aPath, texture, format);
+
+	CreateResources(texture, format);
+
+	loadTimer.EndTimer();
+
+	std::cout << "Loaded texture " << aPath.filename() << " " << std::format("({:.2f}ms)", loadTimer.GetDurationMilliseconds()) << std::endl;
+
+	return texture;
+}
+
 vkglTF::Texture TextureManager::CreateTexture(const std::filesystem::path& aPath, vkglTF::Image& aImage)
 {
-	const bool isKtx = aPath.extension().compare("ktx") == 0;
+	Time::Timer loadTimer;
+	loadTimer.StartTimer();
+
+	const bool isKtx = aPath.extension() == ".ktx";
 
 	VkFormat format = VK_FORMAT_UNDEFINED;
 
@@ -161,37 +198,14 @@ vkglTF::Texture TextureManager::CreateTexture(const std::filesystem::path& aPath
 	}
 	else
 	{
-		CreateFromIncludedTexture(aImage, texture, format);
+		CreateFromEmbeddedTexture(aImage, texture, format);
 	}
 
-	const VkSamplerCreateInfo samplerCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-		.magFilter = VK_FILTER_LINEAR,
-		.minFilter = VK_FILTER_LINEAR,
-		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-		.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-		.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-		.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
-		.anisotropyEnable = VK_TRUE,
-		.maxAnisotropy = 8.0f,
-		.compareOp = VK_COMPARE_OP_NEVER,
-		.maxLod = static_cast<float>(texture.mMipLevels),
-		.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
-	};
-	VK_CHECK_RESULT(vkCreateSampler(mVulkanDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &texture.mSampler));
+	CreateResources(texture, format);
 
-	const VkImageViewCreateInfo imageViewCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		.image = texture.mImage,
-		.viewType = VK_IMAGE_VIEW_TYPE_2D,
-		.format = format,
-		.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = texture.mMipLevels, .layerCount = 1 }
-	};
-	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &imageViewCreateInfo, nullptr, &texture.mImageView));
+	loadTimer.EndTimer();
 
-	texture.mDescriptorImageInfo.sampler = texture.mSampler;
-	texture.mDescriptorImageInfo.imageView = texture.mImageView;
-	texture.mDescriptorImageInfo.imageLayout = texture.imageLayout;
+	std::cout << "Loaded texture " << aImage.name << " " << std::format("({:.2f}ms)", loadTimer.GetDurationMilliseconds()) << std::endl;
 
 	return texture;
 }
@@ -214,14 +228,16 @@ void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vk
 	aTexture.mWidth = ktxTexture->baseWidth;
 	aTexture.mHeight = ktxTexture->baseHeight;
 	aTexture.mMipLevels = ktxTexture->numLevels;
+	aTexture.mLayerCount = ktxTexture->numLayers;
+
+	if (aTexture.mLayerCount > 1)
+	{
+		aTexture.mTextureType = vkglTF::TextureType::Array;
+	}
 
 	const ktx_uint8_t* ktxTextureData = ktxTexture_GetData(ktxTexture);
 	const ktx_size_t ktxTextureSize = ktxTexture_GetDataSize(ktxTexture);
 	aFormat = ktxTexture_GetVkFormat(ktxTexture);
-
-	// Get device properties for the requested texture format
-	VkFormatProperties formatProperties;
-	vkGetPhysicalDeviceFormatProperties(mVulkanDevice->mVkPhysicalDevice, aFormat, &formatProperties);
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingMemory;
@@ -251,30 +267,33 @@ void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vk
 	vkUnmapMemory(mVulkanDevice->mLogicalVkDevice, stagingMemory);
 
 	std::vector<VkBufferImageCopy> bufferCopyRegions;
-	for (Core::uint32 i = 0; i < aTexture.mMipLevels; i++)
+	for (Core::uint32 layer = 0; layer < aTexture.mLayerCount; layer++)
 	{
-		ktx_size_t offset;
-		const KTX_error_code getImageOffsetResult = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
-		if (!getImageOffsetResult != KTX_SUCCESS)
+		for (Core::uint32 mipLevel = 0; mipLevel < aTexture.mMipLevels; mipLevel++)
 		{
-			throw std::runtime_error("Could not get image offset");
-		}
-
-		const VkBufferImageCopy bufferCopyRegion{
-			.bufferOffset = offset,
-			.imageSubresource = {
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.mipLevel = i,
-				.baseArrayLayer = 0,
-				.layerCount = 1
-			},
-			.imageExtent = {
-				.width = std::max(1u, ktxTexture->baseWidth >> i),
-				.height = std::max(1u, ktxTexture->baseHeight >> i),
-				.depth = 1
+			ktx_size_t offset;
+			const KTX_error_code getImageOffsetResult = ktxTexture_GetImageOffset(ktxTexture, mipLevel, layer, 0, &offset);
+			if (getImageOffsetResult != KTX_SUCCESS)
+			{
+				throw std::runtime_error("Could not get image offset");
 			}
-		};
-		bufferCopyRegions.push_back(bufferCopyRegion);
+
+			const VkBufferImageCopy bufferCopyRegion{
+				.bufferOffset = offset,
+				.imageSubresource = {
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.mipLevel = mipLevel,
+					.baseArrayLayer = layer,
+					.layerCount = 1
+				},
+				.imageExtent = {
+					.width = std::max(1u, ktxTexture->baseWidth >> mipLevel),
+					.height = std::max(1u, ktxTexture->baseHeight >> mipLevel),
+					.depth = 1
+				}
+			};
+			bufferCopyRegions.push_back(bufferCopyRegion);
+		}
 	}
 
 	// Create optimal tiled target image
@@ -284,7 +303,7 @@ void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vk
 		.format = aFormat,
 		.extent = {.width = aTexture.mWidth, .height = aTexture.mHeight, .depth = 1 },
 		.mipLevels = aTexture.mMipLevels,
-		.arrayLayers = 1,
+		.arrayLayers = aTexture.mLayerCount,
 		.samples = VK_SAMPLE_COUNT_1_BIT,
 		.tiling = VK_IMAGE_TILING_OPTIMAL,
 		.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
@@ -305,15 +324,39 @@ void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vk
 	VK_CHECK_RESULT(vkBindImageMemory(mVulkanDevice->mLogicalVkDevice, aTexture.mImage, aTexture.mDeviceMemory, 0));
 
 	VkCommandBuffer copyCommandBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-	const VkImageSubresourceRange subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = aTexture.mMipLevels, .layerCount = 1};
-	VulkanTools::SetImageLayout(copyCommandBuffer, aTexture.mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
 
-	vkCmdCopyBufferToImage(copyCommandBuffer, stagingBuffer, aTexture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, static_cast<Core::uint32>(bufferCopyRegions.size()), bufferCopyRegions.data());
+	const VkImageSubresourceRange subresourceRange
+	{
+		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		.baseMipLevel = 0,
+		.levelCount = aTexture.mMipLevels,
+		.layerCount = aTexture.mLayerCount
+	};
+	VulkanTools::SetImageLayout(
+		copyCommandBuffer,
+		aTexture.mImage,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		subresourceRange);
 
-	VulkanTools::SetImageLayout(copyCommandBuffer, aTexture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange);
+	vkCmdCopyBufferToImage(
+		copyCommandBuffer,
+		stagingBuffer,
+		aTexture.mImage,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		static_cast<Core::uint32>(bufferCopyRegions.size()),
+		bufferCopyRegions.data());
+
+	VulkanTools::SetImageLayout(
+		copyCommandBuffer,
+		aTexture.mImage,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		subresourceRange);
+
+	aTexture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	mVulkanDevice->FlushCommandBuffer(copyCommandBuffer, mTransferQueue, true);
-	aTexture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, stagingBuffer, nullptr);
 	vkFreeMemory(mVulkanDevice->mLogicalVkDevice, stagingMemory, nullptr);
@@ -321,7 +364,7 @@ void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vk
 	ktxTexture_Destroy(ktxTexture);
 }
 
-void TextureManager::CreateFromIncludedTexture(vkglTF::Image& aImage, vkglTF::Texture& aTexture, VkFormat& aFormat)
+void TextureManager::CreateFromEmbeddedTexture(vkglTF::Image& aImage, vkglTF::Texture& aTexture, VkFormat& aFormat)
 {
 	// Texture was loaded using STB_Image
 	unsigned char* buffer = nullptr;
@@ -363,6 +406,7 @@ void TextureManager::CreateFromIncludedTexture(vkglTF::Image& aImage, vkglTF::Te
 	aTexture.mWidth = aImage.width;
 	aTexture.mHeight = aImage.height;
 	aTexture.mMipLevels = static_cast<Core::uint32>(std::floor(std::log2(std::max(aTexture.mWidth, aTexture.mHeight))) + 1.0);
+	aTexture.mLayerCount = aImage.layers;
 
 	VkFormatProperties formatProperties;
 	vkGetPhysicalDeviceFormatProperties(mVulkanDevice->mVkPhysicalDevice, aFormat, &formatProperties);
@@ -560,4 +604,45 @@ void TextureManager::CreateFromIncludedTexture(vkglTF::Image& aImage, vkglTF::Te
 	}
 
 	mVulkanDevice->FlushCommandBuffer(blitCommandBuffer, mTransferQueue, true);
+}
+
+void TextureManager::CreateResources(vkglTF::Texture& aTexture, const VkFormat& aFormat)
+{
+	const VkSamplerAddressMode samplerAddressMode = aTexture.mTextureType == vkglTF::TextureType::Flat ? VK_SAMPLER_ADDRESS_MODE_REPEAT : VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	const VkSamplerCreateInfo samplerCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		.magFilter = VK_FILTER_LINEAR,
+		.minFilter = VK_FILTER_LINEAR,
+		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		.addressModeU = samplerAddressMode,
+		.addressModeV = samplerAddressMode,
+		.addressModeW = samplerAddressMode,
+		.mipLodBias = 0.0f,
+		.anisotropyEnable = mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy,
+		.maxAnisotropy = mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? mVulkanDevice->mVkPhysicalDeviceProperties.limits.maxSamplerAnisotropy : 1.0f,
+		.compareOp = VK_COMPARE_OP_NEVER,
+		.minLod = 0.0f,
+		.maxLod = static_cast<float>(aTexture.mMipLevels),
+		.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+	};
+	VK_CHECK_RESULT(vkCreateSampler(mVulkanDevice->mLogicalVkDevice, &samplerCreateInfo, nullptr, &aTexture.mSampler));
+
+	const VkImageViewType imageViewType = aTexture.mTextureType == vkglTF::TextureType::Flat ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+	const VkImageViewCreateInfo imageViewCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = aTexture.mImage,
+		.viewType = imageViewType,
+		.format = aFormat,
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = aTexture.mMipLevels,
+			.baseArrayLayer = 0,
+			.layerCount = aTexture.mLayerCount }
+	};
+	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &imageViewCreateInfo, nullptr, &aTexture.mImageView));
+
+	aTexture.mDescriptorImageInfo.sampler = aTexture.mSampler;
+	aTexture.mDescriptorImageInfo.imageView = aTexture.mImageView;
+	aTexture.mDescriptorImageInfo.imageLayout = aTexture.imageLayout;
 }

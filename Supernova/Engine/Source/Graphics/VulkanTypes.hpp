@@ -76,42 +76,6 @@ struct DepthStencil
 	VkImageView mVkImageView;
 };
 
-class VulkanTexture
-{
-public:
-	VulkanTexture();
-
-	void UpdateDescriptor();
-	void Destroy();
-
-	ktxResult LoadKTXFile(const std::filesystem::path& aPath, ktxTexture** aTargetTexture);
-
-	VulkanDevice* mDevice;
-	VkImage mImage;
-	VkImageLayout mImageLayout;
-	VkDeviceMemory mDeviceMemory;
-	VkImageView mView;
-	Core::uint32 mWidth;
-	Core::uint32 mHeight;
-	Core::uint32 mMipLevels;
-	Core::uint32 mLayerCount;
-	VkDescriptorImageInfo mDescriptor;
-	VkSampler mSampler;
-};
-
-class VulkanTexture2D : public VulkanTexture
-{
-public:
-	void LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	void FromBuffer(void* aBuffer, VkDeviceSize aBufferSize, VkFormat aFormat, Core::uint32 aWidth, Core::uint32 aHeight, VulkanDevice* aDevice, VkQueue aCopyQueue, VkFilter aFilter = VK_FILTER_LINEAR, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-};
-
-class VulkanTexture2DArray : public VulkanTexture
-{
-public:
-	void LoadFromFile(const std::filesystem::path& aPath, VkFormat aFormat, VulkanDevice* aDevice, VkQueue aCopyQueue, VkImageUsageFlags aImageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, VkImageLayout aImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-};
-
 class ViewFrustum
 {
 public:
