@@ -572,6 +572,9 @@ static int TranslateUntranslatedKey(int aKey, int aScancode)
 
 void ImGuiOverlay::OnKeyCallback(int aKeycode, int aScancode, int aAction, int /*aMods*/)
 {
+	if (!ImGui::GetCurrentContext())
+		return;
+
 	if (aAction != GLFW_PRESS && aAction != GLFW_RELEASE)
 		return;
 
@@ -586,12 +589,18 @@ void ImGuiOverlay::OnKeyCallback(int aKeycode, int aScancode, int aAction, int /
 
 void ImGuiOverlay::OnWindowFocusCallback(int aFocused)
 {
+	if (!ImGui::GetCurrentContext())
+		return;
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.AddFocusEvent(aFocused != 0);
 }
 
 void ImGuiOverlay::OnCharCallback(unsigned int aChar)
 {
+	if (!ImGui::GetCurrentContext())
+		return;
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.AddInputCharacter(aChar);
 }
