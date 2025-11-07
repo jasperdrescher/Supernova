@@ -6,6 +6,7 @@
 #include "ModelFlags.hpp"
 #include "TextureManager.hpp"
 #include "Timer.hpp"
+#include "UniqueIdentifier.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanTools.hpp"
 
@@ -26,6 +27,7 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <utility>
 
 VkDescriptorSetLayout vkglTF::gDescriptorSetLayoutImage = VK_NULL_HANDLE;
 VkDescriptorSetLayout vkglTF::gDescriptorSetLayoutUbo = VK_NULL_HANDLE;
@@ -65,6 +67,31 @@ ModelManager::ModelManager(const std::shared_ptr<TextureManager>& aTextureManage
 
 ModelManager::~ModelManager()
 {
+	for (const std::pair<UniqueIdentifier, vkglTF::Model*>& pair : mModels)
+	{
+		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, pair.second->vertices.mBuffer, nullptr);
+		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, pair.second->vertices.mMemory, nullptr);
+		vkDestroyBuffer(mVulkanDevice->mLogicalVkDevice, pair.second->indices.mBuffer, nullptr);
+		vkFreeMemory(mVulkanDevice->mLogicalVkDevice, pair.second->indices.mMemory, nullptr);
+
+		for (vkglTF::Node*& node : pair.second->nodes)
+		{
+			delete node;
+		}
+
+		for (vkglTF::Skin*& skin : pair.second->skins)
+		{
+			delete skin;
+		}
+
+		for (vkglTF::Texture& texture : pair.second->textures)
+		{
+			texture.Destroy();
+		}
+
+		pair.second->mEmptyTexture.Destroy();
+	}
+
 	if (vkglTF::gDescriptorSetLayoutUbo != VK_NULL_HANDLE)
 	{
 		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, vkglTF::gDescriptorSetLayoutUbo, nullptr);
@@ -599,7 +626,7 @@ void ModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfM
 	}
 }
 
-vkglTF::Model* ModelManager::LoadModel(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags, float aScale)
+UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags, float aScale)
 {
 	Time::Timer loadTimer;
 	loadTimer.StartTimer();
@@ -757,7 +784,15 @@ vkglTF::Model* ModelManager::LoadModel(const std::filesystem::path& aPath, Vulka
 
 	delete sourceGltfModel;
 
-	return newModel;
+	UniqueIdentifier identifier{};
+	mModels.emplace(identifier, newModel);
+
+	return identifier;
+}
+
+vkglTF::Model* ModelManager::GetModel(const UniqueIdentifier aIdentifier) const
+{
+	return mModels.contains(aIdentifier) ? mModels.at(aIdentifier) : nullptr;
 }
 
 void ModelManager::CreateDescriptorSets(vkglTF::Model& aModel, VulkanDevice* aDevice)

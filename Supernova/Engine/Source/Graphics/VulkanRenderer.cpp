@@ -179,39 +179,6 @@ VulkanRenderer::~VulkanRenderer()
 	if (mEngineProperties->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mInstance);
 
-	auto destroyModel = [](VkDevice aLogicalDevice, vkglTF::Model* aModel)
-		{
-			vkDestroyBuffer(aLogicalDevice, aModel->vertices.mBuffer, nullptr);
-			vkFreeMemory(aLogicalDevice, aModel->vertices.mMemory, nullptr);
-			vkDestroyBuffer(aLogicalDevice, aModel->indices.mBuffer, nullptr);
-			vkFreeMemory(aLogicalDevice, aModel->indices.mMemory, nullptr);
-
-			for (vkglTF::Node*& node : aModel->nodes)
-			{
-				delete node;
-			}
-
-			for (vkglTF::Skin*& skin : aModel->skins)
-			{
-				delete skin;
-			}
-
-			for (vkglTF::Texture& texture : aModel->textures)
-			{
-				texture.Destroy();
-			}
-
-			aModel->mEmptyTexture.Destroy();
-		};
-
-	destroyModel(mVulkanDevice->mLogicalVkDevice, mModels.mPlanetModel);
-	destroyModel(mVulkanDevice->mLogicalVkDevice, mModels.mSuzanneModel);
-	destroyModel(mVulkanDevice->mLogicalVkDevice, mModels.mVoyagerModel);
-
-	delete mModels.mPlanetModel;
-	delete mModels.mSuzanneModel;
-	delete mModels.mVoyagerModel;
-
 	mModelManager.reset();
 	mTextureManager.reset();
 
@@ -296,13 +263,13 @@ void VulkanRenderer::LoadAssets()
 
 	const FileLoadingFlags glTFLoadingFlags = FileLoadingFlags::PreTransformVertices | FileLoadingFlags::PreMultiplyVertexColors | FileLoadingFlags::FlipY;
 	const std::filesystem::path voyagerModelPath = "Voyager.gltf";
-	mModels.mVoyagerModel = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModelIdentifiers.mVoyagerModelIdentifier = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / voyagerModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
 	const std::filesystem::path suzanneModelPath = "Suzanne_lods.gltf";
-	mModels.mSuzanneModel = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / suzanneModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModelIdentifiers.mSuzanneModelIdentifier = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / suzanneModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
 	const std::filesystem::path planetModelPath = "Lavaplanet.gltf";
-	mModels.mPlanetModel = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
+	mModelIdentifiers.mPlanetModelIdentifier = mModelManager->LoadModel(FileLoader::GetEngineResourcesPath() / FileLoader::gModelsPath / planetModelPath, mVulkanDevice, mGraphicsContext.mQueue, glTFLoadingFlags, 1.0f);
 
 	const std::filesystem::path planetTexturePath = "Lavaplanet_rgba.ktx";
 	mTextures.mPlanetTexture = mTextureManager->CreateTexture(FileLoader::GetEngineResourcesPath() / FileLoader::gTexturesPath / planetTexturePath);
@@ -653,7 +620,7 @@ void VulkanRenderer::CreateComputePipelines()
 		.size = sizeof(Core::uint32)
 	};
 
-	const Core::uint32 specializationData = static_cast<Core::uint32>(mModels.mSuzanneModel->nodes.size()) - 1;
+	const Core::uint32 specializationData = static_cast<Core::uint32>(mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->nodes.size()) - 1;
 
 	const VkSpecializationInfo specializationInfo =
 	{
@@ -895,7 +862,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	mPushConstant.mModelMatrix = mPlanetModelMatrix;
 	vkCmdPushConstants(commandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
 
-	DrawModel(mModels.mPlanetModel, commandBuffer);
+	DrawModel(mModelManager->GetModel(mModelIdentifiers.mPlanetModelIdentifier), commandBuffer);
 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsContext.mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
@@ -903,7 +870,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	mPushConstant.mModelMatrix = mVoyagerModelMatrix;
 	vkCmdPushConstants(commandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
 
-	DrawModel(mModels.mVoyagerModel, commandBuffer, RenderFlags::BindImages, mGraphicsContext.mPipelineLayout);
+	DrawModel(mModelManager->GetModel(mModelIdentifiers.mVoyagerModelIdentifier), commandBuffer, RenderFlags::BindImages, mGraphicsContext.mPipelineLayout);
 
 	// Draw instanced multi draw models
 	const VkDeviceSize offsets[1] = {0};
@@ -915,9 +882,9 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mInstancedSuzanne);
 #endif
 
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModels.mSuzanneModel->vertices.mBuffer, offsets);
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->vertices.mBuffer, offsets);
 	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
-	vkCmdBindIndexBuffer(commandBuffer, mModels.mSuzanneModel->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(commandBuffer, mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
 	
 	// One draw call for an arbitrary number of objects
 	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
@@ -1496,7 +1463,7 @@ void VulkanRenderer::PrepareInstanceData()
 	std::vector<LOD> LODLevels;
 
 	Core::uint32 nodeIndex = 0;
-	for (const vkglTF::Node* node : mModels.mSuzanneModel->nodes)
+	for (const vkglTF::Node* node : mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->nodes)
 	{
 		LOD lod{};
 		lod.firstIndex = node->mMesh->mPrimitives[0]->firstIndex; // First index for this LOD
@@ -1818,19 +1785,19 @@ void VulkanRenderer::OnUpdateUIOverlay()
 
 			if (ImGui::Button("Planet"))
 			{
-				selectedModel = mModels.mPlanetModel;
+				selectedModel = mModelManager->GetModel(mModelIdentifiers.mPlanetModelIdentifier);
 				mShouldShowModelInspector = true;
 			}
 
 			if (ImGui::Button("Voyager"))
 			{
-				selectedModel = mModels.mVoyagerModel;
+				selectedModel = mModelManager->GetModel(mModelIdentifiers.mVoyagerModelIdentifier);
 				mShouldShowModelInspector = true;
 			}
 
 			if (ImGui::Button("Suzanne"))
 			{
-				selectedModel = mModels.mSuzanneModel;
+				selectedModel = mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier);
 				mShouldShowModelInspector = true;
 			}
 

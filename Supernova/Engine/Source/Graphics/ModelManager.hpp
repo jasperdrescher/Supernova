@@ -2,10 +2,12 @@
 
 #include "Math/Types.hpp"
 #include "ModelFlags.hpp"
+#include "UniqueIdentifier.hpp"
 #include "VulkanGlTFTypes.hpp"
 
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -25,7 +27,8 @@ public:
 	ModelManager(const std::shared_ptr<TextureManager>& aTextureManager);
 	~ModelManager();
 
-	vkglTF::Model* LoadModel(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags = FileLoadingFlags::None, float aScale = 1.0f);
+	UniqueIdentifier LoadModel(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags = FileLoadingFlags::None, float aScale = 1.0f);
+	vkglTF::Model* GetModel(const UniqueIdentifier aIdentifier) const;
 
 private:
 	void LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale);
@@ -49,4 +52,5 @@ private:
 	std::weak_ptr<TextureManager> mTextureManager;
 	VulkanDevice* mVulkanDevice;
 	VkDescriptorPool descriptorPool;
+	std::map<UniqueIdentifier, vkglTF::Model*> mModels;
 };

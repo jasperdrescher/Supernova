@@ -4,6 +4,7 @@
 #include "Math/Types.hpp"
 #include "ModelFlags.hpp"
 #include "Time.hpp"
+#include "UniqueIdentifier.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanGlTFTypes.hpp"
 #include "VulkanSwapChain.hpp"
@@ -116,10 +117,10 @@ private:
 
 	struct
 	{
-		vkglTF::Model* mVoyagerModel{nullptr};
-		vkglTF::Model* mSuzanneModel{nullptr};
-		vkglTF::Model* mPlanetModel{nullptr};
-	} mModels{};
+		UniqueIdentifier mVoyagerModelIdentifier;
+		UniqueIdentifier mSuzanneModelIdentifier;
+		UniqueIdentifier mPlanetModelIdentifier;
+	} mModelIdentifiers{};
 
 	struct
 	{
