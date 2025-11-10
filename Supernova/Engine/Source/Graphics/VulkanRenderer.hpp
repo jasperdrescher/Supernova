@@ -90,7 +90,8 @@ private:
 	void InitializeSwapchain();
 	void CreateGraphicsCommandPool();
 	void SetupSwapchain();
-	void DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer);
+	void DrawModels(VkCommandBuffer aCommandBuffer);
+	void DrawImGuiOverlay(VkCommandBuffer aCommandBuffer);
 	void UpdateUIOverlay();
 	void OnUpdateUIOverlay();
 

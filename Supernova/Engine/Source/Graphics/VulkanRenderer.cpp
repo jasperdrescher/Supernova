@@ -841,7 +841,6 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 		.pStencilAttachment = &depthStencilAttachmentInfo
 	};
 
-	// Begin dynamic rendering
 	vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
 	const VkViewport viewport = VulkanInitializers::Viewport(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f);
@@ -850,60 +849,10 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	const VkRect2D scissor = VulkanInitializers::Rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	// Draw non-instanced static models
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsContext.mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentBufferIndex].mStaticPlanet, 0, nullptr);
-
-#ifdef _DEBUG
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mPlanetWireframe : mVkPipelines.mPlanet);
-#else
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
-#endif
-
-	mPushConstant.mModelMatrix = mPlanetModelMatrix;
-	vkCmdPushConstants(commandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
-
-	DrawModel(mModelManager->GetModel(mModelIdentifiers.mPlanetModelIdentifier), commandBuffer);
-
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsContext.mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
-
-	mPushConstant.mModelMatrix = mVoyagerModelMatrix;
-	vkCmdPushConstants(commandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
-
-	DrawModel(mModelManager->GetModel(mModelIdentifiers.mVoyagerModelIdentifier), commandBuffer, RenderFlags::BindImages, mGraphicsContext.mPipelineLayout);
-
-	// Draw instanced multi draw models
-	const VkDeviceSize offsets[1] = {0};
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsContext.mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentBufferIndex].mSuzanneModel, 0, nullptr);
-
-#ifdef _DEBUG
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mInstancedSuzanneWireframe : mVkPipelines.mInstancedSuzanne);
-#else
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mInstancedSuzanne);
-#endif
-
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->vertices.mBuffer, offsets);
-	vkCmdBindVertexBuffers(commandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
-	vkCmdBindIndexBuffer(commandBuffer, mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
-	
-	// One draw call for an arbitrary number of objects
-	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
-	{
-		// Index offsets and instance count are taken from the indirect buffer
-		vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, 0, static_cast<Core::uint32>(mIndirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
-	}
-	else
-	{
-		// Issue separate draw commands
-		for (Core::size j = 0; j < mIndirectCommands.size(); j++)
-		{
-			vkCmdDrawIndexedIndirect(commandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
-		}
-	}
+	DrawModels(commandBuffer);
 
 	DrawImGuiOverlay(commandBuffer);
 
-	// End dynamic rendering
 	vkCmdEndRendering(commandBuffer);
 
 	// This set of barriers prepares the color image for presentation, we don't need to care for the depth image
@@ -1688,13 +1637,67 @@ void VulkanRenderer::SetupSwapchain()
 	mVulkanSwapChain.CreateSwapchain(mFramebufferWidth, mFramebufferHeight, mEngineProperties->mIsVSyncEnabled);
 }
 
-void VulkanRenderer::DrawImGuiOverlay(const VkCommandBuffer aVkCommandBuffer)
+void VulkanRenderer::DrawModels(VkCommandBuffer aCommandBuffer)
+{
+	// Draw non-instanced static models
+	vkCmdBindDescriptorSets(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsContext.mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentBufferIndex].mStaticPlanet, 0, nullptr);
+
+#ifdef _DEBUG
+	vkCmdBindPipeline(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mPlanetWireframe : mVkPipelines.mPlanet);
+#else
+	vkCmdBindPipeline(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mPlanet);
+#endif
+
+	mPushConstant.mModelMatrix = mPlanetModelMatrix;
+	vkCmdPushConstants(aCommandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
+
+	DrawModel(mModelManager->GetModel(mModelIdentifiers.mPlanetModelIdentifier), aCommandBuffer);
+
+	vkCmdBindDescriptorSets(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsContext.mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentBufferIndex].mStaticVoyager, 0, nullptr);
+	vkCmdBindPipeline(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mVoyager);
+
+	mPushConstant.mModelMatrix = mVoyagerModelMatrix;
+	vkCmdPushConstants(aCommandBuffer, mGraphicsContext.mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstant), &mPushConstant);
+
+	DrawModel(mModelManager->GetModel(mModelIdentifiers.mVoyagerModelIdentifier), aCommandBuffer, RenderFlags::BindImages, mGraphicsContext.mPipelineLayout);
+
+	// Draw instanced multi draw models
+	const VkDeviceSize offsets[1] = {0};
+	vkCmdBindDescriptorSets(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsContext.mPipelineLayout, 0, 1, &mDescriptorSets[mCurrentBufferIndex].mSuzanneModel, 0, nullptr);
+
+#ifdef _DEBUG
+	vkCmdBindPipeline(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mShouldDrawWireframe ? mVkPipelines.mInstancedSuzanneWireframe : mVkPipelines.mInstancedSuzanne);
+#else
+	vkCmdBindPipeline(aCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mVkPipelines.mInstancedSuzanne);
+#endif
+
+	vkCmdBindVertexBuffers(aCommandBuffer, 0, 1, &mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->vertices.mBuffer, offsets);
+	vkCmdBindVertexBuffers(aCommandBuffer, 1, 1, &mInstanceBuffer.mVkBuffer, offsets);
+	vkCmdBindIndexBuffer(aCommandBuffer, mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+	// One draw call for an arbitrary number of objects
+	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
+	{
+		// Index offsets and instance count are taken from the indirect buffer
+		vkCmdDrawIndexedIndirect(aCommandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, 0, static_cast<Core::uint32>(mIndirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
+	}
+	else
+	{
+		// Issue separate draw commands
+		for (Core::size j = 0; j < mIndirectCommands.size(); j++)
+		{
+			vkCmdDrawIndexedIndirect(aCommandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+		}
+	}
+}
+
+void VulkanRenderer::DrawImGuiOverlay(VkCommandBuffer aCommandBuffer)
 {
 	const VkViewport viewport{.width = static_cast<float>(mFramebufferWidth), .height = static_cast<float>(mFramebufferHeight), .minDepth = 0.0f, .maxDepth = 1.0f};
 	const VkRect2D scissor{.extent = {.width = mFramebufferWidth, .height = mFramebufferHeight }};
-	vkCmdSetViewport(aVkCommandBuffer, 0, 1, &viewport);
-	vkCmdSetScissor(aVkCommandBuffer, 0, 1, &scissor);
-	mImGuiOverlay->Draw(aVkCommandBuffer, mCurrentBufferIndex);
+	vkCmdSetViewport(aCommandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(aCommandBuffer, 0, 1, &scissor);
+	mImGuiOverlay->Draw(aCommandBuffer, mCurrentBufferIndex);
 }
 
 void VulkanRenderer::UpdateUIOverlay()
