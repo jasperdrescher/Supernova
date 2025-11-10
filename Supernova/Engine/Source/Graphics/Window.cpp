@@ -6,7 +6,7 @@
 #include "Profiler/SimpleProfiler.hpp"
 #include "Vulkantools.hpp"
 
-#define GLFW_EXCLUDE_API
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include <iostream>

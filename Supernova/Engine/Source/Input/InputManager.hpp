@@ -4,6 +4,7 @@
 #include "Math/Types.hpp"
 
 #include <map>
+#include <shared_mutex>
 
 namespace Input
 {
@@ -33,11 +34,10 @@ namespace Input
 		bool GetIsMouseButtonDown(MouseButton aMouseButton) const;
 
 	private:
-		InputManager() {}
+		InputManager() = default;
+		~InputManager() = default;
 
-		Key GetTranslatedKey(int aKey) const;
-		MouseButton GetTranslatedMouseButton(int aButton) const;
-
+		mutable std::shared_mutex mMutex;
 		std::map<Key, bool> myKeys{};
 		std::map<MouseButton, bool> myMouseButtons{};
 		Math::Vector2f mPreviousMousePosition{};

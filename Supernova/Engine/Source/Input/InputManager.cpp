@@ -3,61 +3,16 @@
 #include "InputKeys.hpp"
 #include "Math/Types.hpp"
 
-#define GLFW_EXCLUDE_API
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include <map>
+#include <shared_mutex>
+#include <mutex>
 
 namespace Input
 {
-	bool InputManager::GetIsKeyDown(Key aKey) const
-	{
-		const std::map<Key, bool>::const_iterator iterator = myKeys.find(aKey);
-		if (iterator == myKeys.end())
-			return false;
-
-		return iterator->second;
-	}
-
-	bool InputManager::GetIsMouseButtonDown(MouseButton aMouseButton) const
-	{
-		const std::map<MouseButton, bool>::const_iterator iterator = myMouseButtons.find(aMouseButton);
-		if (iterator == myMouseButtons.end())
-			return false;
-
-		return iterator->second;
-	}
-
-	void InputManager::FlushInput()
-	{
-		mScrollOffset = Math::Vector2f{};
-	}
-
-	void InputManager::OnKeyAction(int aKey, int /*aScancode*/, bool aIsKeyDown, int /*aMode*/)
-	{
-		myKeys[GetTranslatedKey(aKey)] = aIsKeyDown;
-	}
-
-	void InputManager::OnCursorAction(double aXPosition, double aYPosition)
-	{
-		mPreviousMousePosition = mMousePosition;
-
-		mMousePosition.x = static_cast<float>(aXPosition);
-		mMousePosition.y = static_cast<float>(aYPosition);
-	}
-
-	void InputManager::OnScrollAction(double aXOffset, double aYOffset)
-	{
-		mScrollOffset.x = static_cast<float>(aXOffset);
-		mScrollOffset.y = static_cast<float>(aYOffset);
-	}
-
-	void InputManager::OnMouseButtonAction(int aButton, int aAction, int /*aModifier*/)
-	{
-		myMouseButtons[GetTranslatedMouseButton(aButton)] = aAction;
-	}
-
-	Key InputManager::GetTranslatedKey(int aKey) const
+	static Key GetTranslatedKey(int aKey)
 	{
 		switch (aKey)
 		{
@@ -169,7 +124,7 @@ namespace Input
 		}
 	}
 
-	MouseButton InputManager::GetTranslatedMouseButton(int aButton) const
+	static MouseButton GetTranslatedMouseButton(int aButton)
 	{
 		switch (aButton)
 		{
@@ -178,5 +133,66 @@ namespace Input
 			case GLFW_MOUSE_BUTTON_MIDDLE: return MouseButton::Middle;
 			default: return MouseButton::Undefined; break;
 		}
+	}
+
+	bool InputManager::GetIsKeyDown(Key aKey) const
+	{
+		std::shared_lock<std::shared_mutex> readLock(mMutex);
+
+		const std::map<Key, bool>::const_iterator iterator = myKeys.find(aKey);
+		if (iterator == myKeys.end())
+			return false;
+
+		return iterator->second;
+	}
+
+	bool InputManager::GetIsMouseButtonDown(MouseButton aMouseButton) const
+	{
+		std::shared_lock<std::shared_mutex> readLock(mMutex);
+
+		const std::map<MouseButton, bool>::const_iterator iterator = myMouseButtons.find(aMouseButton);
+		if (iterator == myMouseButtons.end())
+			return false;
+
+		return iterator->second;
+	}
+
+	void InputManager::FlushInput()
+	{
+		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+
+		mScrollOffset = Math::Vector2f{};
+	}
+
+	void InputManager::OnKeyAction(int aKey, int /*aScancode*/, bool aIsKeyDown, int /*aMode*/)
+	{
+		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+
+		myKeys[GetTranslatedKey(aKey)] = aIsKeyDown;
+	}
+
+	void InputManager::OnCursorAction(double aXPosition, double aYPosition)
+	{
+		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+
+		mPreviousMousePosition = mMousePosition;
+
+		mMousePosition.x = static_cast<float>(aXPosition);
+		mMousePosition.y = static_cast<float>(aYPosition);
+	}
+
+	void InputManager::OnScrollAction(double aXOffset, double aYOffset)
+	{
+		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+
+		mScrollOffset.x = static_cast<float>(aXOffset);
+		mScrollOffset.y = static_cast<float>(aYOffset);
+	}
+
+	void InputManager::OnMouseButtonAction(int aButton, int aAction, int /*aModifier*/)
+	{
+		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+
+		myMouseButtons[GetTranslatedMouseButton(aButton)] = aAction;
 	}
 }
