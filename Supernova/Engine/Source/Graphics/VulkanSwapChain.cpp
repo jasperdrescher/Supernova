@@ -170,7 +170,7 @@ void VulkanSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeigh
 	// It's the lowest latency non-tearing present mode available
 	if (!aUseVSync)
 	{
-		for (std::size_t i = 0; i < presentModeCount; i++)
+		for (Core::size i = 0; i < presentModeCount; i++)
 		{
 			if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
 			{
@@ -258,7 +258,7 @@ void VulkanSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeigh
 	// If an existing swap chain is re-created, destroy the old swap chain and the ressources owned by the application (image views, images are owned by the swap chain)
 	if (oldSwapchain != VK_NULL_HANDLE)
 	{
-		for (std::size_t i = 0; i < mVkImages.size(); i++)
+		for (Core::size i = 0; i < mVkImages.size(); i++)
 			vkDestroyImageView(mActiveVulkanDevice->mLogicalVkDevice, mVkImageViews[i], nullptr);
 		
 		vkDestroySwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, oldSwapchain, nullptr);
@@ -272,7 +272,7 @@ void VulkanSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeigh
 
 	// Get the swap chain buffers containing the image and imageview
 	mVkImageViews.resize(mImageCount);
-	for (std::size_t i = 0; i < mVkImages.size(); i++)
+	for (Core::size i = 0; i < mVkImages.size(); i++)
 	{
 		const VkImageViewCreateInfo colorAttachmentViewCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -310,7 +310,7 @@ void VulkanSwapChain::CleanUp()
 {
 	if (mVkSwapchainKHR != VK_NULL_HANDLE)
 	{
-		for (std::size_t i = 0; i < mVkImages.size(); i++)
+		for (Core::size i = 0; i < mVkImages.size(); i++)
 			vkDestroyImageView(mActiveVulkanDevice->mLogicalVkDevice, mVkImageViews[i], nullptr);
 
 		vkDestroySwapchainKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, nullptr);
