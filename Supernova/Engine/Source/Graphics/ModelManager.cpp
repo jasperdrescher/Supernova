@@ -15,7 +15,6 @@
 #include <tiny_gltf.h>
 
 #include <cassert>
-#include <cstdint>
 #include <format>
 #include <iostream>
 #include <stdexcept>
@@ -32,7 +31,7 @@
 VkDescriptorSetLayout vkglTF::gDescriptorSetLayoutImage = VK_NULL_HANDLE;
 VkDescriptorSetLayout vkglTF::gDescriptorSetLayoutUbo = VK_NULL_HANDLE;
 VkMemoryPropertyFlags vkglTF::gMemoryPropertyFlags = 0;
-std::uint32_t vkglTF::gDescriptorBindingFlags = vkglTF::DescriptorBindingFlags::ImageBaseColor;
+Core::uint32 vkglTF::gDescriptorBindingFlags = vkglTF::DescriptorBindingFlags::ImageBaseColor;
 
 namespace VulkanGlTFModelLocal
 {
@@ -107,7 +106,7 @@ ModelManager::~ModelManager()
 	vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, descriptorPool, nullptr);
 }
 
-void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, std::uint32_t aNodeIndex, std::vector<std::uint32_t>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale)
+void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, Core::uint32 aNodeIndex, std::vector<Core::uint32>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale)
 {
 	vkglTF::Node* newNode = new vkglTF::Node{};
 	newNode->mIndex = aNodeIndex;
@@ -149,7 +148,7 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 	// Node with children
 	if (aNode->children.size() > 0)
 	{
-		for (size_t i = 0; i < aNode->children.size(); i++)
+		for (Core::size i = 0; i < aNode->children.size(); i++)
 		{
 			LoadNode(aModel, aGltfModel, newNode, &aGltfModel->nodes[aNode->children[i]], aNode->children[i], aIndexBuffer, aVertexBuffer, aGlobalscale);
 		}
@@ -161,17 +160,17 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 		const tinygltf::Mesh& mesh = aGltfModel->meshes[aNode->mesh];
 		vkglTF::Mesh* newMesh = new vkglTF::Mesh(mVulkanDevice, newNode->mMatrix);
 		newMesh->mName = mesh.name;
-		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		for (Core::size j = 0; j < mesh.primitives.size(); j++)
 		{
 			const tinygltf::Primitive& primitive = mesh.primitives[j];
 			if (primitive.indices < 0)
 			{
 				continue;
 			}
-			std::uint32_t indexStart = static_cast<std::uint32_t>(aIndexBuffer.size());
-			std::uint32_t vertexStart = static_cast<std::uint32_t>(aVertexBuffer.size());
-			std::uint32_t indexCount = 0;
-			std::uint32_t vertexCount = 0;
+			Core::uint32 indexStart = static_cast<Core::uint32>(aIndexBuffer.size());
+			Core::uint32 vertexStart = static_cast<Core::uint32>(aVertexBuffer.size());
+			Core::uint32 indexCount = 0;
+			Core::uint32 vertexCount = 0;
 			Math::Vector3f posMin{};
 			Math::Vector3f posMax{};
 			bool hasSkin = false;
@@ -182,8 +181,8 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 				const float* bufferTexCoords = nullptr;
 				const float* bufferColors = nullptr;
 				const float* bufferTangents = nullptr;
-				std::uint32_t numColorComponents = 0;
-				const uint16_t* bufferJoints = nullptr;
+				Core::uint32 numColorComponents = 0;
+				const Core::uint16* bufferJoints = nullptr;
 				const float* bufferWeights = nullptr;
 
 				// Position attribute is required
@@ -231,7 +230,7 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 				{
 					const tinygltf::Accessor& jointAccessor = aGltfModel->accessors[primitive.attributes.find("JOINTS_0")->second];
 					const tinygltf::BufferView& jointView = aGltfModel->bufferViews[jointAccessor.bufferView];
-					bufferJoints = reinterpret_cast<const uint16_t*>(&(aGltfModel->buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
+					bufferJoints = reinterpret_cast<const Core::uint16*>(&(aGltfModel->buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
 				}
 
 				if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end())
@@ -243,9 +242,9 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 
 				hasSkin = (bufferJoints && bufferWeights);
 
-				vertexCount = static_cast<std::uint32_t>(posAccessor.count);
+				vertexCount = static_cast<Core::uint32>(posAccessor.count);
 
-				for (size_t v = 0; v < posAccessor.count; v++)
+				for (Core::size v = 0; v < posAccessor.count; v++)
 				{
 					vkglTF::Vertex vert{};
 					vert.mPosition = Math::Vector4f(Math::MakeVector3f(&bufferPos[v * 3]), 1.0f);
@@ -279,15 +278,15 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 				const tinygltf::BufferView& bufferView = aGltfModel->bufferViews[accessor.bufferView];
 				const tinygltf::Buffer& buffer = aGltfModel->buffers[bufferView.buffer];
 
-				indexCount = static_cast<std::uint32_t>(accessor.count);
+				indexCount = static_cast<Core::uint32>(accessor.count);
 
 				switch (accessor.componentType)
 				{
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
 					{
-						std::uint32_t* buf = new std::uint32_t[accessor.count];
-						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(std::uint32_t));
-						for (size_t index = 0; index < accessor.count; index++)
+						Core::uint32* buf = new Core::uint32[accessor.count];
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(Core::uint32));
+						for (Core::size index = 0; index < accessor.count; index++)
 						{
 							aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
@@ -298,9 +297,9 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 					}
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
 					{
-						uint16_t* buf = new uint16_t[accessor.count];
-						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint16_t));
-						for (size_t index = 0; index < accessor.count; index++)
+						Core::uint16* buf = new Core::uint16[accessor.count];
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(Core::uint16));
+						for (Core::size index = 0; index < accessor.count; index++)
 						{
 							aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
@@ -311,9 +310,9 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 					}
 					case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
 					{
-						uint8_t* buf = new uint8_t[accessor.count];
-						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(uint8_t));
-						for (size_t index = 0; index < accessor.count; index++)
+						Core::uint8* buf = new Core::uint8[accessor.count];
+						std::memcpy(buf, &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(Core::uint8));
+						for (Core::size index = 0; index < accessor.count; index++)
 						{
 							aIndexBuffer.push_back(buf[index] + vertexStart);
 						}
@@ -408,7 +407,7 @@ void ModelManager::LoadImages(vkglTF::Model& aModel, tinygltf::Model* aGltfModel
 		}
 
 		vkglTF::Texture texture = mTextureManager.lock()->CreateTexture(aModel.path.relative_path(), image);
-		texture.mIndex = static_cast<std::uint32_t>(aModel.textures.size());
+		texture.mIndex = static_cast<Core::uint32>(aModel.textures.size());
 		aModel.textures.push_back(texture);
 	}
 
@@ -416,7 +415,7 @@ void ModelManager::LoadImages(vkglTF::Model& aModel, tinygltf::Model* aGltfModel
 	aModel.mEmptyTexture = mTextureManager.lock()->CreateEmptyTexture();
 }
 
-vkglTF::Texture* ModelManager::GetTexture(vkglTF::Model& aModel, std::uint32_t aIndex)
+vkglTF::Texture* ModelManager::GetTexture(vkglTF::Model& aModel, Core::uint32 aIndex)
 {
 	if (aIndex < aModel.textures.size())
 		return &aModel.textures[aIndex];
@@ -525,7 +524,7 @@ void ModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfM
 
 				float* buffer = new float[gltfAccessor.count];
 				std::memcpy(buffer, &gltfBuffer.data[gltfAccessor.byteOffset + gltfBufferView.byteOffset], gltfAccessor.count * sizeof(float));
-				for (size_t index = 0; index < gltfAccessor.count; index++)
+				for (Core::size index = 0; index < gltfAccessor.count; index++)
 				{
 					sampler.mInputs.push_back(buffer[index]);
 				}
@@ -560,7 +559,7 @@ void ModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfM
 					{
 						Math::Vector3f* buffer = new Math::Vector3f[gltfAccessor.count];
 						std::memcpy(buffer, &gltfBuffer.data[gltfAccessor.byteOffset + gltfBufferView.byteOffset], gltfAccessor.count * sizeof(Math::Vector3f));
-						for (size_t index = 0; index < gltfAccessor.count; index++)
+						for (Core::size index = 0; index < gltfAccessor.count; index++)
 						{
 							sampler.mOutputsVec4.push_back(Math::Vector4f(buffer[index], 0.0f));
 						}
@@ -571,7 +570,7 @@ void ModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfM
 					{
 						Math::Vector4f* buf = new Math::Vector4f[gltfAccessor.count];
 						std::memcpy(buf, &gltfBuffer.data[gltfAccessor.byteOffset + gltfBufferView.byteOffset], gltfAccessor.count * sizeof(Math::Vector4f));
-						for (size_t index = 0; index < gltfAccessor.count; index++)
+						for (Core::size index = 0; index < gltfAccessor.count; index++)
 						{
 							sampler.mOutputsVec4.push_back(buf[index]);
 						}
@@ -670,7 +669,7 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 		std::cout << " Used extension: " << extension;
 	}
 
-	std::vector<std::uint32_t> indexBuffer;
+	std::vector<Core::uint32> indexBuffer;
 	std::vector<vkglTF::Vertex> vertexBuffer;
 
 	if ((aFileLoadingFlags & FileLoadingFlags::DontLoadImages) != FileLoadingFlags::DontLoadImages)
@@ -681,7 +680,7 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 	LoadMaterials(*newModel, sourceGltfModel);
 
 	const tinygltf::Scene& scene = sourceGltfModel->scenes[sourceGltfModel->defaultScene > -1 ? sourceGltfModel->defaultScene : 0];
-	for (size_t i = 0; i < scene.nodes.size(); i++)
+	for (Core::size i = 0; i < scene.nodes.size(); i++)
 	{
 		const tinygltf::Node node = sourceGltfModel->nodes[scene.nodes[i]];
 		LoadNode(*newModel, sourceGltfModel, nullptr, &node, scene.nodes[i], indexBuffer, vertexBuffer, aScale);
@@ -722,7 +721,7 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 				const Math::Matrix4f localMatrix = node->GetMatrix();
 				for (const vkglTF::Primitive* primitive : node->mMesh->mPrimitives)
 				{
-					for (std::uint32_t i = 0; i < primitive->vertexCount; i++)
+					for (Core::uint32 i = 0; i < primitive->vertexCount; i++)
 					{
 						vkglTF::Vertex& vertex = vertexBuffer[primitive->firstVertex + i];
 						// Pre-transform vertex positions by node-hierarchy
@@ -750,15 +749,15 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 		}
 	}
 
-	const size_t vertexBufferSize = vertexBuffer.size() * sizeof(vkglTF::Vertex);
-	const size_t indexBufferSize = indexBuffer.size() * sizeof(std::uint32_t);
+	const Core::size vertexBufferSize = vertexBuffer.size() * sizeof(vkglTF::Vertex);
+	const Core::size indexBufferSize = indexBuffer.size() * sizeof(Core::uint32);
 	CreateBuffers(*newModel, indexBuffer, vertexBuffer, vertexBufferSize, indexBufferSize, aDevice, aTransferQueue);
 
 	GetSceneDimensions(*newModel);
 
 	// Setup descriptors
-	std::uint32_t uboCount{0};
-	std::uint32_t imageCount{0};
+	Core::uint32 uboCount{0};
+	Core::uint32 imageCount{0};
 	for (const vkglTF::Node* node : newModel->linearNodes)
 	{
 		if (node->mMesh)
@@ -821,17 +820,17 @@ void ModelManager::CreateDescriptorSets(vkglTF::Model& aModel, VulkanDevice* aDe
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
 			if (vkglTF::gDescriptorBindingFlags & vkglTF::DescriptorBindingFlags::ImageBaseColor)
 			{
-				setLayoutBindings.push_back({.binding = static_cast<std::uint32_t>(setLayoutBindings.size()), .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT});
+				setLayoutBindings.push_back({.binding = static_cast<Core::uint32>(setLayoutBindings.size()), .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT});
 			}
 
 			if (vkglTF::gDescriptorBindingFlags & vkglTF::DescriptorBindingFlags::ImageNormalMap)
 			{
-				setLayoutBindings.push_back({.binding = static_cast<std::uint32_t>(setLayoutBindings.size()), .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT});
+				setLayoutBindings.push_back({.binding = static_cast<Core::uint32>(setLayoutBindings.size()), .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT});
 			}
 
 			const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-				.bindingCount = static_cast<std::uint32_t>(setLayoutBindings.size()),
+				.bindingCount = static_cast<Core::uint32>(setLayoutBindings.size()),
 				.pBindings = setLayoutBindings.data(),
 			};
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &vkglTF::gDescriptorSetLayoutImage));
@@ -892,7 +891,7 @@ void ModelManager::CreateMaterialDescriptorSets(vkglTF::Material& material)
 	vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 }
 
-void ModelManager::CreateDescriptorPool(uint32_t uboCount, uint32_t imageCount, VulkanDevice* aDevice)
+void ModelManager::CreateDescriptorPool(Core::uint32 uboCount, Core::uint32 imageCount, VulkanDevice* aDevice)
 {
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uboCount},
@@ -914,16 +913,16 @@ void ModelManager::CreateDescriptorPool(uint32_t uboCount, uint32_t imageCount, 
 	const VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 		.maxSets = uboCount + imageCount,
-		.poolSizeCount = static_cast<std::uint32_t>(poolSizes.size()),
+		.poolSizeCount = static_cast<Core::uint32>(poolSizes.size()),
 		.pPoolSizes = poolSizes.data()
 	};
 	VK_CHECK_RESULT(vkCreateDescriptorPool(aDevice->mLogicalVkDevice, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
 }
 
-void ModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<std::uint32_t>& indexBuffer, std::vector<vkglTF::Vertex>& vertexBuffer, size_t vertexBufferSize, size_t indexBufferSize, VulkanDevice* aDevice, VkQueue aTransferQueue)
+void ModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<Core::uint32>& indexBuffer, std::vector<vkglTF::Vertex>& vertexBuffer, Core::size vertexBufferSize, Core::size indexBufferSize, VulkanDevice* aDevice, VkQueue aTransferQueue)
 {
-	aModel.indices.mCount = static_cast<std::uint32_t>(indexBuffer.size());
-	aModel.vertices.mCount = static_cast<std::uint32_t>(vertexBuffer.size());
+	aModel.indices.mCount = static_cast<Core::uint32>(indexBuffer.size());
+	aModel.vertices.mCount = static_cast<Core::uint32>(vertexBuffer.size());
 
 	assert((vertexBufferSize > 0) && (indexBufferSize > 0));
 
@@ -1028,10 +1027,10 @@ void ModelManager::GetSceneDimensions(vkglTF::Model& aModel)
 	aModel.mDimensions.mRadius = Math::Distance(aModel.mDimensions.mMin, aModel.mDimensions.mMax) / 2.0f;
 }
 
-void ModelManager::UpdateAnimation(vkglTF::Model& aModel, std::uint32_t aIndex, float aTime)
+void ModelManager::UpdateAnimation(vkglTF::Model& aModel, Core::uint32 aIndex, float aTime)
 
 {
-	if (aIndex > static_cast<std::uint32_t>(aModel.animations.size()) - 1)
+	if (aIndex > static_cast<Core::uint32>(aModel.animations.size()) - 1)
 	{
 		std::cout << "No animation with index " << aIndex << std::endl;
 		return;
@@ -1048,7 +1047,7 @@ void ModelManager::UpdateAnimation(vkglTF::Model& aModel, std::uint32_t aIndex, 
 			continue;
 		}
 
-		for (size_t i = 0; i < sampler.mInputs.size() - 1; i++)
+		for (Core::size i = 0; i < sampler.mInputs.size() - 1; i++)
 		{
 			if ((aTime >= sampler.mInputs[i]) && (aTime <= sampler.mInputs[i + 1]))
 			{
@@ -1101,7 +1100,7 @@ void ModelManager::UpdateAnimation(vkglTF::Model& aModel, std::uint32_t aIndex, 
 	}
 }
 
-vkglTF::Node* ModelManager::FindNode(vkglTF::Node* aParent, std::uint32_t aIndex)
+vkglTF::Node* ModelManager::FindNode(vkglTF::Node* aParent, Core::uint32 aIndex)
 {
 	vkglTF::Node* nodeFound = nullptr;
 	if (aParent->mIndex == aIndex)
@@ -1121,7 +1120,7 @@ vkglTF::Node* ModelManager::FindNode(vkglTF::Node* aParent, std::uint32_t aIndex
 	return nodeFound;
 }
 
-vkglTF::Node* ModelManager::NodeFromIndex(vkglTF::Model& aModel, std::uint32_t aIndex)
+vkglTF::Node* ModelManager::NodeFromIndex(vkglTF::Model& aModel, Core::uint32 aIndex)
 {
 	vkglTF::Node* nodeFound = nullptr;
 	for (vkglTF::Node*& node : aModel.nodes)
