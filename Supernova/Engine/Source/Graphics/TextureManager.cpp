@@ -1,7 +1,7 @@
 #include "TextureManager.hpp"
 
 #include "Core/Types.hpp"
-#include "FileLoader.cpp"
+#include "FileLoader.hpp"
 #include "Timer.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanGlTFTypes.hpp"

@@ -1028,7 +1028,6 @@ void ModelManager::GetSceneDimensions(vkglTF::Model& aModel)
 }
 
 void ModelManager::UpdateAnimation(vkglTF::Model& aModel, Core::uint32 aIndex, float aTime)
-
 {
 	if (aIndex > static_cast<Core::uint32>(aModel.animations.size()) - 1)
 	{
