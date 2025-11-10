@@ -31,9 +31,9 @@ namespace VulkanInitializers
 	
 	inline VkCommandBufferBeginInfo CommandBufferBeginInfo()
 	{
-		VkCommandBufferBeginInfo cmdBufferBeginInfo{};
-		cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		return cmdBufferBeginInfo;
+		VkCommandBufferBeginInfo commandBufferBeginInfo{};
+		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		return commandBufferBeginInfo;
 	}
 
 	inline VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags aFlags = 0)
@@ -48,18 +48,18 @@ namespace VulkanInitializers
 		VkBufferUsageFlags aUsageFlags,
 		VkDeviceSize aDeviceSize)
 	{
-		VkBufferCreateInfo bufCreateInfo{};
-		bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufCreateInfo.usage = aUsageFlags;
-		bufCreateInfo.size = aDeviceSize;
-		return bufCreateInfo;
+		VkBufferCreateInfo bufferCreateInfo{};
+		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufferCreateInfo.usage = aUsageFlags;
+		bufferCreateInfo.size = aDeviceSize;
+		return bufferCreateInfo;
 	}
 
 	inline VkMemoryAllocateInfo MemoryAllocateInfo()
 	{
-		VkMemoryAllocateInfo memAllocInfo{};
-		memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		return memAllocInfo;
+		VkMemoryAllocateInfo memoryAllocInfo{};
+		memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		return memoryAllocInfo;
 	}
 
 	inline VkDescriptorPoolSize DescriptorPoolSize(
