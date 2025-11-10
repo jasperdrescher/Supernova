@@ -249,7 +249,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 			mCamera->mMouse.mDeltaY = 0.0f;
 		}
 
-		inputManager.FlushInput(); // TODO: Fix this bad solution to having frame-based offsets
+		inputManager.ResetRelativeInput();
 
 		mCamera->Update(mFrametime);
 	}

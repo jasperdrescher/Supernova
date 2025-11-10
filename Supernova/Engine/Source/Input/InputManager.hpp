@@ -20,7 +20,7 @@ namespace Input
 		InputManager(InputManager const&) = delete;
 		void operator=(InputManager const&) = delete;
 
-		void FlushInput();
+		void ResetRelativeInput();
 
 		void OnKeyAction(int aKey, int aScancode, bool aIsKeyDown, int aMode);
 		void OnCursorAction(double aXPosition, double aYPosition);
@@ -42,6 +42,6 @@ namespace Input
 		std::map<MouseButton, bool> myMouseButtons{};
 		Math::Vector2f mPreviousMousePosition{};
 		Math::Vector2f mMousePosition{};
-		Math::Vector2f mScrollOffset{};
+		Math::Vector2f mScrollOffset{}; // Relative offset per frame
 	};
 }

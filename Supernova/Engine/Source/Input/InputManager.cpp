@@ -157,7 +157,7 @@ namespace Input
 		return iterator->second;
 	}
 
-	void InputManager::FlushInput()
+	void InputManager::ResetRelativeInput()
 	{
 		std::unique_lock<std::shared_mutex> writeLock(mMutex);
 
