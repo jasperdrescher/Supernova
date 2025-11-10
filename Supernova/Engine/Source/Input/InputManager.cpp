@@ -135,7 +135,7 @@ namespace Input
 		}
 	}
 
-	bool InputManager::GetIsKeyDown(Key aKey) const
+	bool InputManager::IsKeyDown(Key aKey) const
 	{
 		std::shared_lock<std::shared_mutex> readLock(mMutex);
 
@@ -146,7 +146,7 @@ namespace Input
 		return iterator->second;
 	}
 
-	bool InputManager::GetIsMouseButtonDown(MouseButton aMouseButton) const
+	bool InputManager::IsMouseButtonDown(MouseButton aMouseButton) const
 	{
 		std::shared_lock<std::shared_mutex> readLock(mMutex);
 

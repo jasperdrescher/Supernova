@@ -30,8 +30,8 @@ namespace Input
 		const Math::Vector2f& GetMousePosition() const { return mMousePosition; }
 		const Math::Vector2f& GetScrollOffset() const { return mScrollOffset; }
 		Math::Vector2f GetMousePositionDelta() const { return mMousePosition - mPreviousMousePosition; }
-		bool GetIsKeyDown(Key aKey) const;
-		bool GetIsMouseButtonDown(MouseButton aMouseButton) const;
+		bool IsKeyDown(Key aKey) const;
+		bool IsMouseButtonDown(MouseButton aMouseButton) const;
 
 	private:
 		InputManager() = default;

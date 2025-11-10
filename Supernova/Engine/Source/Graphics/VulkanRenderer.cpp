@@ -220,16 +220,16 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 		Input::InputManager& inputManager = Input::InputManager::GetInstance();
 		if (!mImGuiOverlay->WantsToCaptureInput())
 		{
-			mCamera->mKeys.mIsRightDown = inputManager.GetIsKeyDown(Input::Key::Right) || inputManager.GetIsKeyDown(Input::Key::D);
-			mCamera->mKeys.mIsUpDown = inputManager.GetIsKeyDown(Input::Key::Up) || inputManager.GetIsKeyDown(Input::Key::W);
-			mCamera->mKeys.mIsDownDown = inputManager.GetIsKeyDown(Input::Key::Down) || inputManager.GetIsKeyDown(Input::Key::S);
-			mCamera->mKeys.mIsLeftDown = inputManager.GetIsKeyDown(Input::Key::Left) || inputManager.GetIsKeyDown(Input::Key::A);
-			mCamera->mKeys.mIsShiftDown = inputManager.GetIsKeyDown(Input::Key::LeftShift);
-			mCamera->mKeys.mIsSpaceDown = inputManager.GetIsKeyDown(Input::Key::Spacebar);
-			mCamera->mKeys.mIsCtrlDown = inputManager.GetIsKeyDown(Input::Key::LeftControl);
+			mCamera->mKeys.mIsRightDown = inputManager.IsKeyDown(Input::Key::Right) || inputManager.IsKeyDown(Input::Key::D);
+			mCamera->mKeys.mIsUpDown = inputManager.IsKeyDown(Input::Key::Up) || inputManager.IsKeyDown(Input::Key::W);
+			mCamera->mKeys.mIsDownDown = inputManager.IsKeyDown(Input::Key::Down) || inputManager.IsKeyDown(Input::Key::S);
+			mCamera->mKeys.mIsLeftDown = inputManager.IsKeyDown(Input::Key::Left) || inputManager.IsKeyDown(Input::Key::A);
+			mCamera->mKeys.mIsShiftDown = inputManager.IsKeyDown(Input::Key::LeftShift);
+			mCamera->mKeys.mIsSpaceDown = inputManager.IsKeyDown(Input::Key::Spacebar);
+			mCamera->mKeys.mIsCtrlDown = inputManager.IsKeyDown(Input::Key::LeftControl);
 			mCamera->mMouse.mScrollWheelDelta = inputManager.GetScrollOffset().y;
-			mCamera->mMouse.mIsLeftDown = inputManager.GetIsMouseButtonDown(Input::MouseButton::Left);
-			mCamera->mMouse.mIsMiddleDown = inputManager.GetIsMouseButtonDown(Input::MouseButton::Middle);
+			mCamera->mMouse.mIsLeftDown = inputManager.IsMouseButtonDown(Input::MouseButton::Left);
+			mCamera->mMouse.mIsMiddleDown = inputManager.IsMouseButtonDown(Input::MouseButton::Middle);
 			mCamera->mMouse.mDeltaX = inputManager.GetMousePositionDelta().x;
 			mCamera->mMouse.mDeltaY = inputManager.GetMousePositionDelta().y;
 		}
@@ -1708,9 +1708,9 @@ void VulkanRenderer::UpdateUIOverlay()
 	const bool isVisible = mImGuiOverlay->IsVisible();
 	const Input::InputManager& inputManager = Input::InputManager::GetInstance();
 	io.MousePos = ImVec2(inputManager.GetMousePosition().x, inputManager.GetMousePosition().y);
-	io.MouseDown[0] = inputManager.GetIsMouseButtonDown(Input::MouseButton::Left) && isVisible;
-	io.MouseDown[1] = inputManager.GetIsMouseButtonDown(Input::MouseButton::Right) && isVisible;
-	io.MouseDown[2] = inputManager.GetIsMouseButtonDown(Input::MouseButton::Middle) && isVisible;
+	io.MouseDown[0] = inputManager.IsMouseButtonDown(Input::MouseButton::Left) && isVisible;
+	io.MouseDown[1] = inputManager.IsMouseButtonDown(Input::MouseButton::Right) && isVisible;
+	io.MouseDown[2] = inputManager.IsMouseButtonDown(Input::MouseButton::Middle) && isVisible;
 
 	ImGui::NewFrame();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
