@@ -803,8 +803,8 @@ void ModelManager::CreateDescriptorSets(vkglTF::Model& aModel, VulkanDevice* aDe
 		if (vkglTF::gDescriptorSetLayoutUbo == VK_NULL_HANDLE)
 		{
 			const VkDescriptorSetLayoutBinding descriptorSetLayoutBinding{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT};
-			const VkDescriptorSetLayoutCreateInfo DescriptorSetLayoutCreateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = 1, .pBindings = &descriptorSetLayoutBinding};
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &DescriptorSetLayoutCreateInfo, nullptr, &vkglTF::gDescriptorSetLayoutUbo));
+			const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = 1, .pBindings = &descriptorSetLayoutBinding};
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &vkglTF::gDescriptorSetLayoutUbo));
 		}
 
 		for (vkglTF::Node*& node : aModel.nodes)

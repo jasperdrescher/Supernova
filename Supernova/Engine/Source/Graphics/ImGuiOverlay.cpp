@@ -160,15 +160,15 @@ void ImGuiOverlay::PrepareResources()
 	const VkDescriptorPoolCreateInfo descriptorPoolInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .maxSets = 2, .poolSizeCount = 1, .pPoolSizes = &poolSize};
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mDescriptorPool));
 
-	const VkDescriptorSetLayoutBinding setLayoutBinding = VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	const VkDescriptorSetLayoutBinding setLayoutBinding = VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
 	const VkDescriptorSetLayoutCreateInfo descriptorLayout{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = 1, .pBindings = &setLayoutBinding};
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorLayout, nullptr, &mDescriptorSetLayout));
 
-	const VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mDescriptorPool, &mDescriptorSetLayout, 1);
+	const VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::DescriptorSetAllocateInfo(mDescriptorPool, &mDescriptorSetLayout, 1);
 	VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mDescriptorSet));
 
 	const VkDescriptorImageInfo fontDescriptor{.sampler = mSampler, .imageView = mFontImageView, .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-	const VkWriteDescriptorSet writeDescriptorSets = VulkanInitializers::writeDescriptorSet(mDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor);
+	const VkWriteDescriptorSet writeDescriptorSets = VulkanInitializers::WriteDescriptorSet(mDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor);
 	vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, 1, &writeDescriptorSets, 0, nullptr);
 
 	// Buffers per max. frames-in-flight
@@ -215,8 +215,8 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout));
 
 	// Setup graphics pipeline for UI rendering
-	const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-	const VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+	const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+	const VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
 	// Enable blending
 	const VkPipelineColorBlendAttachmentState blendAttachmentState{
@@ -241,18 +241,18 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 		{.location = 2, .binding = 0, .format = VK_FORMAT_R8G8B8A8_UNORM, .offset = offsetof(ImDrawVert, col) },
 	};
 
-	VkPipelineVertexInputStateCreateInfo vertexInputState = VulkanInitializers::pipelineVertexInputStateCreateInfo();
+	VkPipelineVertexInputStateCreateInfo vertexInputState = VulkanInitializers::PipelineVertexInputStateCreateInfo();
 	vertexInputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(vertexInputBindings.size());
 	vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
 	vertexInputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vertexInputAttributes.size());
 	vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
-	const VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-	const VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
-	const VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::pipelineViewportStateCreateInfo(1, 1, 0);
-	const VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::pipelineMultisampleStateCreateInfo(mRasterizationSamples);
+	const VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+	const VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::PipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
+	const VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::PipelineViewportStateCreateInfo(1, 1, 0);
+	const VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::PipelineMultisampleStateCreateInfo(mRasterizationSamples);
 	const std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-	const VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+	const VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::PipelineDynamicStateCreateInfo(dynamicStateEnables);
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 		.stageCount = static_cast<std::uint32_t>(mShaders.size()),

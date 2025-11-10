@@ -311,13 +311,13 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 
 VkCommandBuffer VulkanDevice::CreateCommandBuffer(VkCommandBufferLevel aLevel, VkCommandPool aPool, bool aIsBeginBuffer) const
 {
-	const VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::commandBufferAllocateInfo(aPool, aLevel, 1);
+	const VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(aPool, aLevel, 1);
 	VkCommandBuffer commandBuffer;
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mLogicalVkDevice, &commandBufferAllocateInfo, &commandBuffer));
 	// If requested, also start recording for the new command buffer
 	if (aIsBeginBuffer)
 	{
-		VkCommandBufferBeginInfo cmdBufInfo = VulkanInitializers::commandBufferBeginInfo();
+		VkCommandBufferBeginInfo cmdBufInfo = VulkanInitializers::CommandBufferBeginInfo();
 		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 	}
 	return commandBuffer;
@@ -341,7 +341,7 @@ void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQ
 		.pCommandBuffers = &aCommandBuffer
 	};
 	// Create fence to ensure that the command buffer has finished executing
-	const VkFenceCreateInfo fenceCreateInfo = VulkanInitializers::fenceCreateInfo(gVkFlagsNone);
+	const VkFenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(gVkFlagsNone);
 	VkFence fence;
 	VK_CHECK_RESULT(vkCreateFence(mLogicalVkDevice, &fenceCreateInfo, nullptr, &fence));
 	// Submit to the queue
@@ -450,13 +450,13 @@ VkFormat VulkanDevice::GetSupportedDepthFormat(bool aCheckSamplingSupport) const
 	*/
 VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VkDeviceSize aSize, VkBuffer* aBuffer, VkDeviceMemory* aMemory, void* aData)
 {
-	VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::bufferCreateInfo(aUsageFlags, aSize);
+	VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::BufferCreateInfo(aUsageFlags, aSize);
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VK_CHECK_RESULT(vkCreateBuffer(mLogicalVkDevice, &bufferCreateInfo, nullptr, aBuffer));
 
 	// Create the memory backing up the buffer handle
 	VkMemoryRequirements memoryRequirements;
-	VkMemoryAllocateInfo memoryAllocateInfo = VulkanInitializers::memoryAllocateInfo();
+	VkMemoryAllocateInfo memoryAllocateInfo = VulkanInitializers::MemoryAllocateInfo();
 	vkGetBufferMemoryRequirements(mLogicalVkDevice, *aBuffer, &memoryRequirements);
 
 	memoryAllocateInfo.allocationSize = memoryRequirements.size;
@@ -504,12 +504,12 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 {
 	aBuffer->mLogicalVkDevice = mLogicalVkDevice;
 
-	const VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::bufferCreateInfo(aUsageFlags, aSize);
+	const VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::BufferCreateInfo(aUsageFlags, aSize);
 	VK_CHECK_RESULT(vkCreateBuffer(mLogicalVkDevice, &bufferCreateInfo, nullptr, &aBuffer->mVkBuffer));
 
 	// Create the memory backing up the buffer handle
 	VkMemoryRequirements memoryRequirements;
-	VkMemoryAllocateInfo memoryAllocateInfo = VulkanInitializers::memoryAllocateInfo();
+	VkMemoryAllocateInfo memoryAllocateInfo = VulkanInitializers::MemoryAllocateInfo();
 	vkGetBufferMemoryRequirements(mLogicalVkDevice, aBuffer->mVkBuffer, &memoryRequirements);
 
 	memoryAllocateInfo.allocationSize = memoryRequirements.size;

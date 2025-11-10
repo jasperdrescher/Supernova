@@ -311,11 +311,11 @@ void VulkanRenderer::CreateDescriptorPool()
 {
 	static constexpr Core::uint32 poolPadding = 2;
 	const std::vector<VkDescriptorPoolSize> poolSizes = {
-		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (gMaxConcurrentFrames * 3) + poolPadding),
-		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (gMaxConcurrentFrames * 2) + poolPadding),
-		VulkanInitializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (gMaxConcurrentFrames * 4) + poolPadding)
+		VulkanInitializers::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (gMaxConcurrentFrames * 3) + poolPadding),
+		VulkanInitializers::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (gMaxConcurrentFrames * 2) + poolPadding),
+		VulkanInitializers::DescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (gMaxConcurrentFrames * 4) + poolPadding)
 	};
-	const VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = VulkanInitializers::descriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames * 4);
+	const VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = VulkanInitializers::DescriptorPoolCreateInfo(poolSizes, gMaxConcurrentFrames * 4);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolCreateInfo, nullptr, &mDescriptorPool));
 }
 
@@ -323,25 +323,25 @@ void VulkanRenderer::CreateGraphicsDescriptorSetLayout()
 {
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		// Binding 0 : Vertex shader uniform buffer
-		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+		VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 		// Binding 1 : Fragment shader combined sampler
-		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+		VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 	};
-	const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+	const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::DescriptorSetLayoutCreateInfo(setLayoutBindings);
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mGraphicsContext.mDescriptorSetLayout));
 }
 
 void VulkanRenderer::CreateGraphicsDescriptorSets()
 {
 	// Sets per frame, just like the buffers themselves
-	const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VulkanInitializers::descriptorSetAllocateInfo(mDescriptorPool, &mGraphicsContext.mDescriptorSetLayout, 1);
+	const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = VulkanInitializers::DescriptorSetAllocateInfo(mDescriptorPool, &mGraphicsContext.mDescriptorSetLayout, 1);
 	for (Core::size i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
 		// Instanced models
 		// Binding 0 : Vertex shader uniform buffer
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mDescriptorSets[i].mSuzanneModel));
 		const std::vector<VkWriteDescriptorSet> instancedWriteDescriptorSets = {
-			VulkanInitializers::writeDescriptorSet(mDescriptorSets[i].mSuzanneModel, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::WriteDescriptorSet(mDescriptorSets[i].mSuzanneModel, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(instancedWriteDescriptorSets.size()), instancedWriteDescriptorSets.data(), 0, nullptr);
 
@@ -350,8 +350,8 @@ void VulkanRenderer::CreateGraphicsDescriptorSets()
 		//	Binding 1 : Color map
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mDescriptorSets[i].mStaticPlanet));
 		const std::vector<VkWriteDescriptorSet> staticPlanetWriteDescriptorSets = {
-			VulkanInitializers::writeDescriptorSet(mDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
-			VulkanInitializers::writeDescriptorSet(mDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mPlanetTexture.mDescriptorImageInfo),
+			VulkanInitializers::WriteDescriptorSet(mDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::WriteDescriptorSet(mDescriptorSets[i].mStaticPlanet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &mTextures.mPlanetTexture.mDescriptorImageInfo),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(staticPlanetWriteDescriptorSets.size()), staticPlanetWriteDescriptorSets.data(), 0, nullptr);
 
@@ -359,7 +359,7 @@ void VulkanRenderer::CreateGraphicsDescriptorSets()
 		//	Binding 0 : Vertex shader uniform buffer
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &mDescriptorSets[i].mStaticVoyager));
 		const std::vector<VkWriteDescriptorSet> staticVoyagerWriteDescriptorSets = {
-			VulkanInitializers::writeDescriptorSet(mDescriptorSets[i].mStaticVoyager, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::WriteDescriptorSet(mDescriptorSets[i].mStaticVoyager, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(staticVoyagerWriteDescriptorSets.size()), staticVoyagerWriteDescriptorSets.data(), 0, nullptr);
 	}
@@ -435,25 +435,25 @@ void VulkanRenderer::CreateGraphicsPipelines()
 		.size = sizeof(PushConstant)
 	};
 
-	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(descriptorSetLayouts.data(), 2);
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::PipelineLayoutCreateInfo(descriptorSetLayouts.data(), 2);
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsContext.mPipelineLayout));
 
 	// Pipeline
-	const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-	VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
-	const VkPipelineColorBlendAttachmentState blendAttachmentState = VulkanInitializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
-	const VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-	VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-	const VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::pipelineViewportStateCreateInfo(1, 1, 0);
-	const VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
+	const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+	VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+	const VkPipelineColorBlendAttachmentState blendAttachmentState = VulkanInitializers::PipelineColorBlendAttachmentState(0xf, VK_FALSE);
+	const VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+	VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::PipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+	const VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::PipelineViewportStateCreateInfo(1, 1, 0);
+	const VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::PipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT, 0);
 	const std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-	const VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+	const VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::PipelineDynamicStateCreateInfo(dynamicStateEnables);
 	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
 
 	// We no longer need to set a renderpass for the pipeline create info
-	VkGraphicsPipelineCreateInfo pipelineCI = VulkanInitializers::pipelineCreateInfo();
+	VkGraphicsPipelineCreateInfo pipelineCI = VulkanInitializers::PipelineCreateInfo();
 	pipelineCI.layout = mGraphicsContext.mPipelineLayout;
 	pipelineCI.pInputAssemblyState = &inputAssemblyState;
 	pipelineCI.pRasterizationState = &rasterizationState;
@@ -478,37 +478,37 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	// Vertex input bindings
 	const std::vector<VkVertexInputBindingDescription> bindingDescriptions = {
 		// Binding point 0: Mesh vertex layout description at per-vertex rate
-		VulkanInitializers::vertexInputBindingDescription(0, sizeof(vkglTF::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
+		VulkanInitializers::VertexInputBindingDescription(0, sizeof(vkglTF::Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
 		// Binding point 1: Instanced data at per-instance rate
-		VulkanInitializers::vertexInputBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE),
+		VulkanInitializers::VertexInputBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE),
 	};
 
 	const std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {
 		// Per-vertex attributes
 		// These are advanced for each vertex fetched by the vertex shader
-		VulkanInitializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mPosition)), // Location 0: Position
-		VulkanInitializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mNormal)), // Location 1: Normal
-		VulkanInitializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mColor)), // Location 3: Color
+		VulkanInitializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mPosition)), // Location 0: Position
+		VulkanInitializers::VertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mNormal)), // Location 1: Normal
+		VulkanInitializers::VertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mColor)), // Location 3: Color
 		// Per-Instance attributes
 		// These are advanced for each instance rendered
-		VulkanInitializers::vertexInputAttributeDescription(1, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, mPosition)), // Location 4: Position
-		VulkanInitializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, mScale)), // Location 5: Scale
+		VulkanInitializers::VertexInputAttributeDescription(1, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, mPosition)), // Location 4: Position
+		VulkanInitializers::VertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, mScale)), // Location 5: Scale
 	};
 
 	const std::vector<VkVertexInputAttributeDescription> texturedAttributeDescriptions = {
 		// Per-vertex attributes
 		// These are advanced for each vertex fetched by the vertex shader
-		VulkanInitializers::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mPosition)), // Location 0: Position
-		VulkanInitializers::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mNormal)), // Location 1: Normal
-		VulkanInitializers::vertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(vkglTF::Vertex, mUV)), // Location 2: Texture coordinates
-		VulkanInitializers::vertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mColor)), // Location 3: Color
+		VulkanInitializers::VertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mPosition)), // Location 0: Position
+		VulkanInitializers::VertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mNormal)), // Location 1: Normal
+		VulkanInitializers::VertexInputAttributeDescription(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(vkglTF::Vertex, mUV)), // Location 2: Texture coordinates
+		VulkanInitializers::VertexInputAttributeDescription(0, 3, VK_FORMAT_R32G32B32_SFLOAT, offsetof(vkglTF::Vertex, mColor)), // Location 3: Color
 		// Per-Instance attributes
 		// These are advanced for each instance rendered
-		VulkanInitializers::vertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, mPosition)), // Location 4: Position
-		VulkanInitializers::vertexInputAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, mScale)), // Location 5: Scale
+		VulkanInitializers::VertexInputAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, mPosition)), // Location 4: Position
+		VulkanInitializers::VertexInputAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, mScale)), // Location 5: Scale
 	};
 
-	VkPipelineVertexInputStateCreateInfo inputState = VulkanInitializers::pipelineVertexInputStateCreateInfo();
+	VkPipelineVertexInputStateCreateInfo inputState = VulkanInitializers::PipelineVertexInputStateCreateInfo();
 	inputState.pVertexBindingDescriptions = bindingDescriptions.data();
 	inputState.pVertexAttributeDescriptions = texturedAttributeDescriptions.data();
 
@@ -566,41 +566,41 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
 
 	const std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 		// Binding 0: Instance input data buffer
-		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+		VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
 		// Binding 1: Indirect draw command output buffer (input)
-		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+		VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
 		// Binding 2: Uniform buffer with global matrices (input)
-		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+		VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
 		// Binding 3: Indirect draw stats (output)
-		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+		VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
 		// Binding 4: LOD info (input)
-		VulkanInitializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+		VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
 	};
 
-	const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+	const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = VulkanInitializers::DescriptorSetLayoutCreateInfo(setLayoutBindings);
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mComputeContext.mDescriptorSetLayout));
 }
 
 void VulkanRenderer::CreateComputeDescriptorSets()
 {
-	const VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::pipelineLayoutCreateInfo(&mComputeContext.mDescriptorSetLayout, 1);
+	const VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = VulkanInitializers::PipelineLayoutCreateInfo(&mComputeContext.mDescriptorSetLayout, 1);
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mComputeContext.mPipelineLayout));
 
 	for (Core::size i = 0; i < mVulkanUniformBuffers.size(); i++)
 	{
-		VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::descriptorSetAllocateInfo(mDescriptorPool, &mComputeContext.mDescriptorSetLayout, 1);
+		VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::DescriptorSetAllocateInfo(mDescriptorPool, &mComputeContext.mDescriptorSetLayout, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mComputeContext.mDescriptorSets[i]));
 		const std::vector<VkWriteDescriptorSet> computeWriteDescriptorSets = {
 			// Binding 0: Instance input data buffer
-			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &mInstanceBuffer.mVkDescriptorBufferInfo),
+			VulkanInitializers::WriteDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &mInstanceBuffer.mVkDescriptorBufferInfo),
 			// Binding 1: Indirect draw command output buffer
-			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &mIndirectCommandsBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::WriteDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &mIndirectCommandsBuffers[i].mVkDescriptorBufferInfo),
 			// Binding 2: Uniform buffer with global matrices
-			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::WriteDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &mVulkanUniformBuffers[i].mVkDescriptorBufferInfo),
 			// Binding 3: Atomic counter (written in shader)
-			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &mIndirectDrawCountBuffers[i].mVkDescriptorBufferInfo),
+			VulkanInitializers::WriteDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &mIndirectDrawCountBuffers[i].mVkDescriptorBufferInfo),
 			// Binding 4: LOD info
-			VulkanInitializers::writeDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &mComputeContext.mLoDBuffers.mVkDescriptorBufferInfo)
+			VulkanInitializers::WriteDescriptorSet(mComputeContext.mDescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &mComputeContext.mLoDBuffers.mVkDescriptorBufferInfo)
 		};
 		vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(computeWriteDescriptorSets.size()), computeWriteDescriptorSets.data(), 0, nullptr);
 	}
@@ -608,7 +608,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
 
 void VulkanRenderer::CreateComputePipelines()
 {
-	VkComputePipelineCreateInfo computePipelineCreateInfo = VulkanInitializers::computePipelineCreateInfo(mComputeContext.mPipelineLayout, 0);
+	VkComputePipelineCreateInfo computePipelineCreateInfo = VulkanInitializers::ComputePipelineCreateInfo(mComputeContext.mPipelineLayout, 0);
 	const std::filesystem::path computeShaderPath = "ComputeCull/Indirectdraw_comp.spv";
 	computePipelineCreateInfo.stage = LoadShader(FileLoader::GetEngineResourcesPath() / FileLoader::gShadersPath / computeShaderPath, VK_SHADER_STAGE_COMPUTE_BIT);
 
@@ -651,7 +651,7 @@ void VulkanRenderer::CreateComputePipelines()
 	// Fences to check for command buffer completion
 	for (VkFence& fence : mComputeContext.mFences)
 	{
-		const VkFenceCreateInfo fenceCreateInfo = VulkanInitializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+		const VkFenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 		VK_CHECK_RESULT(vkCreateFence(mVulkanDevice->mLogicalVkDevice, &fenceCreateInfo, nullptr, &fence));
 	}
 
@@ -756,7 +756,7 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 
 	VkCommandBuffer commandBuffer = mGraphicsContext.mCommandBuffers[mCurrentBufferIndex];
 
-	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
+	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::CommandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
 
 	// With dynamic rendering there are no subpass dependencies, so we need to take care of proper layout transitions by using barriers
@@ -844,10 +844,10 @@ void VulkanRenderer::BuildGraphicsCommandBuffer()
 	// Begin dynamic rendering
 	vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
-	const VkViewport viewport = VulkanInitializers::viewport(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f);
+	const VkViewport viewport = VulkanInitializers::Viewport(static_cast<float>(mFramebufferWidth), static_cast<float>(mFramebufferHeight), 0.0f, 1.0f);
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-	const VkRect2D scissor = VulkanInitializers::rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
+	const VkRect2D scissor = VulkanInitializers::Rect2D(mFramebufferWidth, mFramebufferHeight, 0, 0);
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	// Draw non-instanced static models
@@ -965,7 +965,7 @@ void VulkanRenderer::BuildComputeCommandBuffer()
 
 	VkCommandBuffer commandBuffer = mComputeContext.mCommandBuffers[mCurrentBufferIndex];
 
-	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::commandBufferBeginInfo();
+	const VkCommandBufferBeginInfo commandBufferBeginInfo = VulkanInitializers::CommandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
 
 	// Acquire barrier
