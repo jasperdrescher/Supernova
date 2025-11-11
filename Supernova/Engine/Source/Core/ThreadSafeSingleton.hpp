@@ -20,12 +20,12 @@ protected:
 	ThreadSafeSingleton() = default;
 	~ThreadSafeSingleton() = default;
 
-	WriteLock AcquireWriteLock() const
+	[[nodiscard]] WriteLock AcquireWriteLock() const
 	{
 		return WriteLock(mMutex);
 	}
 
-	ReadLock AcquireReadLock() const
+	[[nodiscard]] ReadLock AcquireReadLock() const
 	{
 		return ReadLock(mMutex);
 	}
