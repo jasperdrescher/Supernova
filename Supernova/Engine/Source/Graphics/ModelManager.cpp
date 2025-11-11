@@ -671,7 +671,7 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 	std::vector<Core::uint32> indexBuffer;
 	std::vector<vkglTF::Vertex> vertexBuffer;
 
-	if (HasFlag(aFileLoadingFlags, FileLoadingFlags::DontLoadImages))
+	if (!HasFlag(aFileLoadingFlags, FileLoadingFlags::DontLoadImages))
 	{
 		LoadImages(*newModel, sourceGltfModel);
 	}
