@@ -534,7 +534,7 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mPlanet));
 
 #ifdef _DEBUG
-	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid)
+	if (mVulkanDevice->mEnabledPhysicalDeviceFeatures.fillModeNonSolid)
 	{
 		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mPlanetWireframe));
@@ -553,7 +553,7 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mInstancedSuzanne));
 
 #ifdef _DEBUG
-	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid)
+	if (mVulkanDevice->mEnabledPhysicalDeviceFeatures.fillModeNonSolid)
 	{
 		rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(mVulkanDevice->mLogicalVkDevice, mPipelineCache, 1, &pipelineCI, nullptr, &mVkPipelines.mInstancedSuzanneWireframe));
@@ -1570,7 +1570,7 @@ void VulkanRenderer::InitializeVulkan()
 	vkGetDeviceQueue(mVulkanDevice->mLogicalVkDevice, mVulkanDevice->mQueueFamilyIndices.mGraphics, 0, &mGraphicsContext.mQueue);
 
 	// Applications that make use of stencil will require a depth + stencil format
-	const VkBool32 validFormat = VulkanTools::GetSupportedDepthFormat(mVulkanDevice->mVkPhysicalDevice, &mVkDepthFormat);
+	const VkBool32 validFormat = VulkanTools::GetSupportedDepthFormat(mVulkanDevice->mPhysicalDevice, &mVkDepthFormat);
 	if (!validFormat)
 	{
 		throw std::runtime_error("Invalid format");
@@ -1679,7 +1679,7 @@ void VulkanRenderer::DrawModels(VkCommandBuffer aCommandBuffer)
 	vkCmdBindIndexBuffer(aCommandBuffer, mModelManager->GetModel(mModelIdentifiers.mSuzanneModelIdentifier)->indices.mBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 	// One draw call for an arbitrary number of objects
-	if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect)
+	if (mVulkanDevice->mEnabledPhysicalDeviceFeatures.multiDrawIndirect)
 	{
 		// Index offsets and instance count are taken from the indirect buffer
 		vkCmdDrawIndexedIndirect(aCommandBuffer, mIndirectCommandsBuffers[mCurrentBufferIndex].mVkBuffer, 0, static_cast<Core::uint32>(mIndirectCommands.size()), sizeof(VkDrawIndexedIndirectCommand));
@@ -1751,7 +1751,7 @@ void VulkanRenderer::OnUpdateUIOverlay()
 		ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
 
 		ImGui::Begin("Editor Info", &mShouldShowEditorInfo, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-		ImGui::TextUnformatted(mVulkanDevice->mVkPhysicalDeviceProperties.deviceName);
+		ImGui::TextUnformatted(mVulkanDevice->mPhysicalDeviceProperties.deviceName);
 		ImGui::Text("%i/%i", mFramebufferWidth, mFramebufferHeight);
 		ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / mAverageFPS), mAverageFPS);
 		ImGui::PushItemWidth(160.0f * mImGuiOverlay->GetScale());
@@ -1761,17 +1761,17 @@ void VulkanRenderer::OnUpdateUIOverlay()
 		if (ImGui::CollapsingHeader("Render Settings", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 #ifdef _DEBUG
-			if (mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid)
+			if (mVulkanDevice->mEnabledPhysicalDeviceFeatures.fillModeNonSolid)
 				ImGui::Checkbox("Draw wireframe", &mShouldDrawWireframe);
 #endif
 
 			ImGui::Checkbox("Freeze frustum", &mShouldFreezeFrustum);
 
-			ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
-			ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
-			ImGui::Text("drawIndirectFirstInstance is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.drawIndirectFirstInstance ? "enabled" : "disabled");
+			ImGui::Text("samplerAnisotropy is %s", mVulkanDevice->mEnabledPhysicalDeviceFeatures.samplerAnisotropy ? "enabled" : "disabled");
+			ImGui::Text("multiDrawIndirect is %s", mVulkanDevice->mEnabledPhysicalDeviceFeatures.multiDrawIndirect ? "enabled" : "disabled");
+			ImGui::Text("drawIndirectFirstInstance is %s", mVulkanDevice->mEnabledPhysicalDeviceFeatures.drawIndirectFirstInstance ? "enabled" : "disabled");
 #ifdef _DEBUG
-			ImGui::Text("fillModeNonSolid is %s", mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.fillModeNonSolid ? "enabled" : "disabled");
+			ImGui::Text("fillModeNonSolid is %s", mVulkanDevice->mEnabledPhysicalDeviceFeatures.fillModeNonSolid ? "enabled" : "disabled");
 #endif
 			ImGui::Text("VSync is %s", mEngineProperties->mIsVSyncEnabled ? "enabled" : "disabled");
 			ImGui::Text("Validation Layers is %s", mEngineProperties->mIsValidationEnabled ? "enabled" : "disabled");

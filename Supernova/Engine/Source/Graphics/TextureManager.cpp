@@ -409,7 +409,7 @@ void TextureManager::CreateFromEmbeddedTexture(vkglTF::Image& aImage, vkglTF::Te
 	aTexture.mLayerCount = aImage.layers;
 
 	VkFormatProperties formatProperties;
-	vkGetPhysicalDeviceFormatProperties(mVulkanDevice->mVkPhysicalDevice, aFormat, &formatProperties);
+	vkGetPhysicalDeviceFormatProperties(mVulkanDevice->mPhysicalDevice, aFormat, &formatProperties);
 	if (!buffer)
 	{
 		throw std::runtime_error("Buffer is invalid");
@@ -618,8 +618,8 @@ void TextureManager::CreateResources(vkglTF::Texture& aTexture, const VkFormat& 
 		.addressModeV = samplerAddressMode,
 		.addressModeW = samplerAddressMode,
 		.mipLodBias = 0.0f,
-		.anisotropyEnable = mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy,
-		.maxAnisotropy = mVulkanDevice->mEnabledVkPhysicalDeviceFeatures.samplerAnisotropy ? mVulkanDevice->mVkPhysicalDeviceProperties.limits.maxSamplerAnisotropy : 1.0f,
+		.anisotropyEnable = mVulkanDevice->mEnabledPhysicalDeviceFeatures.samplerAnisotropy,
+		.maxAnisotropy = mVulkanDevice->mEnabledPhysicalDeviceFeatures.samplerAnisotropy ? mVulkanDevice->mPhysicalDeviceProperties.limits.maxSamplerAnisotropy : 1.0f,
 		.compareOp = VK_COMPARE_OP_NEVER,
 		.minLod = 0.0f,
 		.maxLod = static_cast<float>(aTexture.mMipLevels),

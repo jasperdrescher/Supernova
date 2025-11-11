@@ -26,11 +26,11 @@ VulkanSwapChain::VulkanSwapChain()
 void VulkanSwapChain::InitializeSurface()
 {
 	Core::uint32 queueCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(mActiveVulkanDevice->mVkPhysicalDevice, &queueCount, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(mActiveVulkanDevice->mPhysicalDevice, &queueCount, nullptr);
 	assert(queueCount >= 1);
 
 	std::vector<VkQueueFamilyProperties> queueProps(queueCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(mActiveVulkanDevice->mVkPhysicalDevice, &queueCount, queueProps.data());
+	vkGetPhysicalDeviceQueueFamilyProperties(mActiveVulkanDevice->mPhysicalDevice, &queueCount, queueProps.data());
 
 	// Iterate over each queue to learn whether it supports presenting:
 	// Find a queue with present support
@@ -38,7 +38,7 @@ void VulkanSwapChain::InitializeSurface()
 	std::vector<VkBool32> supportsPresent(queueCount);
 	for (Core::uint32 i = 0; i < queueCount; i++)
 	{
-		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(mActiveVulkanDevice->mVkPhysicalDevice, i, mVkSurfaceKHR, &supportsPresent[i]));
+		VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceSupportKHR(mActiveVulkanDevice->mPhysicalDevice, i, mVkSurfaceKHR, &supportsPresent[i]));
 	}
 
 	// Search for a graphics and a present queue in the array of queue
@@ -91,11 +91,11 @@ void VulkanSwapChain::InitializeSurface()
 
 	// Get list of supported surface formats
 	Core::uint32 formatCount;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &formatCount, nullptr));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mActiveVulkanDevice->mPhysicalDevice, mVkSurfaceKHR, &formatCount, nullptr));
 	assert(formatCount > 0);
 
 	std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &formatCount, surfaceFormats.data()));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(mActiveVulkanDevice->mPhysicalDevice, mVkSurfaceKHR, &formatCount, surfaceFormats.data()));
 
 	// We want to get a format that best suits our needs, so we try to get one from a set of preferred formats
 	// Initialize the format to the first one returned by the implementation in case we can't find one of the preffered formats
@@ -135,7 +135,7 @@ void VulkanSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeigh
 
 	// Get physical device surface properties and formats
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &surfaceCapabilities));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mActiveVulkanDevice->mPhysicalDevice, mVkSurfaceKHR, &surfaceCapabilities));
 
 	VkExtent2D swapchainExtent = {};
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
@@ -156,11 +156,11 @@ void VulkanSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeigh
 
 	// Select a present mode for the swapchain
 	Core::uint32 presentModeCount;
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, nullptr));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mPhysicalDevice, mVkSurfaceKHR, &presentModeCount, nullptr));
 	assert(presentModeCount > 0);
 
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mVkPhysicalDevice, mVkSurfaceKHR, &presentModeCount, presentModes.data()));
+	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(mActiveVulkanDevice->mPhysicalDevice, mVkSurfaceKHR, &presentModeCount, presentModes.data()));
 
 	// The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
 	// This mode waits for the vertical blank ("v-sync")
