@@ -41,6 +41,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Camera.hpp" />
     <ClInclude Include="Source\Core\Constants.hpp" />
+    <ClInclude Include="Source\Core\ThreadSafeSingleton.hpp" />
     <ClInclude Include="Source\Core\Types.hpp" />
     <ClInclude Include="Source\ECS\Components.hpp" />
     <ClInclude Include="Source\ECS\Entity.hpp" />

@@ -1,0 +1,38 @@
+#pragma once
+
+#include <mutex>
+#include <shared_mutex>
+
+using WriteLock = std::unique_lock<std::shared_mutex>;
+using ReadLock = std::shared_lock<std::shared_mutex>;
+
+template <class T>
+class ThreadSafeSingleton
+{
+public:
+	static T& GetInstance()
+	{
+		static T instance; // The initialization of static local variables is guaranteed to be thread-safe
+		return instance;
+	}
+
+protected:
+	ThreadSafeSingleton() = default;
+	~ThreadSafeSingleton() = default;
+
+	std::unique_lock<std::shared_mutex> AcquireWriteLock() const
+	{
+		return std::unique_lock<std::shared_mutex>(mMutex);
+	}
+
+	std::shared_lock<std::shared_mutex> AcquireReadLock() const
+	{
+		return std::shared_lock<std::shared_mutex>(mMutex);
+	}
+
+	mutable std::shared_mutex mMutex;
+
+private:
+	ThreadSafeSingleton(const ThreadSafeSingleton&) = delete;
+	ThreadSafeSingleton& operator=(const ThreadSafeSingleton&) = delete;
+};

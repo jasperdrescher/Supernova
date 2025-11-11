@@ -1,5 +1,6 @@
 #include "InputManager.hpp"
 
+#include "Core/ThreadSafeSingleton.hpp"
 #include "InputKeys.hpp"
 #include "Math/Types.hpp"
 
@@ -7,8 +8,6 @@
 #include <GLFW/glfw3.h>
 
 #include <map>
-#include <shared_mutex>
-#include <mutex>
 
 namespace Input
 {
@@ -137,7 +136,7 @@ namespace Input
 
 	bool InputManager::IsKeyDown(Key aKey) const
 	{
-		std::shared_lock<std::shared_mutex> readLock(mMutex);
+		ReadLock readLock = AcquireReadLock();
 
 		const std::map<Key, bool>::const_iterator iterator = myKeys.find(aKey);
 		if (iterator == myKeys.end())
@@ -148,7 +147,7 @@ namespace Input
 
 	bool InputManager::IsMouseButtonDown(MouseButton aMouseButton) const
 	{
-		std::shared_lock<std::shared_mutex> readLock(mMutex);
+		ReadLock readLock = AcquireReadLock();
 
 		const std::map<MouseButton, bool>::const_iterator iterator = myMouseButtons.find(aMouseButton);
 		if (iterator == myMouseButtons.end())
@@ -159,21 +158,21 @@ namespace Input
 
 	void InputManager::ResetRelativeInput()
 	{
-		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+		WriteLock writeLock = AcquireWriteLock();
 
 		mScrollOffset = Math::Vector2f{};
 	}
 
 	void InputManager::OnKeyAction(int aKey, int /*aScancode*/, bool aIsKeyDown, int /*aMode*/)
 	{
-		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+		WriteLock writeLock = AcquireWriteLock();
 
 		myKeys[GetTranslatedKey(aKey)] = aIsKeyDown;
 	}
 
 	void InputManager::OnCursorAction(double aXPosition, double aYPosition)
 	{
-		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+		WriteLock writeLock = AcquireWriteLock();
 
 		mPreviousMousePosition = mMousePosition;
 
@@ -183,7 +182,7 @@ namespace Input
 
 	void InputManager::OnScrollAction(double aXOffset, double aYOffset)
 	{
-		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+		WriteLock writeLock = AcquireWriteLock();
 
 		mScrollOffset.x = static_cast<float>(aXOffset);
 		mScrollOffset.y = static_cast<float>(aYOffset);
@@ -191,7 +190,7 @@ namespace Input
 
 	void InputManager::OnMouseButtonAction(int aButton, int aAction, int /*aModifier*/)
 	{
-		std::unique_lock<std::shared_mutex> writeLock(mMutex);
+		WriteLock writeLock = AcquireWriteLock();
 
 		myMouseButtons[GetTranslatedMouseButton(aButton)] = aAction;
 	}

@@ -1,25 +1,16 @@
 #pragma once
 
+#include "Core/ThreadSafeSingleton.hpp"
 #include "InputKeys.hpp"
 #include "Math/Types.hpp"
 
 #include <map>
-#include <shared_mutex>
 
 namespace Input
 {
-	class InputManager
+	class InputManager : public ThreadSafeSingleton<InputManager>
 	{
 	public:
-		static InputManager& GetInstance()
-		{
-			static InputManager instance;
-			return instance;
-		}
-
-		InputManager(InputManager const&) = delete;
-		void operator=(InputManager const&) = delete;
-
 		void ResetRelativeInput();
 
 		void OnKeyAction(int aKey, int aScancode, bool aIsKeyDown, int aMode);
@@ -34,10 +25,6 @@ namespace Input
 		bool IsMouseButtonDown(MouseButton aMouseButton) const;
 
 	private:
-		InputManager() = default;
-		~InputManager() = default;
-
-		mutable std::shared_mutex mMutex;
 		std::map<Key, bool> myKeys{};
 		std::map<MouseButton, bool> myMouseButtons{};
 		Math::Vector2f mPreviousMousePosition{};
