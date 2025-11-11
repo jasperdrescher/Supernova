@@ -20,14 +20,14 @@ protected:
 	ThreadSafeSingleton() = default;
 	~ThreadSafeSingleton() = default;
 
-	std::unique_lock<std::shared_mutex> AcquireWriteLock() const
+	WriteLock AcquireWriteLock() const
 	{
-		return std::unique_lock<std::shared_mutex>(mMutex);
+		return WriteLock(mMutex);
 	}
 
-	std::shared_lock<std::shared_mutex> AcquireReadLock() const
+	ReadLock AcquireReadLock() const
 	{
-		return std::shared_lock<std::shared_mutex>(mMutex);
+		return ReadLock(mMutex);
 	}
 
 	mutable std::shared_mutex mMutex;
