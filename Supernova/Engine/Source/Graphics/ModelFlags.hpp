@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/BitmaskOperators.hpp"
+
 enum class FileLoadingFlags : unsigned int
 {
 	None = 0,
@@ -9,15 +11,11 @@ enum class FileLoadingFlags : unsigned int
 	DontLoadImages = 1 << 3
 };
 
-inline constexpr FileLoadingFlags operator|(FileLoadingFlags a, FileLoadingFlags b)
+template<>
+struct BitmaskOperators<FileLoadingFlags>
 {
-	return static_cast<FileLoadingFlags>(static_cast<unsigned int>(a) | static_cast<unsigned int>(b));
-}
-
-inline constexpr FileLoadingFlags operator&(FileLoadingFlags a, FileLoadingFlags b)
-{
-	return static_cast<FileLoadingFlags>(static_cast<unsigned int>(a) & static_cast<unsigned int>(b));
-}
+	static constexpr bool mIsEnabled = true;
+};
 
 enum class RenderFlags : unsigned int
 {
@@ -28,12 +26,20 @@ enum class RenderFlags : unsigned int
 	RenderAlphaBlendedNodes = 1 << 3
 };
 
-inline constexpr RenderFlags operator|(RenderFlags a, RenderFlags b)
+template<>
+struct BitmaskOperators<RenderFlags>
 {
-	return static_cast<RenderFlags>(static_cast<unsigned int>(a) | static_cast<unsigned int>(b));
-}
+	static constexpr bool mIsEnabled = true;
+};
 
-inline constexpr RenderFlags operator&(RenderFlags a, RenderFlags b)
+enum DescriptorBindingFlags
 {
-	return static_cast<RenderFlags>(static_cast<unsigned int>(a) & static_cast<unsigned int>(b));
-}
+	ImageBaseColor = 0,
+	ImageNormalMap = 1 << 1
+};
+
+template<>
+struct BitmaskOperators<DescriptorBindingFlags>
+{
+	static constexpr bool mIsEnabled = true;
+};

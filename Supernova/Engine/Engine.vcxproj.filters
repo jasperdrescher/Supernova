@@ -209,6 +209,9 @@
     <ClInclude Include="Source\Core\ThreadSafeSingleton.hpp">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Core\BitmaskOperators.hpp">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Timer.hpp">
