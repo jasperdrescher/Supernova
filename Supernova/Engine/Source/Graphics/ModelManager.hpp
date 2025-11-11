@@ -29,6 +29,8 @@ public:
 
 	UniqueIdentifier LoadModel(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags = FileLoadingFlags::None, float aScale = 1.0f);
 	vkglTF::Model* GetModel(const UniqueIdentifier aIdentifier) const;
+	VkDescriptorSetLayout GetDescriptorSetLayoutImage() const { return mDescriptorSetLayoutImage; }
+	VkDescriptorSetLayout GetDescriptorSetLayoutUbo() const { return mDescriptorSetLayoutUbo; }
 
 private:
 	void LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, Core::uint32 aNodeIndex, std::vector<Core::uint32>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale);
@@ -49,8 +51,11 @@ private:
 	vkglTF::Node* NodeFromIndex(vkglTF::Model& aModel, Core::uint32 aIndex);
 	vkglTF::Texture* GetTexture(vkglTF::Model& aModel, Core::uint32 aIndex);
 
+	VkDescriptorSetLayout mDescriptorSetLayoutUbo;
+	VkDescriptorSetLayout mDescriptorSetLayoutImage;
+	VkDescriptorPool mDescriptorPool;
+	DescriptorBindingFlags mDescriptorBindingFlags;
 	std::weak_ptr<TextureManager> mTextureManager;
 	VulkanDevice* mVulkanDevice;
-	VkDescriptorPool descriptorPool;
 	std::map<UniqueIdentifier, vkglTF::Model*> mModels;
 };

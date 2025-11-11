@@ -429,7 +429,7 @@ void VulkanRenderer::CreateGraphicsPipelines()
 	// Uses set 0 for passing vertex shader ubo and set 1 for fragment shader images (taken from glTF model)
 	const std::vector<VkDescriptorSetLayout> descriptorSetLayouts = {
 		mGraphicsContext.mDescriptorSetLayout,
-		vkglTF::gDescriptorSetLayoutImage,
+		mModelManager->GetDescriptorSetLayoutImage()
 	};
 	
 	const VkPushConstantRange pushConstantRange{

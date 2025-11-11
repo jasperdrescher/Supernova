@@ -18,17 +18,6 @@ namespace tinygltf
 
 namespace vkglTF
 {
-	enum DescriptorBindingFlags
-	{
-		ImageBaseColor = 0x00000001,
-		ImageNormalMap = 0x00000002
-	};
-
-	extern VkDescriptorSetLayout gDescriptorSetLayoutImage;
-	extern VkDescriptorSetLayout gDescriptorSetLayoutUbo;
-	extern VkMemoryPropertyFlags gMemoryPropertyFlags;
-	extern Core::uint32 gDescriptorBindingFlags;
-
 	struct Node;
 
 	struct Image

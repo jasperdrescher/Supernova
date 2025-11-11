@@ -1,5 +1,6 @@
 #include "ModelManager.hpp"
 
+#include "Core/BitmaskOperators.hpp"
 #include "Core/Types.hpp"
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
@@ -28,11 +29,6 @@
 #include <memory>
 #include <utility>
 
-VkDescriptorSetLayout vkglTF::gDescriptorSetLayoutImage = VK_NULL_HANDLE;
-VkDescriptorSetLayout vkglTF::gDescriptorSetLayoutUbo = VK_NULL_HANDLE;
-VkMemoryPropertyFlags vkglTF::gMemoryPropertyFlags = 0;
-Core::uint32 vkglTF::gDescriptorBindingFlags = vkglTF::DescriptorBindingFlags::ImageBaseColor;
-
 namespace VulkanGlTFModelLocal
 {
 	// We use a custom image loading function with tinyglTF, so we can do custom stuff loading ktx textures
@@ -60,7 +56,10 @@ namespace VulkanGlTFModelLocal
 ModelManager::ModelManager(const std::shared_ptr<TextureManager>& aTextureManager)
 	: mTextureManager{aTextureManager}
 	, mVulkanDevice{nullptr}
-	, descriptorPool{VK_NULL_HANDLE}
+	, mDescriptorPool{VK_NULL_HANDLE}
+	, mDescriptorSetLayoutUbo{VK_NULL_HANDLE}
+	, mDescriptorSetLayoutImage{VK_NULL_HANDLE}
+	, mDescriptorBindingFlags{DescriptorBindingFlags::ImageBaseColor}
 {
 }
 
@@ -91,19 +90,19 @@ ModelManager::~ModelManager()
 		pair.second->mEmptyTexture.Destroy();
 	}
 
-	if (vkglTF::gDescriptorSetLayoutUbo != VK_NULL_HANDLE)
+	if (mDescriptorSetLayoutUbo != VK_NULL_HANDLE)
 	{
-		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, vkglTF::gDescriptorSetLayoutUbo, nullptr);
-		vkglTF::gDescriptorSetLayoutUbo = VK_NULL_HANDLE;
+		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mDescriptorSetLayoutUbo, nullptr);
+		mDescriptorSetLayoutUbo = VK_NULL_HANDLE;
 	}
 
-	if (vkglTF::gDescriptorSetLayoutImage != VK_NULL_HANDLE)
+	if (mDescriptorSetLayoutImage != VK_NULL_HANDLE)
 	{
-		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, vkglTF::gDescriptorSetLayoutImage, nullptr);
-		vkglTF::gDescriptorSetLayoutImage = VK_NULL_HANDLE;
+		vkDestroyDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, mDescriptorSetLayoutImage, nullptr);
+		mDescriptorSetLayoutImage = VK_NULL_HANDLE;
 	}
 
-	vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, descriptorPool, nullptr);
+	vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, mDescriptorPool, nullptr);
 }
 
 void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, Core::uint32 aNodeIndex, std::vector<Core::uint32>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale)
@@ -631,7 +630,7 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 	loadTimer.StartTimer();
 
 	tinygltf::TinyGLTF gltfContext;
-	if ((aFileLoadingFlags & FileLoadingFlags::DontLoadImages) == FileLoadingFlags::DontLoadImages)
+	if (HasFlag(aFileLoadingFlags, FileLoadingFlags::DontLoadImages))
 	{
 		gltfContext.SetImageLoader(VulkanGlTFModelLocal::LoadImageDataFuncEmpty, nullptr);
 	}
@@ -672,7 +671,7 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 	std::vector<Core::uint32> indexBuffer;
 	std::vector<vkglTF::Vertex> vertexBuffer;
 
-	if ((aFileLoadingFlags & FileLoadingFlags::DontLoadImages) != FileLoadingFlags::DontLoadImages)
+	if (HasFlag(aFileLoadingFlags, FileLoadingFlags::DontLoadImages))
 	{
 		LoadImages(*newModel, sourceGltfModel);
 	}
@@ -709,9 +708,9 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 	}
 
 	// Pre-Calculations for requested features
-	const bool preTransform = (aFileLoadingFlags & FileLoadingFlags::PreTransformVertices) == FileLoadingFlags::PreTransformVertices;
-	const bool preMultiplyColor = (aFileLoadingFlags & FileLoadingFlags::PreMultiplyVertexColors) == FileLoadingFlags::PreMultiplyVertexColors;
-	const bool flipY = (aFileLoadingFlags & FileLoadingFlags::FlipY) == FileLoadingFlags::FlipY;
+	const bool preTransform = HasFlag(aFileLoadingFlags, FileLoadingFlags::PreTransformVertices);
+	const bool preMultiplyColor = HasFlag(aFileLoadingFlags, FileLoadingFlags::PreMultiplyVertexColors);
+	const bool flipY = HasFlag(aFileLoadingFlags, FileLoadingFlags::FlipY);
 	if (preTransform || preMultiplyColor || flipY)
 	{
 		for (const vkglTF::Node* node : newModel->linearNodes)
@@ -799,31 +798,31 @@ void ModelManager::CreateDescriptorSets(vkglTF::Model& aModel, VulkanDevice* aDe
 	// Descriptors for per-node uniform buffers
 	{
 		// Layout is global, so only create if it hasn't already been created before
-		if (vkglTF::gDescriptorSetLayoutUbo == VK_NULL_HANDLE)
+		if (mDescriptorSetLayoutUbo == VK_NULL_HANDLE)
 		{
 			const VkDescriptorSetLayoutBinding descriptorSetLayoutBinding{.binding = 0, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_VERTEX_BIT};
 			const VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = 1, .pBindings = &descriptorSetLayoutBinding};
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &vkglTF::gDescriptorSetLayoutUbo));
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayoutUbo));
 		}
 
 		for (vkglTF::Node*& node : aModel.nodes)
 		{
-			CreateNodeDescriptorSets(node, vkglTF::gDescriptorSetLayoutUbo);
+			CreateNodeDescriptorSets(node, mDescriptorSetLayoutUbo);
 		}
 	}
 
 	// Descriptors for per-material images
 	{
 		// Layout is global, so only create if it hasn't already been created before
-		if (vkglTF::gDescriptorSetLayoutImage == VK_NULL_HANDLE)
+		if (mDescriptorSetLayoutImage == VK_NULL_HANDLE)
 		{
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-			if (vkglTF::gDescriptorBindingFlags & vkglTF::DescriptorBindingFlags::ImageBaseColor)
+			if (HasFlag(mDescriptorBindingFlags, DescriptorBindingFlags::ImageBaseColor))
 			{
 				setLayoutBindings.push_back({.binding = static_cast<Core::uint32>(setLayoutBindings.size()), .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT});
 			}
 
-			if (vkglTF::gDescriptorBindingFlags & vkglTF::DescriptorBindingFlags::ImageNormalMap)
+			if (HasFlag(mDescriptorBindingFlags, DescriptorBindingFlags::ImageNormalMap))
 			{
 				setLayoutBindings.push_back({.binding = static_cast<Core::uint32>(setLayoutBindings.size()), .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1, .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT});
 			}
@@ -833,7 +832,7 @@ void ModelManager::CreateDescriptorSets(vkglTF::Model& aModel, VulkanDevice* aDe
 				.bindingCount = static_cast<Core::uint32>(setLayoutBindings.size()),
 				.pBindings = setLayoutBindings.data(),
 			};
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &vkglTF::gDescriptorSetLayoutImage));
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(aDevice->mLogicalVkDevice, &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayoutImage));
 		}
 
 		for (vkglTF::Material& material : aModel.materials)
@@ -850,15 +849,15 @@ void ModelManager::CreateMaterialDescriptorSets(vkglTF::Material& material)
 {
 	const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		.descriptorPool = descriptorPool,
+		.descriptorPool = mDescriptorPool,
 		.descriptorSetCount = 1,
-		.pSetLayouts = &vkglTF::gDescriptorSetLayoutImage,
+		.pSetLayouts = &mDescriptorSetLayoutImage,
 	};
 	VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &descriptorSetAllocateInfo, &material.mDescriptorSet));
 
 	std::vector<VkDescriptorImageInfo> imageDescriptors{};
 	std::vector<VkWriteDescriptorSet> writeDescriptorSets{};
-	if (vkglTF::gDescriptorBindingFlags & vkglTF::DescriptorBindingFlags::ImageBaseColor)
+	if (HasFlag(mDescriptorBindingFlags, DescriptorBindingFlags::ImageBaseColor))
 	{
 		imageDescriptors.push_back(material.mBaseColorTexture->mDescriptorImageInfo);
 
@@ -873,7 +872,7 @@ void ModelManager::CreateMaterialDescriptorSets(vkglTF::Material& material)
 		writeDescriptorSets.push_back(writeDescriptorSet);
 	}
 
-	if (material.mNormalTexture && vkglTF::gDescriptorBindingFlags & vkglTF::DescriptorBindingFlags::ImageNormalMap)
+	if (material.mNormalTexture && HasFlag(mDescriptorBindingFlags, DescriptorBindingFlags::ImageNormalMap))
 	{
 		imageDescriptors.push_back(material.mNormalTexture->mDescriptorImageInfo);
 
@@ -899,12 +898,12 @@ void ModelManager::CreateDescriptorPool(Core::uint32 uboCount, Core::uint32 imag
 
 	if (imageCount > 0)
 	{
-		if (vkglTF::gDescriptorBindingFlags & vkglTF::DescriptorBindingFlags::ImageBaseColor)
+		if (HasFlag(mDescriptorBindingFlags, DescriptorBindingFlags::ImageBaseColor))
 		{
 			poolSizes.push_back({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount});
 		}
 
-		if (vkglTF::gDescriptorBindingFlags & vkglTF::DescriptorBindingFlags::ImageNormalMap)
+		if (HasFlag(mDescriptorBindingFlags, DescriptorBindingFlags::ImageNormalMap))
 		{
 			poolSizes.push_back({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageCount});
 		}
@@ -916,7 +915,7 @@ void ModelManager::CreateDescriptorPool(Core::uint32 uboCount, Core::uint32 imag
 		.poolSizeCount = static_cast<Core::uint32>(poolSizes.size()),
 		.pPoolSizes = poolSizes.data()
 	};
-	VK_CHECK_RESULT(vkCreateDescriptorPool(aDevice->mLogicalVkDevice, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
+	VK_CHECK_RESULT(vkCreateDescriptorPool(aDevice->mLogicalVkDevice, &descriptorPoolCreateInfo, nullptr, &mDescriptorPool));
 }
 
 void ModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<Core::uint32>& indexBuffer, std::vector<vkglTF::Vertex>& vertexBuffer, Core::size vertexBufferSize, Core::size indexBufferSize, VulkanDevice* aDevice, VkQueue aTransferQueue)
@@ -956,7 +955,7 @@ void ModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<Core::uint32
 	// Create device local buffers
 	// Vertex buffer
 	VK_CHECK_RESULT(aDevice->CreateBuffer(
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | vkglTF::gMemoryPropertyFlags,
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		vertexBufferSize,
 		&aModel.vertices.mBuffer,
@@ -964,7 +963,7 @@ void ModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<Core::uint32
 
 	// Index buffer
 	VK_CHECK_RESULT(aDevice->CreateBuffer(
-		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | vkglTF::gMemoryPropertyFlags,
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		indexBufferSize,
 		&aModel.indices.mBuffer,
@@ -1140,7 +1139,7 @@ void ModelManager::CreateNodeDescriptorSets(vkglTF::Node* aNode, const VkDescrip
 	{
 		const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptorPool,
+			.descriptorPool = mDescriptorPool,
 			.descriptorSetCount = 1,
 			.pSetLayouts = &aDescriptorSetLayout
 		};
