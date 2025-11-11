@@ -30,9 +30,9 @@ protected:
 		return ReadLock(mMutex);
 	}
 
-	mutable std::shared_mutex mMutex;
-
 private:
 	ThreadSafeSingleton(const ThreadSafeSingleton&) = delete;
 	ThreadSafeSingleton& operator=(const ThreadSafeSingleton&) = delete;
+
+	mutable std::shared_mutex mMutex;
 };
