@@ -1,13 +1,15 @@
 #pragma once
 
+#include "Core/Types.hpp"
+
 #include <filesystem>
 #include <format>
 #include <stdexcept>
 #include <string>
 #include <vulkan/vulkan_core.h>
 
-constexpr long long gDefaultFenceTimeoutNS = 100000000000;
-constexpr int gVkFlagsNone = 0;
+static constexpr Core::uint64 gDefaultFenceTimeoutNS = 100000000000;
+static constexpr int gVkFlagsNone = 0;
 
 // Macro to check and display Vulkan return results
 #define VK_CHECK_RESULT(aFunction)	\
