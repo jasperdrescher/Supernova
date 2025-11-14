@@ -451,3 +451,8 @@ FodyWeavers.xsd
 !glfw3dll.lib
 !glfw3.dll
 imgui.ini
+
+[Oo]ut/
+[Bb]uild/
+[Bb]in/
+[Bb]inaries/
