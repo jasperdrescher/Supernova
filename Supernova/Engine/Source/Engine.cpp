@@ -20,7 +20,7 @@ Engine::Engine()
 	, mTimeScale{0.25f}
 	, mDeltaTime{0.0f}
 {
-	mEngineProperties = new EngineProperties();
+	mEngineProperties = std::make_shared<EngineProperties>();
 	mVulkanWindow = std::make_shared<Window>();
 	mVulkanRenderer = std::make_unique<VulkanRenderer>(mEngineProperties, mVulkanWindow);
 	mTimer = std::make_unique<Time::Timer>();
@@ -32,7 +32,6 @@ Engine::Engine()
 
 Engine::~Engine()
 {
-	delete mEngineProperties;
 }
 
 void Engine::Start()

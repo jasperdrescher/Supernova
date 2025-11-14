@@ -40,7 +40,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
+VulkanRenderer::VulkanRenderer(const std::shared_ptr<EngineProperties>& aEngineProperties,
 	const std::shared_ptr<Window>& aWindow)
 	: mEngineProperties{aEngineProperties}
 	, mWindow{aWindow}
@@ -82,9 +82,9 @@ VulkanRenderer::VulkanRenderer(EngineProperties* aEngineProperties,
 	mTextureManager = std::make_shared<TextureManager>();
 	mModelManager = std::make_unique<ModelManager>(mTextureManager);
 	
-	mEngineProperties->mAPIVersion = VK_API_VERSION_1_4;
-	mEngineProperties->mIsValidationEnabled = true;
-	mEngineProperties->mIsVSyncEnabled = true;
+	mEngineProperties.lock()->mAPIVersion = VK_API_VERSION_1_4;
+	mEngineProperties.lock()->mIsValidationEnabled = true;
+	mEngineProperties.lock()->mIsVSyncEnabled = true;
 
 	mFramebufferWidth = mWindow.lock()->GetWindowProperties().mWindowWidth;
 	mFramebufferHeight = mWindow.lock()->GetWindowProperties().mWindowHeight;
@@ -179,7 +179,7 @@ VulkanRenderer::~VulkanRenderer()
 
 	mImGuiOverlay->FreeResources();
 
-	if (mEngineProperties->mIsValidationEnabled)
+	if (mEngineProperties.lock()->mIsValidationEnabled)
 		VulkanDebug::DestroyDebugUtilsMessenger(mInstance);
 
 	mModelManager.reset();
@@ -215,7 +215,7 @@ void VulkanRenderer::UpdateRenderer(float /*aDeltaTime*/)
 
 	if (!mWindow.lock()->GetWindowProperties().mIsMinimized)
 	{
-		if (mEngineProperties->mIsRendererPrepared)
+		if (mEngineProperties.lock()->mIsRendererPrepared)
 		{
 			RenderFrame();
 		}
@@ -724,7 +724,7 @@ void VulkanRenderer::PrepareVulkanResources()
 	CreateComputeDescriptorSets();
 	CreateComputePipelines();
 
-	mEngineProperties->mIsRendererPrepared = true;
+	mEngineProperties.lock()->mIsRendererPrepared = true;
 }
 
 void VulkanRenderer::PrepareFrameGraphics()
@@ -1147,10 +1147,10 @@ void VulkanRenderer::CreateVkInstance()
 
 	const VkApplicationInfo applicationInfo{
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		.pApplicationName = mEngineProperties->mApplicationName.c_str(),
-		.pEngineName = mEngineProperties->mEngineName.c_str(),
-		.engineVersion = VK_MAKE_VERSION(mEngineProperties->mEngineMajorVersion, mEngineProperties->mEngineMinorVersion, mEngineProperties->mEnginePatchVersion),
-		.apiVersion = mEngineProperties->mAPIVersion
+		.pApplicationName = mEngineProperties.lock()->mApplicationName.c_str(),
+		.pEngineName = mEngineProperties.lock()->mEngineName.c_str(),
+		.engineVersion = VK_MAKE_VERSION(mEngineProperties.lock()->mEngineMajorVersion, mEngineProperties.lock()->mEngineMinorVersion, mEngineProperties.lock()->mEnginePatchVersion),
+		.apiVersion = mEngineProperties.lock()->mAPIVersion
 	};
 
 	VkInstanceCreateInfo instanceCreateInfo{
@@ -1158,7 +1158,7 @@ void VulkanRenderer::CreateVkInstance()
 		.pApplicationInfo = &applicationInfo
 	};
 
-	if (mEngineProperties->mIsValidationEnabled)
+	if (mEngineProperties.lock()->mIsValidationEnabled)
 	{
 		VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo{};
 		VulkanDebug::SetupDebugingMessengerCreateInfo(debugUtilsMessengerCreateInfo);
@@ -1166,7 +1166,7 @@ void VulkanRenderer::CreateVkInstance()
 		instanceCreateInfo.pNext = &debugUtilsMessengerCreateInfo;
 	}
 
-	if (mEngineProperties->mIsValidationEnabled || std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
+	if (mEngineProperties.lock()->mIsValidationEnabled || std::find(mSupportedInstanceExtensions.begin(), mSupportedInstanceExtensions.end(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != mSupportedInstanceExtensions.end())
 		mInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
 	const std::vector<const char*> glfwRequiredExtensions = mWindow.lock()->GetGlfwRequiredExtensions();
@@ -1196,7 +1196,7 @@ void VulkanRenderer::CreateVkInstance()
 #endif
 	}
 
-	if (mEngineProperties->mIsValidationEnabled)
+	if (mEngineProperties.lock()->mIsValidationEnabled)
 	{
 		Core::uint32 instanceLayerCount;
 		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
@@ -1559,7 +1559,7 @@ void VulkanRenderer::InitializeVulkan()
 	CreateVkInstance();
 
 	// If requested, we enable the default validation layers for debugging
-	if (mEngineProperties->mIsValidationEnabled)
+	if (mEngineProperties.lock()->mIsValidationEnabled)
 	{
 		VulkanDebug::SetupDebugUtilsMessenger(mInstance);
 	}
@@ -1591,10 +1591,10 @@ void VulkanRenderer::CreateGraphicsCommandPool()
 
 void VulkanRenderer::OnResizeWindow()
 {
-	if (!mEngineProperties->mIsRendererPrepared)
+	if (!mEngineProperties.lock()->mIsRendererPrepared)
 		return;
 	
-	mEngineProperties->mIsRendererPrepared = false;
+	mEngineProperties.lock()->mIsRendererPrepared = false;
 
 	// Ensure all operations on the device have been finished before destroying resources
 	vkDeviceWaitIdle(mVulkanDevice->mLogicalVkDevice);
@@ -1632,12 +1632,12 @@ void VulkanRenderer::OnResizeWindow()
 		mCamera->UpdateAspectRatio(static_cast<float>(mFramebufferWidth) / static_cast<float>(mFramebufferHeight));
 	}
 
-	mEngineProperties->mIsRendererPrepared = true;
+	mEngineProperties.lock()->mIsRendererPrepared = true;
 }
 
 void VulkanRenderer::SetupSwapchain()
 {
-	mVulkanSwapChain.CreateSwapchain(mFramebufferWidth, mFramebufferHeight, mEngineProperties->mIsVSyncEnabled);
+	mVulkanSwapChain.CreateSwapchain(mFramebufferWidth, mFramebufferHeight, mEngineProperties.lock()->mIsVSyncEnabled);
 }
 
 void VulkanRenderer::DrawModels(VkCommandBuffer aCommandBuffer)
@@ -1773,8 +1773,8 @@ void VulkanRenderer::OnUpdateUIOverlay()
 #ifdef _DEBUG
 			ImGui::Text("fillModeNonSolid is %s", mVulkanDevice->mEnabledPhysicalDeviceFeatures.fillModeNonSolid ? "enabled" : "disabled");
 #endif
-			ImGui::Text("VSync is %s", mEngineProperties->mIsVSyncEnabled ? "enabled" : "disabled");
-			ImGui::Text("Validation Layers is %s", mEngineProperties->mIsValidationEnabled ? "enabled" : "disabled");
+			ImGui::Text("VSync is %s", mEngineProperties.lock()->mIsVSyncEnabled ? "enabled" : "disabled");
+			ImGui::Text("Validation Layers is %s", mEngineProperties.lock()->mIsValidationEnabled ? "enabled" : "disabled");
 		}
 
 		ImGui::NewLine();

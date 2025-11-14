@@ -39,7 +39,7 @@ class ModelManager;
 class VulkanRenderer
 {
 public:
-	VulkanRenderer(EngineProperties* aEngineProperties, const std::shared_ptr<Window>& aWindow);
+	VulkanRenderer(const std::shared_ptr<EngineProperties>& aEngineProperties, const std::shared_ptr<Window>& aWindow);
 	~VulkanRenderer();
 
 	void InitializeRenderer();
@@ -168,7 +168,7 @@ private:
 	std::unique_ptr<Time::Timer> mFrameTimer;
 	std::unique_ptr<Camera> mCamera;
 	std::unique_ptr<ImGuiOverlay> mImGuiOverlay;
-	EngineProperties* mEngineProperties;
+	std::weak_ptr<EngineProperties> mEngineProperties;
 	std::weak_ptr<Window> mWindow;
 	std::shared_ptr<TextureManager> mTextureManager;
 	std::unique_ptr<ModelManager> mModelManager;
