@@ -8,13 +8,9 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glm)
 
-FetchContent_GetProperties(glm)
-
 add_library(GLM INTERFACE)
 
 set(GLM_DIR ${glm_SOURCE_DIR})
-
-target_sources(GLM INTERFACE ${GLM_DIR}/glm/glm.hpp)
 
 target_include_directories(GLM INTERFACE ${GLM_DIR})
 

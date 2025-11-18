@@ -16,7 +16,6 @@ target_link_libraries(Editor PUBLIC
 target_include_directories(Editor
 	PUBLIC
         ${PROJECT_SOURCE_DIR}
-		"${CMAKE_SOURCE_DIR}/Dependencies/"
 		 ${GLFW_INCLUDE_DIR}
 		 ${IMGUI_INCLUDE_DIR})
 
