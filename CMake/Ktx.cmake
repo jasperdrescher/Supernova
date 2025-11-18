@@ -5,8 +5,6 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
     GIT_TAG v4.4.2
     GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE
-	DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}/Dependencies
 )
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
