@@ -7,7 +7,7 @@ file(GLOB_RECURSE PROJECT_INCLUDES
 add_executable(Editor ${PROJECT_SOURCES} ${PROJECT_INCLUDES})
 
 if (MSVC)
-    target_compile_options(Editor PRIVATE /W3)
+    target_compile_options(Editor PRIVATE /W4)
 endif()
 
 target_link_libraries(Editor PUBLIC

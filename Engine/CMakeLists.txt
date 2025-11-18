@@ -23,7 +23,7 @@ add_library(Engine STATIC ${PROJECT_SOURCES} ${PROJECT_INCLUDES})
 set_property(TARGET Engine PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJETC_SOURCE_ROOT_DIR}")
 
 if (MSVC)
-    target_compile_options(Engine PRIVATE /W3)
+    target_compile_options(Engine PRIVATE /W4)
 endif()
 
 target_link_libraries(Engine
