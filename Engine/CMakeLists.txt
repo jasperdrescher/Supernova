@@ -1,10 +1,9 @@
 include(FetchContent)
 
-# Vulkan
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
-list(PREPEND CMAKE_MODULE_PATH "${projectSourceRoot}/CMake")
+list(PREPEND CMAKE_MODULE_PATH "${PROJETC_SOURCE_ROOT_DIR}/CMake")
 include(STB)
 include(GLM)
 include(TinyGLTF)
@@ -21,7 +20,7 @@ file(GLOB_RECURSE PROJECT_INCLUDES
 
 add_library(Engine STATIC ${PROJECT_SOURCES} ${PROJECT_INCLUDES})
 
-set_property(TARGET Engine PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${projectSourceRoot}")
+set_property(TARGET Engine PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJETC_SOURCE_ROOT_DIR}")
 
 if (MSVC)
     target_compile_options(Engine PRIVATE /W3)
