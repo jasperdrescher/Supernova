@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 9,
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 26,
@@ -66,21 +66,21 @@
       "displayName": "x64 Debug",
       "configurePreset": "Windows-x64-Debug",
       "configuration": "Debug",
-      "targets": [ "Engine", "Editor"]
+      "targets": [ "Editor"]
     },
     {
       "name": "Windows-x64-Release",
       "displayName": "x64 Release",
       "configurePreset": "Windows-x64-Release",
       "configuration": "Release",
-      "targets": [ "Engine", "Editor"]
+      "targets": [ "Editor"]
     },
 	{
       "name": "Windows-x64-Asan",
       "displayName": "x64 Asan",
       "configurePreset": "Windows-x64-Asan",
       "configuration": "Debug",
-      "targets": [ "Engine", "Editor"]
+      "targets": [ "Editor"]
     }
   ]
 }
