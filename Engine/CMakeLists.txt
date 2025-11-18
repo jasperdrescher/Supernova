@@ -13,16 +13,13 @@ include(GLFW)
 include(Ktx)
 include(ImGui)
 
-MESSAGE(${projectSourceRoot})
-MESSAGE(${projectBinaryRoot})
-
 file(GLOB_RECURSE PROJECT_SOURCES
     Source/*.cpp)
 
 file(GLOB_RECURSE PROJECT_INCLUDES
     Source/*.hpp)
 
-add_library(Engine STATIC ${IMGUI_SOURCES} ${PROJECT_SOURCES} ${PROJECT_INCLUDES})
+add_library(Engine STATIC ${PROJECT_SOURCES} ${PROJECT_INCLUDES})
 
 set_property(TARGET Engine PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${projectSourceRoot}")
 
