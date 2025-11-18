@@ -14,3 +14,6 @@ set(GLFW_INSTALL OFF CACHE INTERNAL "")
 set(GLFW_USE_HYBRID_HPG ON CACHE INTERNAL "")
 
 FetchContent_MakeAvailable(GLFW)
+
+set_property(TARGET glfw PROPERTY FOLDER "Dependencies/GLFW")
+set_property(TARGET update_mappings PROPERTY FOLDER "Dependencies/GLFW")

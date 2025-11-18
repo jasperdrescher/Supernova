@@ -21,3 +21,5 @@ target_compile_definitions(GLM INTERFACE
     GLM_ENABLE_EXPERIMENTAL
     GLM_FORCE_DEPTH_ZERO_TO_ONE
 )
+
+set_property(TARGET glm PROPERTY FOLDER "Dependencies")
