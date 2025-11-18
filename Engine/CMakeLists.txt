@@ -38,7 +38,7 @@ target_link_libraries(Engine
         EnTT
         TinyGLTF
         GLM
-		Imgui)
+		ImGui)
 
 target_include_directories(Engine
 	PUBLIC
