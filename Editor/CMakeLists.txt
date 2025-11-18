@@ -21,3 +21,10 @@ target_include_directories(Editor
 		 ${IMGUI_INCLUDE_DIR})
 
 set_property(TARGET Editor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${projectSourceRoot}")
+
+set(RESOURCES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/")
+set(RESOURCES_DESTINATION_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources/")
+add_custom_command(
+    TARGET Editor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${RESOURCES_SOURCE_DIR} ${RESOURCES_DESTINATION_DIR}
+    COMMENT "Copying resources ${RESOURCES_SOURCE_DIR} => ${RESOURCES_DESTINATION_DIR}")

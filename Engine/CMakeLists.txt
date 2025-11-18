@@ -42,3 +42,10 @@ target_include_directories(Engine
         "${CMAKE_CURRENT_SOURCE_DIR}/Source/"
         ${VULKAN_INCLUDE_DIR}
 		${GLFW_INCLUDE_DIR})
+
+set(RESOURCES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/")
+set(RESOURCES_DESTINATION_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources/")
+add_custom_command(
+    TARGET Engine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${RESOURCES_SOURCE_DIR} ${RESOURCES_DESTINATION_DIR}
+    COMMENT "Copying resources ${RESOURCES_SOURCE_DIR} => ${RESOURCES_DESTINATION_DIR}")
