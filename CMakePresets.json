@@ -1,0 +1,86 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 26,
+    "patch": 0
+  },
+  "configurePresets": [
+	{
+		"name": "Windows-x64-Base",
+		"hidden": true,
+		"displayName": "Windows x64 Base",
+		"generator": "Ninja",
+		"binaryDir": "${sourceDir}/Out/Binaries/${presetName}",
+		"architecture": {
+			"value": "x64",
+			"strategy": "external"
+		},
+		"cacheVariables": {
+			"CMAKE_CXX_STANDARD": "20",
+			"CMAKE_INSTALL_PREFIX": "${sourceDir}/Out/Install/${presetName}"
+		},
+		"vendor": {
+			"microsoft.com/VisualStudioSettings/CMake/1.0": {
+			"hostOS": [ "Windows" ]
+			}
+		}
+	},
+    {
+		"name": "Windows-x64-Debug",
+		"displayName": "Windows x64 Debug",
+		"description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, and debug build type",
+		"inherits": "Windows-x64-Base",
+		"cacheVariables": {
+			"CMAKE_BUILD_TYPE": "Debug"
+		}
+	},
+	{
+		"name": "Windows-x64-Release",
+		"displayName": "Windows x64 Release",
+		"description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, and release build type",
+		"inherits": "Windows-x64-Base",
+		"cacheVariables": {
+			"CMAKE_BUILD_TYPE": "Release"
+		}
+	},
+	{
+		"name": "Windows-x64-Asan",
+		"displayName": "Windows x64 Asan",
+		"description": "Sets Ninja generator, compilers, x64 architecture, build and install directory, and debug build type",
+		"inherits": "Windows-x64-Base",
+		"cacheVariables": {
+			"CMAKE_BUILD_TYPE": "Debug",
+			"CMAKE_CXX_COMPILER": "clang-cl",
+       		"CMAKE_C_COMPILER": "clang-cl",
+        	"CMAKE_C_FLAGS_ASAN": "-fsanitize=address -fno-omit-frame-pointer",
+        	"CMAKE_CXX_FLAGS_ASAN": "-fsanitize=address -fno-omit-frame-pointer",
+        	"CMAKE_EXE_LINKER_FLAGS_ASAN": "-fsanitize=address",
+        	"CMAKE_SHARED_LINKER_FLAGS_ASAN": "-fsanitize=address"
+		}
+	}
+  ],
+  "buildPresets": [
+    {
+      "name": "Windows-x64-Debug",
+      "displayName": "x64 Debug",
+      "configurePreset": "Windows-x64-Debug",
+      "configuration": "Debug",
+      "targets": [ "Engine", "Editor"]
+    },
+    {
+      "name": "Windows-x64-Release",
+      "displayName": "x64 Release",
+      "configurePreset": "Windows-x64-Release",
+      "configuration": "Release",
+      "targets": [ "Engine", "Editor"]
+    },
+	{
+      "name": "Windows-x64-Asan",
+      "displayName": "x64 Asan",
+      "configurePreset": "Windows-x64-Asan",
+      "configuration": "Debug",
+      "targets": [ "Engine", "Editor"]
+    }
+  ]
+}
