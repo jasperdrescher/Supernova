@@ -6,9 +6,11 @@ FetchContent_Declare(
 	GIT_TAG v2.9.7
 	GIT_SHALLOW TRUE)
 
-FetchContent_MakeAvailable(tinygltf)
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE INTERNAL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 
-FetchContent_GetProperties(tinygltf)
+FetchContent_MakeAvailable(tinygltf)
 
 add_library(TinyGLTF INTERFACE)
 
