@@ -445,14 +445,9 @@ FodyWeavers.xsd
 *.sln.iml
 
 ## Custom
-!Supernova/ThirdParty/**
-!glfw3.lib
-!glfw3_mtlib
-!glfw3dll.lib
-!glfw3.dll
-imgui.ini
-
 [Oo]ut/
 [Bb]uild/
 [Bb]in/
 [Bb]inaries/
+
+imgui.ini
