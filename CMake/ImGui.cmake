@@ -31,6 +31,6 @@ set(IMGUI_HEADERS
 
 add_library(ImGui STATIC ${IMGUI_SOURCES} ${IMGUI_HEADERS})
 
-target_include_directories(ImGui PUBLIC ${IMGUI_INCLUDE_DIR})
+target_include_directories(ImGui PUBLIC ${IMGUI_DIR})
 
 target_link_libraries(ImGui PRIVATE Vulkan::Vulkan glfw)
