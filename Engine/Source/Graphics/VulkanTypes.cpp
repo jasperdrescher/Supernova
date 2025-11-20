@@ -1,22 +1,12 @@
 #include "VulkanTypes.hpp"
 
-#include "Core/Types.hpp"
-#include "FileLoader.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanInitializers.hpp"
-#include "VulkanTools.hpp"
+#include "Math/Types.hpp"
 
-#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstring>
-#include <filesystem>
-#include <format>
-#include <iostream>
-#include <ktx.h>
 #include <stdexcept>
-#include <string>
-#include <vector>
+#include <vulkan/vulkan_core.h>
 
 /**
 * Map a memory range of this buffer. If successful, mapped points to the specified buffer range.

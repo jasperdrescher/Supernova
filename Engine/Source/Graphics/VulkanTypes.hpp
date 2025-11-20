@@ -4,8 +4,6 @@
 #include "Math/Types.hpp"
 
 #include <array>
-#include <filesystem>
-#include <ktx.h>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
