@@ -24,9 +24,6 @@ if (MSVC)
     target_compile_options(Engine PRIVATE /W4)
 endif()
 
-target_compile_definitions(VulkanHppModule PUBLIC
-    VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
-
 target_link_libraries(Engine
 	PUBLIC
         ktx
@@ -35,7 +32,7 @@ target_link_libraries(Engine
         TinyGLTF
         GLM
 		ImGui
-        VulkanHppModule)
+        VulkanHpp)
 
 target_include_directories(Engine
 	PUBLIC
