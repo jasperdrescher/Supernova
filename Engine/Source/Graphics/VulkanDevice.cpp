@@ -139,7 +139,7 @@ void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& aEnabledE
 	// Get queue family indices for the requested queue family types
 	// Note that the indices may overlap depending on the implementation
 
-	const float defaultQueuePriority = 0.0f;
+	const float defaultQueuePriority = 0.5f;
 
 	// Graphics queue
 	if (aRequestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
