@@ -24,6 +24,9 @@ if (MSVC)
     target_compile_options(Engine PRIVATE /W4)
 endif()
 
+target_compile_definitions(Engine PUBLIC
+	VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+
 target_link_libraries(Engine
 	PUBLIC
         ktx
@@ -32,12 +35,11 @@ target_link_libraries(Engine
         TinyGLTF
         GLM
 		ImGui
-        VulkanHpp)
+        VulkanHppModule)
 
 target_include_directories(Engine
 	PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/Source/"
-        ${VULKAN_INCLUDE_DIR}
 		${GLFW_INCLUDE_DIR})
 
 set(RESOURCES_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/")
