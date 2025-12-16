@@ -1,6 +1,9 @@
 include(FetchContent)
 
+option(USE_VULKAN_C "Use Vulkan C instead of HPP" ON)
+
 list(PREPEND CMAKE_MODULE_PATH "${PROJETC_SOURCE_ROOT_DIR}/CMake")
+
 include(STB)
 include(GLM)
 include(TinyGLTF)
@@ -8,7 +11,12 @@ include(EnTT)
 include(GLFW)
 include(Ktx)
 include(ImGui)
-include(VulkanHpp)
+
+if(USE_VULKAN_C)
+	include(VulkanC)
+else()
+	include(VulkanHpp)
+endif()
 
 file(GLOB_RECURSE PROJECT_SOURCES
     Source/*.cpp)
@@ -24,18 +32,35 @@ if (MSVC)
     target_compile_options(Engine PRIVATE /W4)
 endif()
 
-target_compile_definitions(Engine PUBLIC
-	VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+if(USE_VULKAN_C)
+	target_compile_definitions(Engine PUBLIC
+		VULKAN_C=1)
+else()
+	target_compile_definitions(Engine PUBLIC
+		VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
+endif()
 
-target_link_libraries(Engine
-	PUBLIC
-        ktx
-		glfw
-        EnTT
-        TinyGLTF
-        GLM
-		ImGui
-        VulkanHppModule)
+if(USE_VULKAN_C)
+	target_link_libraries(Engine
+		PUBLIC
+			ktx
+			glfw
+			EnTT
+			TinyGLTF
+			GLM
+			ImGui
+			Vulkan::Vulkan)
+else()
+	target_link_libraries(Engine
+		PUBLIC
+			ktx
+			glfw
+			EnTT
+			TinyGLTF
+			GLM
+			ImGui
+			VulkanHppModule)
+endif()
 
 target_include_directories(Engine
 	PUBLIC

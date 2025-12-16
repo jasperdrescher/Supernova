@@ -8,11 +8,11 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-class ImGuiOverlay
+class VulkanCImGuiOverlay
 {
 public:
-	ImGuiOverlay();
-	~ImGuiOverlay();
+	VulkanCImGuiOverlay();
+	~VulkanCImGuiOverlay();
 
 	void PreparePipeline(const VkPipelineCache aPipelineCache, const VkFormat aColorFormat, const VkFormat aDepthFormat);
 	void PrepareResources();
@@ -21,7 +21,7 @@ public:
 	void Resize(std::uint32_t aWidth, std::uint32_t aHeight);
 	void FreeResources();
 
-	void SetVulkanDevice(VulkanDevice* aVulkanDevice) { mVulkanDevice = aVulkanDevice; }
+	void SetVulkanDevice(VulkanCDevice* aVulkanDevice) { mVulkanDevice = aVulkanDevice; }
 	void SetVkQueue(VkQueue aVkQueue) { mQueue = aVkQueue; }
 	void SetMaxConcurrentFrames(std::uint32_t aMaxConcurrentFrames) { gMaxConcurrentFrames = aMaxConcurrentFrames; }
 	void AddShader(const VkPipelineShaderStageCreateInfo& aCreateInfo) { mShaders.push_back(aCreateInfo); }
@@ -45,8 +45,8 @@ private:
 	{
 		Buffers() : vertexCount{0}, indexCount{0} {}
 
-		Buffer vertexBuffer;
-		Buffer indexBuffer;
+		VulkanCTypes::Buffer vertexBuffer;
+		VulkanCTypes::Buffer indexBuffer;
 		std::int32_t vertexCount;
 		std::int32_t indexCount;
 	};
@@ -76,7 +76,7 @@ private:
 	std::uint32_t mSubpass;
 	std::uint32_t gMaxConcurrentFrames;
 	std::uint32_t mCurrentBufferIndex;
-	VulkanDevice* mVulkanDevice;
+	VulkanCDevice* mVulkanDevice;
 	bool mIsVisible;
 	float mScale;
 };

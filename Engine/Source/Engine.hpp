@@ -9,7 +9,7 @@ namespace Time
 
 struct EngineProperties;
 class Window;
-class VulkanRenderer;
+class VulkanCRenderer;
 
 class Engine
 {
@@ -23,7 +23,7 @@ public:
 private:
 	std::shared_ptr<EngineProperties> mEngineProperties;
 	std::shared_ptr<Window> mVulkanWindow;
-	std::unique_ptr<VulkanRenderer> mVulkanRenderer;
+	std::unique_ptr<VulkanCRenderer> mVulkanRenderer;
 	std::unique_ptr<Time::Timer> mTimer;
 	float mDeltaTime;
 	float mFixedDeltaTime;

@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace VulkanTools
+namespace VulkanCTools
 {
 	std::string GetErrorString(VkResult aErrorCode)
 	{
@@ -130,7 +130,7 @@ namespace VulkanTools
 		VkPipelineStageFlags aDestinationVkPipelineStageMask,
 		VkImageSubresourceRange aVkImageSubresourceRange)
 	{
-		VkImageMemoryBarrier imageMemoryBarrier = VulkanInitializers::ImageMemoryBarrier();
+		VkImageMemoryBarrier imageMemoryBarrier = VulkanCInitializers::ImageMemoryBarrier();
 		imageMemoryBarrier.srcAccessMask = aSourceVkAccessMask;
 		imageMemoryBarrier.dstAccessMask = aDestinationVkAccessMask;
 		imageMemoryBarrier.oldLayout = aOldVkImageLayout;
@@ -202,7 +202,7 @@ namespace VulkanTools
 		VkPipelineStageFlags dstStageMask)
 	{
 		// Create an image barrier object
-		VkImageMemoryBarrier imageMemoryBarrier = VulkanInitializers::ImageMemoryBarrier();
+		VkImageMemoryBarrier imageMemoryBarrier = VulkanCInitializers::ImageMemoryBarrier();
 		imageMemoryBarrier.oldLayout = oldImageLayout;
 		imageMemoryBarrier.newLayout = newImageLayout;
 		imageMemoryBarrier.image = image;

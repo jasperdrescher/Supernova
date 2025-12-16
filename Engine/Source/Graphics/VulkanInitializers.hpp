@@ -5,7 +5,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-namespace VulkanInitializers
+namespace VulkanCInitializers
 {
 	inline VkCommandBufferAllocateInfo CommandBufferAllocateInfo(
 		VkCommandPool aCommandPool,

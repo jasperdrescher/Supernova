@@ -19,23 +19,23 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-TextureManager::TextureManager()
+VulkanCTextureManager::VulkanCTextureManager()
 	: mVulkanDevice{nullptr}
 	, mTransferQueue{VK_NULL_HANDLE}
 {
 }
 
-TextureManager::~TextureManager()
+VulkanCTextureManager::~VulkanCTextureManager()
 {
 }
 
-void TextureManager::SetContext(VulkanDevice* aDevice, VkQueue aTransferQueue)
+void VulkanCTextureManager::SetContext(VulkanCDevice* aDevice, VkQueue aTransferQueue)
 {
 	mVulkanDevice = aDevice;
 	mTransferQueue = aTransferQueue;
 }
 
-vkglTF::Texture TextureManager::CreateEmptyTexture()
+vkglTF::Texture VulkanCTextureManager::CreateEmptyTexture()
 {
 	vkglTF::Texture texture{};
 
@@ -109,9 +109,9 @@ vkglTF::Texture TextureManager::CreateEmptyTexture()
 	};
 	const VkImageSubresourceRange subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .baseMipLevel = 0, .levelCount = 1, .layerCount = 1};
 	VkCommandBuffer copyCommandBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-	VulkanTools::SetImageLayout(copyCommandBuffer, texture.mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
+	VulkanCTools::SetImageLayout(copyCommandBuffer, texture.mImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, subresourceRange);
 	vkCmdCopyBufferToImage(copyCommandBuffer, stagingBuffer, texture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
-	VulkanTools::SetImageLayout(copyCommandBuffer, texture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange);
+	VulkanCTools::SetImageLayout(copyCommandBuffer, texture.mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange);
 	mVulkanDevice->FlushCommandBuffer(copyCommandBuffer, mTransferQueue, true);
 	texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -153,7 +153,7 @@ vkglTF::Texture TextureManager::CreateEmptyTexture()
 	return texture;
 }
 
-vkglTF::Texture TextureManager::CreateTexture(const std::filesystem::path& aPath)
+vkglTF::Texture VulkanCTextureManager::CreateTexture(const std::filesystem::path& aPath)
 {
 	Time::Timer loadTimer;
 	loadTimer.StartTimer();
@@ -180,7 +180,7 @@ vkglTF::Texture TextureManager::CreateTexture(const std::filesystem::path& aPath
 	return texture;
 }
 
-vkglTF::Texture TextureManager::CreateTexture(const std::filesystem::path& aPath, vkglTF::Image& aImage)
+vkglTF::Texture VulkanCTextureManager::CreateTexture(const std::filesystem::path& aPath, vkglTF::Image& aImage)
 {
 	Time::Timer loadTimer;
 	loadTimer.StartTimer();
@@ -210,7 +210,7 @@ vkglTF::Texture TextureManager::CreateTexture(const std::filesystem::path& aPath
 	return texture;
 }
 
-void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vkglTF::Texture& aTexture, VkFormat& aFormat)
+void VulkanCTextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vkglTF::Texture& aTexture, VkFormat& aFormat)
 {
 	ktxTexture* ktxTexture;
 
@@ -332,7 +332,7 @@ void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vk
 		.levelCount = aTexture.mMipLevels,
 		.layerCount = aTexture.mLayerCount
 	};
-	VulkanTools::SetImageLayout(
+	VulkanCTools::SetImageLayout(
 		copyCommandBuffer,
 		aTexture.mImage,
 		VK_IMAGE_LAYOUT_UNDEFINED,
@@ -347,7 +347,7 @@ void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vk
 		static_cast<Core::uint32>(bufferCopyRegions.size()),
 		bufferCopyRegions.data());
 
-	VulkanTools::SetImageLayout(
+	VulkanCTools::SetImageLayout(
 		copyCommandBuffer,
 		aTexture.mImage,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -364,7 +364,7 @@ void TextureManager::CreateFromKtxTexture(const std::filesystem::path& aPath, vk
 	ktxTexture_Destroy(ktxTexture);
 }
 
-void TextureManager::CreateFromEmbeddedTexture(vkglTF::Image& aImage, vkglTF::Texture& aTexture, VkFormat& aFormat)
+void VulkanCTextureManager::CreateFromEmbeddedTexture(vkglTF::Image& aImage, vkglTF::Texture& aTexture, VkFormat& aFormat)
 {
 	// Texture was loaded using STB_Image
 	unsigned char* buffer = nullptr;
@@ -606,7 +606,7 @@ void TextureManager::CreateFromEmbeddedTexture(vkglTF::Image& aImage, vkglTF::Te
 	mVulkanDevice->FlushCommandBuffer(blitCommandBuffer, mTransferQueue, true);
 }
 
-void TextureManager::CreateResources(vkglTF::Texture& aTexture, const VkFormat& aFormat)
+void VulkanCTextureManager::CreateResources(vkglTF::Texture& aTexture, const VkFormat& aFormat)
 {
 	const VkSamplerAddressMode samplerAddressMode = aTexture.mTextureType == vkglTF::TextureType::Flat ? VK_SAMPLER_ADDRESS_MODE_REPEAT : VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 	const VkSamplerCreateInfo samplerCreateInfo{

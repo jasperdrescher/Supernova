@@ -27,7 +27,7 @@ namespace vkglTF
 	{
 	}
 
-	Material::Material(VulkanDevice* aDevice)
+	Material::Material(VulkanCDevice* aDevice)
 		: mVulkanDevice{aDevice}
 		, mAlphaMode{AlphaMode::Opaque}
 		, mAlphaCutoff{1.0f}
@@ -65,7 +65,7 @@ namespace vkglTF
 		mDimensions.mRadius = Math::Distance(aMin, aMax) / 2.0f;
 	}
 
-	vkglTF::Mesh::Mesh(VulkanDevice* aDevice, const Math::Matrix4f& aMatrix)
+	vkglTF::Mesh::Mesh(VulkanCDevice* aDevice, const Math::Matrix4f& aMatrix)
 	{
 		mVulkanDevice = aDevice;
 		mUniformBlock.mMatrix = aMatrix;

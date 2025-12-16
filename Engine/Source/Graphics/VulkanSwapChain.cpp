@@ -11,7 +11,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-VulkanSwapChain::VulkanSwapChain()
+VulkanCSwapChain::VulkanCSwapChain()
 	: mActiveVulkanDevice{nullptr}
 	, mActiveVkInstance{VK_NULL_HANDLE}
 	, mVkSurfaceKHR{VK_NULL_HANDLE}
@@ -23,7 +23,7 @@ VulkanSwapChain::VulkanSwapChain()
 {
 }
 
-void VulkanSwapChain::InitializeSurface()
+void VulkanCSwapChain::InitializeSurface()
 {
 	Core::uint32 queueCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(mActiveVulkanDevice->mPhysicalDevice, &queueCount, nullptr);
@@ -119,13 +119,13 @@ void VulkanSwapChain::InitializeSurface()
 	mVkColorSpaceKHR = selectedFormat.colorSpace;
 }
 
-void VulkanSwapChain::SetContext(VkInstance aVkInstance, VulkanDevice* aVulkanDevice)
+void VulkanCSwapChain::SetContext(VkInstance aVkInstance, VulkanCDevice* aVulkanDevice)
 {
 	mActiveVkInstance = aVkInstance;
 	mActiveVulkanDevice = aVulkanDevice;
 }
 
-void VulkanSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeight, bool aUseVSync)
+void VulkanCSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeight, bool aUseVSync)
 {
 	assert(mActiveVulkanDevice);
 	assert(mActiveVkInstance);
@@ -299,14 +299,14 @@ void VulkanSwapChain::CreateSwapchain(Core::uint32& aWidth, Core::uint32& aHeigh
 	}
 }
 
-VkResult VulkanSwapChain::AcquireNextImage(VkSemaphore aPresentCompleteSemaphore, Core::uint32& aImageIndex) const
+VkResult VulkanCSwapChain::AcquireNextImage(VkSemaphore aPresentCompleteSemaphore, Core::uint32& aImageIndex) const
 {
 	// By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
 	// With that we don't have to handle VK_NOT_READY
 	return vkAcquireNextImageKHR(mActiveVulkanDevice->mLogicalVkDevice, mVkSwapchainKHR, Core::uint64_max, aPresentCompleteSemaphore, static_cast<VkFence>(VK_NULL_HANDLE), &aImageIndex);
 }
 
-void VulkanSwapChain::CleanUp()
+void VulkanCSwapChain::CleanUp()
 {
 	if (mVkSwapchainKHR != VK_NULL_HANDLE)
 	{

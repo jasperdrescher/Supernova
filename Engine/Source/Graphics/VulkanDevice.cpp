@@ -15,14 +15,14 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-VulkanDevice::VulkanDevice()
+VulkanCDevice::VulkanCDevice()
 	: mPhysicalDevice{VK_NULL_HANDLE}
 	, mLogicalVkDevice{VK_NULL_HANDLE}
 	, mDefaultGraphicsCommandPool{VK_NULL_HANDLE}
 {
 }
 
-VulkanDevice::~VulkanDevice()
+VulkanCDevice::~VulkanCDevice()
 {
 	if (mDefaultGraphicsCommandPool)
 		vkDestroyCommandPool(mLogicalVkDevice, mDefaultGraphicsCommandPool, nullptr);
@@ -42,7 +42,7 @@ VulkanDevice::~VulkanDevice()
 *
 * @throw Throws an exception if memTypeFound is null and no memory type could be found that supports the requested properties
 */
-Core::uint32 VulkanDevice::GetMemoryTypeIndex(Core::uint32 aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32* aMemTypeFound) const
+Core::uint32 VulkanCDevice::GetMemoryTypeIndex(Core::uint32 aTypeBits, VkMemoryPropertyFlags aProperties, VkBool32* aMemTypeFound) const
 {
 	for (Core::uint32 i = 0; i < mPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
 	{
@@ -82,7 +82,7 @@ Core::uint32 VulkanDevice::GetMemoryTypeIndex(Core::uint32 aTypeBits, VkMemoryPr
 *
 * @throw Throws an exception if no queue family index could be found that supports the requested flags
 */
-Core::uint32 VulkanDevice::GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) const
+Core::uint32 VulkanCDevice::GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) const
 {
 	// Dedicated queue for compute
 	// Try to find a queue family index that supports compute but not graphics
@@ -132,7 +132,7 @@ Core::uint32 VulkanDevice::GetQueueFamilyIndex(VkQueueFlags aVkQueueFlags) const
 *
 * @return VkResult of the device creation call
 */
-void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& aEnabledExtensions, void* aNextChain, bool aUseSwapChain, VkQueueFlags aRequestedQueueTypes)
+void VulkanCDevice::CreateLogicalDevice(const std::vector<const char*>& aEnabledExtensions, void* aNextChain, bool aUseSwapChain, VkQueueFlags aRequestedQueueTypes)
 {
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
@@ -254,7 +254,7 @@ void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& aEnabledE
 	VK_CHECK_RESULT(vkCreateCommandPool(mLogicalVkDevice, &commandPoolInfo, nullptr, &mDefaultGraphicsCommandPool));
 }
 
-void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
+void VulkanCDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 {
 	mPhysicalDevice = aVkPhysicalDevice;
 
@@ -263,7 +263,7 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 	vkGetPhysicalDeviceProperties(aVkPhysicalDevice, &mPhysicalDeviceProperties);
 
 	std::cout << "Device: " << mPhysicalDeviceProperties.deviceName << std::endl;
-	std::cout << " Type: " << VulkanTools::GetPhysicalDeviceTypeString(mPhysicalDeviceProperties.deviceType) << std::endl;
+	std::cout << " Type: " << VulkanCTools::GetPhysicalDeviceTypeString(mPhysicalDeviceProperties.deviceType) << std::endl;
 	std::cout << " API: " << (mPhysicalDeviceProperties.apiVersion >> 22) << "." << ((mPhysicalDeviceProperties.apiVersion >> 12) & 0x3ff) << "." << (mPhysicalDeviceProperties.apiVersion & 0xfff) << std::endl;
 
 	// Features should be checked by the examples before using them
@@ -308,30 +308,30 @@ void VulkanDevice::CreatePhysicalDevice(VkPhysicalDevice aVkPhysicalDevice)
 
 	if (mPhysicalDeviceProperties.apiVersion < VK_API_VERSION_1_3)
 	{
-		throw std::runtime_error(std::format("Selected GPU does not support support Vulkan 1.3: {}", VulkanTools::GetErrorString(VK_ERROR_INCOMPATIBLE_DRIVER)));
+		throw std::runtime_error(std::format("Selected GPU does not support support Vulkan 1.3: {}", VulkanCTools::GetErrorString(VK_ERROR_INCOMPATIBLE_DRIVER)));
 	}
 }
 
-VkCommandBuffer VulkanDevice::CreateCommandBuffer(VkCommandBufferLevel aLevel, VkCommandPool aPool, bool aIsBeginBuffer) const
+VkCommandBuffer VulkanCDevice::CreateCommandBuffer(VkCommandBufferLevel aLevel, VkCommandPool aPool, bool aIsBeginBuffer) const
 {
-	const VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanInitializers::CommandBufferAllocateInfo(aPool, aLevel, 1);
+	const VkCommandBufferAllocateInfo commandBufferAllocateInfo = VulkanCInitializers::CommandBufferAllocateInfo(aPool, aLevel, 1);
 	VkCommandBuffer commandBuffer;
 	VK_CHECK_RESULT(vkAllocateCommandBuffers(mLogicalVkDevice, &commandBufferAllocateInfo, &commandBuffer));
 	// If requested, also start recording for the new command buffer
 	if (aIsBeginBuffer)
 	{
-		VkCommandBufferBeginInfo cmdBufInfo = VulkanInitializers::CommandBufferBeginInfo();
+		VkCommandBufferBeginInfo cmdBufInfo = VulkanCInitializers::CommandBufferBeginInfo();
 		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 	}
 	return commandBuffer;
 }
 
-VkCommandBuffer VulkanDevice::CreateCommandBuffer(VkCommandBufferLevel aLevel, bool aIsBeginBuffer) const
+VkCommandBuffer VulkanCDevice::CreateCommandBuffer(VkCommandBufferLevel aLevel, bool aIsBeginBuffer) const
 {
 	return CreateCommandBuffer(aLevel, mDefaultGraphicsCommandPool, aIsBeginBuffer);
 }
 
-void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, VkCommandPool aPool, bool aIsFree) const
+void VulkanCDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, VkCommandPool aPool, bool aIsFree) const
 {
 	if (aCommandBuffer == VK_NULL_HANDLE)
 		return;
@@ -344,7 +344,7 @@ void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQ
 		.pCommandBuffers = &aCommandBuffer
 	};
 	// Create fence to ensure that the command buffer has finished executing
-	const VkFenceCreateInfo fenceCreateInfo = VulkanInitializers::FenceCreateInfo(gVkFlagsNone);
+	const VkFenceCreateInfo fenceCreateInfo = VulkanCInitializers::FenceCreateInfo(gVkFlagsNone);
 	VkFence fence;
 	VK_CHECK_RESULT(vkCreateFence(mLogicalVkDevice, &fenceCreateInfo, nullptr, &fence));
 	// Submit to the queue
@@ -358,7 +358,7 @@ void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQ
 	}
 }
 
-void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, bool aIsFree) const
+void VulkanCDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQueue, bool aIsFree) const
 {
 	return FlushCommandBuffer(aCommandBuffer, aQueue, mDefaultGraphicsCommandPool, aIsFree);
 }
@@ -373,7 +373,7 @@ void VulkanDevice::FlushCommandBuffer(VkCommandBuffer aCommandBuffer, VkQueue aQ
 *
 * @note Source and destination pointers must have the appropriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
 */
-void VulkanDevice::CopyBuffer(Buffer* aSource, Buffer* aDestination, VkQueue aQueue, VkBufferCopy* aCopyRegion) const
+void VulkanCDevice::CopyBuffer(VulkanCTypes::Buffer* aSource, VulkanCTypes::Buffer* aDestination, VkQueue aQueue, VkBufferCopy* aCopyRegion) const
 {
 	assert(aDestination->mVkDeviceSize >= aSource->mVkDeviceSize);
 	assert(aSource->mVkBuffer);
@@ -401,7 +401,7 @@ void VulkanDevice::CopyBuffer(Buffer* aSource, Buffer* aDestination, VkQueue aQu
 *
 * @return True if the extension is supported (present in the list read at device creation time)
 */
-bool VulkanDevice::IsExtensionSupported(const std::string& aExtension) const
+bool VulkanCDevice::IsExtensionSupported(const std::string& aExtension) const
 {
 	return (std::find(mSupportedExtensions.begin(), mSupportedExtensions.end(), aExtension) != mSupportedExtensions.end());
 }
@@ -415,7 +415,7 @@ bool VulkanDevice::IsExtensionSupported(const std::string& aExtension) const
 *
 * @throw Throws an exception if no depth format fits the requirements
 */
-VkFormat VulkanDevice::GetSupportedDepthFormat(bool aCheckSamplingSupport) const
+VkFormat VulkanCDevice::GetSupportedDepthFormat(bool aCheckSamplingSupport) const
 {
 	// All depth formats may be optional, so we need to find a suitable depth format to use
 	const std::vector<VkFormat> depthFormats = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
@@ -451,15 +451,15 @@ VkFormat VulkanDevice::GetSupportedDepthFormat(bool aCheckSamplingSupport) const
 	*
 	* @return VK_SUCCESS if buffer handle and memory have been created and (optionally passed) data has been copied
 	*/
-VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VkDeviceSize aSize, VkBuffer* aBuffer, VkDeviceMemory* aMemory, void* aData)
+VkResult VulkanCDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VkDeviceSize aSize, VkBuffer* aBuffer, VkDeviceMemory* aMemory, void* aData)
 {
-	VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::BufferCreateInfo(aUsageFlags, aSize);
+	VkBufferCreateInfo bufferCreateInfo = VulkanCInitializers::BufferCreateInfo(aUsageFlags, aSize);
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	VK_CHECK_RESULT(vkCreateBuffer(mLogicalVkDevice, &bufferCreateInfo, nullptr, aBuffer));
 
 	// Create the memory backing up the buffer handle
 	VkMemoryRequirements memoryRequirements;
-	VkMemoryAllocateInfo memoryAllocateInfo = VulkanInitializers::MemoryAllocateInfo();
+	VkMemoryAllocateInfo memoryAllocateInfo = VulkanCInitializers::MemoryAllocateInfo();
 	vkGetBufferMemoryRequirements(mLogicalVkDevice, *aBuffer, &memoryRequirements);
 
 	memoryAllocateInfo.allocationSize = memoryRequirements.size;
@@ -503,16 +503,16 @@ VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryProp
 	return VK_SUCCESS;
 }
 
-VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, Buffer* aBuffer, VkDeviceSize aSize, void* aData) const
+VkResult VulkanCDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPropertyFlags aMemoryPropertyFlags, VulkanCTypes::Buffer* aBuffer, VkDeviceSize aSize, void* aData) const
 {
 	aBuffer->mLogicalVkDevice = mLogicalVkDevice;
 
-	const VkBufferCreateInfo bufferCreateInfo = VulkanInitializers::BufferCreateInfo(aUsageFlags, aSize);
+	const VkBufferCreateInfo bufferCreateInfo = VulkanCInitializers::BufferCreateInfo(aUsageFlags, aSize);
 	VK_CHECK_RESULT(vkCreateBuffer(mLogicalVkDevice, &bufferCreateInfo, nullptr, &aBuffer->mVkBuffer));
 
 	// Create the memory backing up the buffer handle
 	VkMemoryRequirements memoryRequirements;
-	VkMemoryAllocateInfo memoryAllocateInfo = VulkanInitializers::MemoryAllocateInfo();
+	VkMemoryAllocateInfo memoryAllocateInfo = VulkanCInitializers::MemoryAllocateInfo();
 	vkGetBufferMemoryRequirements(mLogicalVkDevice, aBuffer->mVkBuffer, &memoryRequirements);
 
 	memoryAllocateInfo.allocationSize = memoryRequirements.size;

@@ -28,7 +28,7 @@ public:
 	~Window();
 
 	void InitializeWindow(const std::string& aApplicationName);
-	void CreateWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurface);
+	void CreateVulkanCWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurface);
 	void UpdateWindow();
 
 	void SetWindowSize(int aWidth, int aHeight);

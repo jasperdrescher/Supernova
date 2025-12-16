@@ -32,15 +32,15 @@ namespace Time
 struct EngineProperties;
 class Camera;
 class Window;
-class ImGuiOverlay;
-class TextureManager;
-class ModelManager;
+class VulkanCImGuiOverlay;
+class VulkanCTextureManager;
+class VulkanCModelManager;
 
-class VulkanRenderer
+class VulkanCRenderer
 {
 public:
-	VulkanRenderer(const std::shared_ptr<EngineProperties>& aEngineProperties, const std::shared_ptr<Window>& aWindow);
-	~VulkanRenderer();
+	VulkanCRenderer(const std::shared_ptr<EngineProperties>& aEngineProperties, const std::shared_ptr<Window>& aWindow);
+	~VulkanCRenderer();
 
 	void InitializeRenderer();
 	void PrepareUpdate();
@@ -129,18 +129,18 @@ private:
 		Core::uint32 mLoDCount[gMaxLOD + 1]; // Statistics for number of draws per LOD level (written by compute shader)
 	} mIndrectDrawInfo{};
 
-	GraphicsContext mGraphicsContext{};
-	ComputeContext mComputeContext{};
-	ViewFrustum mViewFrustum{};
-	UniformBufferData mUniformBufferData{};
-	Buffer mInstanceBuffer{};
+	VulkanCTypes::GraphicsContext mGraphicsContext{};
+	VulkanCTypes::ComputeContext mComputeContext{};
+	VulkanCTypes::ViewFrustum mViewFrustum{};
+	VulkanCTypes::UniformBufferData mUniformBufferData{};
+	VulkanCTypes::Buffer mInstanceBuffer{};
 	VkPhysicalDeviceVulkan13Features mPhysicalDevice13Features;
-	DepthStencil mDepthStencil;
+	VulkanCTypes::DepthStencil mDepthStencil;
 	VkInstance mInstance; // Vulkan instance, stores all per-application states
 	VkDescriptorPool mDescriptorPool; // Descriptor set pool
 	VkPipelineCache mPipelineCache; // Pipeline cache object
-	VulkanSwapChain mVulkanSwapChain; // Wraps the swap chain to present images (framebuffers) to the windowing system
-	PushConstant mPushConstant{};
+	VulkanCSwapChain mVulkanSwapChain; // Wraps the swap chain to present images (framebuffers) to the windowing system
+	VulkanCTypes::PushConstant mPushConstant{};
 	Time::TimePoint mLastTimestamp;
 	std::vector<VkDrawIndexedIndirectCommand> mIndirectCommands; // Store the indirect draw commands containing index offsets and instance count per object
 	std::vector<std::string> mSupportedInstanceExtensions{};
@@ -150,9 +150,9 @@ private:
 	std::vector<const char*> mInstanceExtensions{}; // Set of active instance extensions
 	std::vector<VkShaderModule> mShaderModules{}; // List of shader modules created (stored for cleanup)
 	std::array<DescriptorSets, gMaxConcurrentFrames> mDescriptorSets{};
-	std::array<Buffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
-	std::array<Buffer, gMaxConcurrentFrames> mIndirectCommandsBuffers;
-	std::array<Buffer, gMaxConcurrentFrames> mIndirectDrawCountBuffers;
+	std::array<VulkanCTypes::Buffer, gMaxConcurrentFrames> mVulkanUniformBuffers;
+	std::array<VulkanCTypes::Buffer, gMaxConcurrentFrames> mIndirectCommandsBuffers;
+	std::array<VulkanCTypes::Buffer, gMaxConcurrentFrames> mIndirectDrawCountBuffers;
 	Core::uint32 mFramebufferWidth;
 	Core::uint32 mFramebufferHeight;
 	Core::uint32 mFrameCounter;
@@ -167,12 +167,12 @@ private:
 	Math::Vector4f mLightPosition;
 	std::unique_ptr<Time::Timer> mFrameTimer;
 	std::unique_ptr<Camera> mCamera;
-	std::unique_ptr<ImGuiOverlay> mImGuiOverlay;
+	std::unique_ptr<VulkanCImGuiOverlay> mImGuiOverlay;
 	std::weak_ptr<EngineProperties> mEngineProperties;
 	std::weak_ptr<Window> mWindow;
-	std::shared_ptr<TextureManager> mTextureManager;
-	std::unique_ptr<ModelManager> mModelManager;
-	VulkanDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
+	std::shared_ptr<VulkanCTextureManager> mTextureManager;
+	std::unique_ptr<VulkanCModelManager> mModelManager;
+	VulkanCDevice* mVulkanDevice; // Encapsulated physical and logical vulkan device
 	VkFormat mVkDepthFormat; // Depth buffer format (selected during Vulkan initialization)
 	float mFrametime;
 	float mFPSTimerInterval;

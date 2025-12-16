@@ -177,7 +177,7 @@ namespace ImGuiOverlayPrivate
 	}
 }
 
-ImGuiOverlay::ImGuiOverlay()
+VulkanCImGuiOverlay::VulkanCImGuiOverlay()
 	: mVulkanDevice{nullptr}
 	, mQueue{VK_NULL_HANDLE}
 	, mRasterizationSamples{VK_SAMPLE_COUNT_1_BIT}
@@ -203,7 +203,7 @@ ImGuiOverlay::ImGuiOverlay()
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 }
 
-ImGuiOverlay::~ImGuiOverlay()
+VulkanCImGuiOverlay::~VulkanCImGuiOverlay()
 {
 	if (ImGui::GetCurrentContext())
 	{
@@ -212,7 +212,7 @@ ImGuiOverlay::~ImGuiOverlay()
 }
 
 /** Prepare all vulkan resources required to render the UI overlay */
-void ImGuiOverlay::PrepareResources()
+void VulkanCImGuiOverlay::PrepareResources()
 {
 	assert(gMaxConcurrentFrames > 0);
 
@@ -264,14 +264,14 @@ void ImGuiOverlay::PrepareResources()
 	};
 	VK_CHECK_RESULT(vkCreateImageView(mVulkanDevice->mLogicalVkDevice, &imageViewCreateInfo, nullptr, &mFontImageView));
 
-	Buffer stagingBuffer;
+	VulkanCTypes::Buffer stagingBuffer;
 	VK_CHECK_RESULT(mVulkanDevice->CreateBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, uploadSize));
 	VK_CHECK_RESULT(stagingBuffer.Map());
 	std::memcpy(stagingBuffer.mMappedData, fontData, uploadSize);
 
 	VkCommandBuffer copyCommandBuffer = mVulkanDevice->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-	VulkanTools::SetImageLayout(
+	VulkanCTools::SetImageLayout(
 		copyCommandBuffer,
 		mFontImage,
 		VK_IMAGE_ASPECT_COLOR_BIT,
@@ -286,7 +286,7 @@ void ImGuiOverlay::PrepareResources()
 	};
 	vkCmdCopyBufferToImage(copyCommandBuffer, stagingBuffer.mVkBuffer, mFontImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
 
-	VulkanTools::SetImageLayout(
+	VulkanCTools::SetImageLayout(
 		copyCommandBuffer,
 		mFontImage,
 		VK_IMAGE_ASPECT_COLOR_BIT,
@@ -315,22 +315,22 @@ void ImGuiOverlay::PrepareResources()
 	const VkDescriptorPoolCreateInfo descriptorPoolInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .maxSets = 2, .poolSizeCount = 1, .pPoolSizes = &poolSize};
 	VK_CHECK_RESULT(vkCreateDescriptorPool(mVulkanDevice->mLogicalVkDevice, &descriptorPoolInfo, nullptr, &mDescriptorPool));
 
-	const VkDescriptorSetLayoutBinding setLayoutBinding = VulkanInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+	const VkDescriptorSetLayoutBinding setLayoutBinding = VulkanCInitializers::DescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
 	const VkDescriptorSetLayoutCreateInfo descriptorLayout{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = 1, .pBindings = &setLayoutBinding};
 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(mVulkanDevice->mLogicalVkDevice, &descriptorLayout, nullptr, &mDescriptorSetLayout));
 
-	const VkDescriptorSetAllocateInfo allocInfo = VulkanInitializers::DescriptorSetAllocateInfo(mDescriptorPool, &mDescriptorSetLayout, 1);
+	const VkDescriptorSetAllocateInfo allocInfo = VulkanCInitializers::DescriptorSetAllocateInfo(mDescriptorPool, &mDescriptorSetLayout, 1);
 	VK_CHECK_RESULT(vkAllocateDescriptorSets(mVulkanDevice->mLogicalVkDevice, &allocInfo, &mDescriptorSet));
 
 	const VkDescriptorImageInfo fontDescriptor{.sampler = mSampler, .imageView = mFontImageView, .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-	const VkWriteDescriptorSet writeDescriptorSets = VulkanInitializers::WriteDescriptorSet(mDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor);
+	const VkWriteDescriptorSet writeDescriptorSets = VulkanCInitializers::WriteDescriptorSet(mDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor);
 	vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, 1, &writeDescriptorSets, 0, nullptr);
 
 	// Buffers per max. frames-in-flight
 	mBuffers.resize(gMaxConcurrentFrames);
 }
 
-void ImGuiOverlay::InitializeStyle()
+void VulkanCImGuiOverlay::InitializeStyle()
 {
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -355,7 +355,7 @@ void ImGuiOverlay::InitializeStyle()
 }
 
 /** Prepare a separate pipeline for the UI overlay rendering decoupled from the main application */
-void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const VkFormat aColorFormat, const VkFormat aDepthFormat)
+void VulkanCImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const VkFormat aColorFormat, const VkFormat aDepthFormat)
 {
 	// Pipeline layout
 	// Push constants for UI rendering parameters
@@ -370,8 +370,8 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 	VK_CHECK_RESULT(vkCreatePipelineLayout(mVulkanDevice->mLogicalVkDevice, &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout));
 
 	// Setup graphics pipeline for UI rendering
-	const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanInitializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
-	const VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanInitializers::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+	const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VulkanCInitializers::PipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+	const VkPipelineRasterizationStateCreateInfo rasterizationState = VulkanCInitializers::PipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 
 	// Enable blending
 	const VkPipelineColorBlendAttachmentState blendAttachmentState{
@@ -396,18 +396,18 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 		{.location = 2, .binding = 0, .format = VK_FORMAT_R8G8B8A8_UNORM, .offset = offsetof(ImDrawVert, col) },
 	};
 
-	VkPipelineVertexInputStateCreateInfo vertexInputState = VulkanInitializers::PipelineVertexInputStateCreateInfo();
+	VkPipelineVertexInputStateCreateInfo vertexInputState = VulkanCInitializers::PipelineVertexInputStateCreateInfo();
 	vertexInputState.vertexBindingDescriptionCount = static_cast<std::uint32_t>(vertexInputBindings.size());
 	vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
 	vertexInputState.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vertexInputAttributes.size());
 	vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
-	const VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanInitializers::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-	const VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanInitializers::PipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
-	const VkPipelineViewportStateCreateInfo viewportState = VulkanInitializers::PipelineViewportStateCreateInfo(1, 1, 0);
-	const VkPipelineMultisampleStateCreateInfo multisampleState = VulkanInitializers::PipelineMultisampleStateCreateInfo(mRasterizationSamples);
+	const VkPipelineColorBlendStateCreateInfo colorBlendState = VulkanCInitializers::PipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+	const VkPipelineDepthStencilStateCreateInfo depthStencilState = VulkanCInitializers::PipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS);
+	const VkPipelineViewportStateCreateInfo viewportState = VulkanCInitializers::PipelineViewportStateCreateInfo(1, 1, 0);
+	const VkPipelineMultisampleStateCreateInfo multisampleState = VulkanCInitializers::PipelineMultisampleStateCreateInfo(mRasterizationSamples);
 	const std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-	const VkPipelineDynamicStateCreateInfo dynamicState = VulkanInitializers::PipelineDynamicStateCreateInfo(dynamicStateEnables);
+	const VkPipelineDynamicStateCreateInfo dynamicState = VulkanCInitializers::PipelineDynamicStateCreateInfo(dynamicStateEnables);
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 		.stageCount = static_cast<std::uint32_t>(mShaders.size()),
@@ -437,7 +437,7 @@ void ImGuiOverlay::PreparePipeline(const VkPipelineCache aPipelineCache, const V
 }
 
 /** Update vertex and index buffer containing the imGui elements when required */
-void ImGuiOverlay::Update(std::uint32_t aCurrentBufferIndex)
+void VulkanCImGuiOverlay::Update(std::uint32_t aCurrentBufferIndex)
 {
 	ImDrawData* imDrawData = ImGui::GetDrawData();
 
@@ -499,7 +499,7 @@ void ImGuiOverlay::Update(std::uint32_t aCurrentBufferIndex)
 	mBuffers[aCurrentBufferIndex].indexBuffer.Flush();
 }
 
-void ImGuiOverlay::Draw(const VkCommandBuffer aVkCommandBuffer, std::uint32_t aCurrentBufferIndex)
+void VulkanCImGuiOverlay::Draw(const VkCommandBuffer aVkCommandBuffer, std::uint32_t aCurrentBufferIndex)
 {
 	ImDrawData* imDrawData = ImGui::GetDrawData();
 	std::int32_t vertexOffset = 0;
@@ -548,13 +548,13 @@ void ImGuiOverlay::Draw(const VkCommandBuffer aVkCommandBuffer, std::uint32_t aC
 	}
 }
 
-void ImGuiOverlay::Resize(std::uint32_t aWidth, std::uint32_t aHeight)
+void VulkanCImGuiOverlay::Resize(std::uint32_t aWidth, std::uint32_t aHeight)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize = ImVec2((float)(aWidth), (float)(aHeight));
 }
 
-void ImGuiOverlay::FreeResources()
+void VulkanCImGuiOverlay::FreeResources()
 {
 	for (Buffers& buffer : mBuffers)
 	{
@@ -572,7 +572,7 @@ void ImGuiOverlay::FreeResources()
 	vkDestroyPipeline(mVulkanDevice->mLogicalVkDevice, mPipeline, nullptr);
 }
 
-void ImGuiOverlay::OnKeyCallback(int aKeycode, int aScancode, int aAction, int /*aMods*/)
+void VulkanCImGuiOverlay::OnKeyCallback(int aKeycode, int aScancode, int aAction, int /*aMods*/)
 {
 	if (!ImGui::GetCurrentContext())
 		return;
@@ -589,7 +589,7 @@ void ImGuiOverlay::OnKeyCallback(int aKeycode, int aScancode, int aAction, int /
 	io.SetKeyEventNativeData(imguiKey, aKeycode, aScancode); // To support legacy indexing (<1.87 user code)
 }
 
-void ImGuiOverlay::OnWindowFocusCallback(int aFocused)
+void VulkanCImGuiOverlay::OnWindowFocusCallback(int aFocused)
 {
 	if (!ImGui::GetCurrentContext())
 		return;
@@ -598,7 +598,7 @@ void ImGuiOverlay::OnWindowFocusCallback(int aFocused)
 	io.AddFocusEvent(aFocused != 0);
 }
 
-void ImGuiOverlay::OnCharCallback(unsigned int aChar)
+void VulkanCImGuiOverlay::OnCharCallback(unsigned int aChar)
 {
 	if (!ImGui::GetCurrentContext())
 		return;
@@ -607,28 +607,28 @@ void ImGuiOverlay::OnCharCallback(unsigned int aChar)
 	io.AddInputCharacter(aChar);
 }
 
-bool ImGuiOverlay::WantsToCaptureInput() const
+bool VulkanCImGuiOverlay::WantsToCaptureInput() const
 {
 	const ImGuiIO& io = ImGui::GetIO();
 	return io.WantCaptureKeyboard || io.WantCaptureMouse;
 }
 
-void ImGuiOverlay::Vec2Text(const char* aLabel, const Math::Vector2f& aVec2)
+void VulkanCImGuiOverlay::Vec2Text(const char* aLabel, const Math::Vector2f& aVec2)
 {
 	ImGui::Text("%s %.1f, %.1f", aLabel, aVec2.x, aVec2.y);
 }
 
-void ImGuiOverlay::Vec3Text(const char* aLabel, const Math::Vector3f& aVec3)
+void VulkanCImGuiOverlay::Vec3Text(const char* aLabel, const Math::Vector3f& aVec3)
 {
 	ImGui::Text("%s %.1f, %.1f, %.1f", aLabel, aVec3.x, aVec3.y, aVec3.z);
 }
 
-void ImGuiOverlay::Vec4Text(const char* aLabel, const Math::Vector4f& aVec4)
+void VulkanCImGuiOverlay::Vec4Text(const char* aLabel, const Math::Vector4f& aVec4)
 {
 	ImGui::Text("%s %.1f, %.1f, %.1f, %.1f", aLabel, aVec4.x, aVec4.y, aVec4.z, aVec4.w);
 }
 
-void ImGuiOverlay::Mat4Text(const char* aLabel, const Math::Matrix4f& aMat4)
+void VulkanCImGuiOverlay::Mat4Text(const char* aLabel, const Math::Matrix4f& aMat4)
 {
 	Math::Vector3f scale;
 	Math::Quaternionf rotation;

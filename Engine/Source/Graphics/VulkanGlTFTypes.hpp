@@ -9,7 +9,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-struct VulkanDevice;
+struct VulkanCDevice;
 
 namespace tinygltf
 {
@@ -40,7 +40,7 @@ namespace vkglTF
 
 		void Destroy();
 
-		VulkanDevice* mVulkanDevice;
+		VulkanCDevice* mVulkanDevice;
 		VkDescriptorImageInfo mDescriptorImageInfo{};
 		VkImage mImage;
 		VkDeviceMemory mDeviceMemory;
@@ -59,9 +59,9 @@ namespace vkglTF
 	{
 		enum class AlphaMode { Opaque, Mask, Blend };
 
-		Material(VulkanDevice* aDevice);
+		Material(VulkanCDevice* aDevice);
 
-		VulkanDevice* mVulkanDevice;
+		VulkanCDevice* mVulkanDevice;
 		AlphaMode mAlphaMode;
 		float mAlphaCutoff;
 		float mMetallicFactor;
@@ -142,14 +142,14 @@ namespace vkglTF
 			float mJointcount;
 		};
 
-		Mesh(VulkanDevice* aDevice, const Math::Matrix4f& aMatrix);
+		Mesh(VulkanCDevice* aDevice, const Math::Matrix4f& aMatrix);
 		~Mesh();
 
 		std::vector<Primitive*> mPrimitives;
 		std::string mName;
 		UniformBuffer mUniformBuffer;
 		UniformBlock mUniformBlock;
-		VulkanDevice* mVulkanDevice;
+		VulkanCDevice* mVulkanDevice;
 	};
 
 	struct Skin

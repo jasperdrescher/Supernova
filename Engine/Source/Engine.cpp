@@ -22,7 +22,7 @@ Engine::Engine()
 {
 	mEngineProperties = std::make_shared<EngineProperties>();
 	mVulkanWindow = std::make_shared<Window>();
-	mVulkanRenderer = std::make_unique<VulkanRenderer>(mEngineProperties, mVulkanWindow);
+	mVulkanRenderer = std::make_unique<VulkanCRenderer>(mEngineProperties, mVulkanWindow);
 	mTimer = std::make_unique<Time::Timer>();
 
 	mEngineProperties->mApplicationName = "Supernova Editor";

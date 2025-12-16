@@ -5,15 +5,15 @@
 #include <filesystem>
 #include <vulkan/vulkan_core.h>
 
-struct VulkanDevice;
+struct VulkanCDevice;
 
-class TextureManager
+class VulkanCTextureManager
 {
 public:
-	TextureManager();
-	~TextureManager();
+	VulkanCTextureManager();
+	~VulkanCTextureManager();
 
-	void SetContext(VulkanDevice* aDevice, VkQueue aTransferQueue);
+	void SetContext(VulkanCDevice* aDevice, VkQueue aTransferQueue);
 
 	[[nodiscard]] vkglTF::Texture CreateEmptyTexture();
 	[[nodiscard]] vkglTF::Texture CreateTexture(const std::filesystem::path& aPath);
@@ -24,6 +24,6 @@ private:
 	void CreateFromEmbeddedTexture(vkglTF::Image& aImage, vkglTF::Texture& aTexture, VkFormat& aFormat);
 	void CreateResources(vkglTF::Texture& aTexture, const VkFormat& aFormat);
 
-	VulkanDevice* mVulkanDevice;
+	VulkanCDevice* mVulkanDevice;
 	VkQueue mTransferQueue;
 };

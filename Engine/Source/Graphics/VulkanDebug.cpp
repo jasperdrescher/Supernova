@@ -6,7 +6,7 @@
 #include <sstream>
 #include <string>
 
-namespace VulkanDebug
+namespace VulkanCDebug
 {
 	PFN_vkCreateDebugUtilsMessengerEXT gVkCreateDebugUtilsMessengerFunction{nullptr};
 	PFN_vkDestroyDebugUtilsMessengerEXT gVkDestroyDebugUtilsMessengerFunction{nullptr};

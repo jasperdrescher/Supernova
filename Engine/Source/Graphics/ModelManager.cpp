@@ -53,7 +53,7 @@ namespace VulkanGlTFModelLocal
 	}
 }
 
-ModelManager::ModelManager(const std::shared_ptr<TextureManager>& aTextureManager)
+VulkanCModelManager::VulkanCModelManager(const std::shared_ptr<VulkanCTextureManager>& aTextureManager)
 	: mTextureManager{aTextureManager}
 	, mVulkanDevice{nullptr}
 	, mDescriptorPool{VK_NULL_HANDLE}
@@ -63,7 +63,7 @@ ModelManager::ModelManager(const std::shared_ptr<TextureManager>& aTextureManage
 {
 }
 
-ModelManager::~ModelManager()
+VulkanCModelManager::~VulkanCModelManager()
 {
 	for (const std::pair<UniqueIdentifier, vkglTF::Model*>& pair : mModels)
 	{
@@ -105,7 +105,7 @@ ModelManager::~ModelManager()
 	vkDestroyDescriptorPool(mVulkanDevice->mLogicalVkDevice, mDescriptorPool, nullptr);
 }
 
-void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, Core::uint32 aNodeIndex, std::vector<Core::uint32>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale)
+void VulkanCModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, vkglTF::Node* aParent, const tinygltf::Node* aNode, Core::uint32 aNodeIndex, std::vector<Core::uint32>& aIndexBuffer, std::vector<vkglTF::Vertex>& aVertexBuffer, float aGlobalscale)
 {
 	vkglTF::Node* newNode = new vkglTF::Node{};
 	newNode->mIndex = aNodeIndex;
@@ -348,7 +348,7 @@ void ModelManager::LoadNode(vkglTF::Model& aModel, tinygltf::Model* aGltfModel, 
 	aModel.linearNodes.push_back(newNode);
 }
 
-void ModelManager::LoadSkins(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
+void VulkanCModelManager::LoadSkins(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
 {
 	for (const tinygltf::Skin& source : aGltfModel->skins)
 	{
@@ -385,7 +385,7 @@ void ModelManager::LoadSkins(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
 	}
 }
 
-void ModelManager::LoadImages(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
+void VulkanCModelManager::LoadImages(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
 {
 	for (const tinygltf::Image& gltfImage : aGltfModel->images)
 	{
@@ -414,7 +414,7 @@ void ModelManager::LoadImages(vkglTF::Model& aModel, tinygltf::Model* aGltfModel
 	aModel.mEmptyTexture = mTextureManager.lock()->CreateEmptyTexture();
 }
 
-vkglTF::Texture* ModelManager::GetTexture(vkglTF::Model& aModel, Core::uint32 aIndex)
+vkglTF::Texture* VulkanCModelManager::GetTexture(vkglTF::Model& aModel, Core::uint32 aIndex)
 {
 	if (aIndex < aModel.textures.size())
 		return &aModel.textures[aIndex];
@@ -422,7 +422,7 @@ vkglTF::Texture* ModelManager::GetTexture(vkglTF::Model& aModel, Core::uint32 aI
 	return nullptr;
 }
 
-void ModelManager::LoadMaterials(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
+void VulkanCModelManager::LoadMaterials(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
 {
 	for (const tinygltf::Material& gltfMaterial : aGltfModel->materials)
 	{
@@ -484,7 +484,7 @@ void ModelManager::LoadMaterials(vkglTF::Model& aModel, tinygltf::Model* aGltfMo
 	aModel.materials.push_back(vkglTF::Material(mVulkanDevice));
 }
 
-void ModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
+void VulkanCModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfModel)
 {
 	for (const tinygltf::Animation& gltfAnimation : aGltfModel->animations)
 	{
@@ -624,7 +624,7 @@ void ModelManager::LoadAnimations(vkglTF::Model& aModel, tinygltf::Model* aGltfM
 	}
 }
 
-UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, VulkanDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags, float aScale)
+UniqueIdentifier VulkanCModelManager::LoadModel(const std::filesystem::path& aPath, VulkanCDevice* aDevice, VkQueue aTransferQueue, FileLoadingFlags aFileLoadingFlags, float aScale)
 {
 	Time::Timer loadTimer;
 	loadTimer.StartTimer();
@@ -788,12 +788,12 @@ UniqueIdentifier ModelManager::LoadModel(const std::filesystem::path& aPath, Vul
 	return identifier;
 }
 
-vkglTF::Model* ModelManager::GetModel(const UniqueIdentifier aIdentifier) const
+vkglTF::Model* VulkanCModelManager::GetModel(const UniqueIdentifier aIdentifier) const
 {
 	return mModels.contains(aIdentifier) ? mModels.at(aIdentifier) : nullptr;
 }
 
-void ModelManager::CreateDescriptorSets(vkglTF::Model& aModel, VulkanDevice* aDevice)
+void VulkanCModelManager::CreateDescriptorSets(vkglTF::Model& aModel, VulkanCDevice* aDevice)
 {
 	// Descriptors for per-node uniform buffers
 	{
@@ -845,7 +845,7 @@ void ModelManager::CreateDescriptorSets(vkglTF::Model& aModel, VulkanDevice* aDe
 	}
 }
 
-void ModelManager::CreateMaterialDescriptorSets(vkglTF::Material& material)
+void VulkanCModelManager::CreateMaterialDescriptorSets(vkglTF::Material& material)
 {
 	const VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -890,7 +890,7 @@ void ModelManager::CreateMaterialDescriptorSets(vkglTF::Material& material)
 	vkUpdateDescriptorSets(mVulkanDevice->mLogicalVkDevice, static_cast<Core::uint32>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 }
 
-void ModelManager::CreateDescriptorPool(Core::uint32 uboCount, Core::uint32 imageCount, VulkanDevice* aDevice)
+void VulkanCModelManager::CreateDescriptorPool(Core::uint32 uboCount, Core::uint32 imageCount, VulkanCDevice* aDevice)
 {
 	std::vector<VkDescriptorPoolSize> poolSizes = {
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uboCount},
@@ -918,7 +918,7 @@ void ModelManager::CreateDescriptorPool(Core::uint32 uboCount, Core::uint32 imag
 	VK_CHECK_RESULT(vkCreateDescriptorPool(aDevice->mLogicalVkDevice, &descriptorPoolCreateInfo, nullptr, &mDescriptorPool));
 }
 
-void ModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<Core::uint32>& indexBuffer, std::vector<vkglTF::Vertex>& vertexBuffer, Core::size vertexBufferSize, Core::size indexBufferSize, VulkanDevice* aDevice, VkQueue aTransferQueue)
+void VulkanCModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<Core::uint32>& indexBuffer, std::vector<vkglTF::Vertex>& vertexBuffer, Core::size vertexBufferSize, Core::size indexBufferSize, VulkanCDevice* aDevice, VkQueue aTransferQueue)
 {
 	aModel.indices.mCount = static_cast<Core::uint32>(indexBuffer.size());
 	aModel.vertices.mCount = static_cast<Core::uint32>(vertexBuffer.size());
@@ -988,7 +988,7 @@ void ModelManager::CreateBuffers(vkglTF::Model& aModel, std::vector<Core::uint32
 	vkFreeMemory(aDevice->mLogicalVkDevice, indexStaging.memory, nullptr);
 }
 
-void ModelManager::GetNodeDimensions(const vkglTF::Node* aNode, Math::Vector3f& aMin, Math::Vector3f& aMax)
+void VulkanCModelManager::GetNodeDimensions(const vkglTF::Node* aNode, Math::Vector3f& aMin, Math::Vector3f& aMax)
 {
 	if (aNode->mMesh)
 	{
@@ -1011,7 +1011,7 @@ void ModelManager::GetNodeDimensions(const vkglTF::Node* aNode, Math::Vector3f& 
 	}
 }
 
-void ModelManager::GetSceneDimensions(vkglTF::Model& aModel)
+void VulkanCModelManager::GetSceneDimensions(vkglTF::Model& aModel)
 {
 	aModel.mDimensions.mMin = Math::Vector3f(std::numeric_limits<float>::max());
 	aModel.mDimensions.mMax = Math::Vector3f(std::numeric_limits<float>::lowest());
@@ -1026,7 +1026,7 @@ void ModelManager::GetSceneDimensions(vkglTF::Model& aModel)
 	aModel.mDimensions.mRadius = Math::Distance(aModel.mDimensions.mMin, aModel.mDimensions.mMax) / 2.0f;
 }
 
-void ModelManager::UpdateAnimation(vkglTF::Model& aModel, Core::uint32 aIndex, float aTime)
+void VulkanCModelManager::UpdateAnimation(vkglTF::Model& aModel, Core::uint32 aIndex, float aTime)
 {
 	if (aIndex > static_cast<Core::uint32>(aModel.animations.size()) - 1)
 	{
@@ -1098,7 +1098,7 @@ void ModelManager::UpdateAnimation(vkglTF::Model& aModel, Core::uint32 aIndex, f
 	}
 }
 
-vkglTF::Node* ModelManager::FindNode(vkglTF::Node* aParent, Core::uint32 aIndex)
+vkglTF::Node* VulkanCModelManager::FindNode(vkglTF::Node* aParent, Core::uint32 aIndex)
 {
 	vkglTF::Node* nodeFound = nullptr;
 	if (aParent->mIndex == aIndex)
@@ -1118,7 +1118,7 @@ vkglTF::Node* ModelManager::FindNode(vkglTF::Node* aParent, Core::uint32 aIndex)
 	return nodeFound;
 }
 
-vkglTF::Node* ModelManager::NodeFromIndex(vkglTF::Model& aModel, Core::uint32 aIndex)
+vkglTF::Node* VulkanCModelManager::NodeFromIndex(vkglTF::Model& aModel, Core::uint32 aIndex)
 {
 	vkglTF::Node* nodeFound = nullptr;
 	for (vkglTF::Node*& node : aModel.nodes)
@@ -1133,7 +1133,7 @@ vkglTF::Node* ModelManager::NodeFromIndex(vkglTF::Model& aModel, Core::uint32 aI
 	return nodeFound;
 }
 
-void ModelManager::CreateNodeDescriptorSets(vkglTF::Node* aNode, const VkDescriptorSetLayout aDescriptorSetLayout)
+void VulkanCModelManager::CreateNodeDescriptorSets(vkglTF::Node* aNode, const VkDescriptorSetLayout aDescriptorSetLayout)
 {
 	if (aNode->mMesh)
 	{

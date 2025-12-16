@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-namespace VulkanDebug
+namespace VulkanCDebug
 {
 	VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT aMessageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT aMessageType,

@@ -17,11 +17,11 @@ static constexpr int gVkFlagsNone = 0;
 	const VkResult vkResult = (aFunction); \
 	if (vkResult != VK_SUCCESS) \
 	{ \
-		throw std::runtime_error(std::format("Fatal error: VkResult {} in {} at line {}", VulkanTools::GetErrorString(vkResult), __FILE__, __LINE__)); \
+		throw std::runtime_error(std::format("Fatal error: VkResult {} in {} at line {}", VulkanCTools::GetErrorString(vkResult), __FILE__, __LINE__)); \
 	} \
 }
 
-namespace VulkanTools
+namespace VulkanCTools
 {
 	/** @brief Returns an error code as a string */
 	std::string GetErrorString(VkResult aErrorCode);
