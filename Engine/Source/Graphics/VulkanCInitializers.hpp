@@ -1,5 +1,7 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Core/Types.hpp"
 
 #include <vector>
@@ -345,3 +347,4 @@ namespace VulkanCInitializers
 		return computePipelineCreateInfo;
 	}
 }
+#endif

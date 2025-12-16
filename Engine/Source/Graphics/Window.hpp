@@ -4,8 +4,11 @@
 #include <string>
 #include <vector>
 
+#if VULKAN_C
 typedef struct VkInstance_T* VkInstance;
 typedef struct VkSurfaceKHR_T* VkSurfaceKHR;
+#endif
+
 typedef struct GLFWwindow GLFWwindow;
 
 struct EngineProperties;
@@ -28,7 +31,9 @@ public:
 	~Window();
 
 	void InitializeWindow(const std::string& aApplicationName);
+#if VULKAN_C
 	void CreateVulkanCWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurface);
+#endif
 	void UpdateWindow();
 
 	void SetWindowSize(int aWidth, int aHeight);

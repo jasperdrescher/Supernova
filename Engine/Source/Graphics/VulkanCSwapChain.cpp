@@ -1,9 +1,11 @@
-#include "VulkanSwapChain.hpp"
+#include "VulkanCSwapChain.hpp"
+
+#if VULKAN_C
 
 #include "Core/Constants.hpp"
 #include "Core/Types.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanTools.hpp"
+#include "VulkanCDevice.hpp"
+#include "VulkanCTools.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -322,3 +324,4 @@ void VulkanCSwapChain::CleanUp()
 	mVkSurfaceKHR = VK_NULL_HANDLE;
 	mVkSwapchainKHR = VK_NULL_HANDLE;
 }
+#endif

@@ -1,5 +1,7 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Core/Types.hpp"
 #include "Math/Types.hpp"
 
@@ -11,7 +13,6 @@ static constexpr Core::uint32 gMaxConcurrentFrames = 2;
 static constexpr int gModelInstanceCount = 64;
 static constexpr int gMaxLOD = 5;
 
-#if VULKAN_C
 namespace VulkanCTypes
 {
 	struct VulkanCDevice;

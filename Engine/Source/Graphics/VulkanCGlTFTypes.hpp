@@ -1,5 +1,7 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Core/Types.hpp"
 #include "Math/Types.hpp"
 
@@ -256,3 +258,4 @@ namespace vkglTF
 		std::filesystem::path path{};
 	};
 }
+#endif

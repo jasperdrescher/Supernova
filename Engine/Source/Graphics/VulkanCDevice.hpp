@@ -1,7 +1,9 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Core/Types.hpp"
-#include "VulkanTypes.hpp"
+#include "VulkanCTypes.hpp"
 
 #include <string>
 #include <vector>
@@ -53,3 +55,4 @@ struct VulkanCDevice
 	std::vector<std::string> mSupportedExtensions{};
 	QueueFamilyIndices mQueueFamilyIndices;
 };
+#endif

@@ -1,9 +1,11 @@
-#include "VulkanDevice.hpp"
+#include "VulkanCDevice.hpp"
+
+#if VULKAN_C
 
 #include "Core/Types.hpp"
-#include "VulkanInitializers.hpp"
-#include "VulkanTools.hpp"
-#include "VulkanTypes.hpp"
+#include "VulkanCInitializers.hpp"
+#include "VulkanCTools.hpp"
+#include "VulkanCTypes.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -553,3 +555,4 @@ VkResult VulkanCDevice::CreateBuffer(VkBufferUsageFlags aUsageFlags, VkMemoryPro
 	// Attach the memory to the buffer object
 	return aBuffer->Bind(0);
 }
+#endif

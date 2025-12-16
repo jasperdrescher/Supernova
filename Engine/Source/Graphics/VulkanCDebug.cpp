@@ -1,6 +1,8 @@
-#include "VulkanDebug.hpp"
+#include "VulkanCDebug.hpp"
 
-#include "VulkanTools.hpp"
+#if VULKAN_C
+
+#include "VulkanCTools.hpp"
 
 #include <iostream>
 #include <sstream>
@@ -108,3 +110,4 @@ namespace VulkanCDebug
 		gVkCmdInsertDebugUtilsLabelFunction = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(vkGetInstanceProcAddr(aVkInstance, "vkCmdInsertDebugUtilsLabelEXT"));
 	}
 }
+#endif

@@ -1,28 +1,30 @@
-#include "VulkanRenderer.hpp"
+#include "VulkanCRenderer.hpp"
+
+#if VULKAN_C
 
 #include "Camera.hpp"
 #include "Core/Constants.hpp"
 #include "Core/Types.hpp"
 #include "EngineProperties.hpp"
 #include "FileLoader.hpp"
-#include "ImGuiOverlay.hpp"
+#include "VulkanCImGuiOverlay.hpp"
 #include "Input/InputKeys.hpp"
 #include "Input/InputManager.hpp"
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
 #include "ModelFlags.hpp"
-#include "ModelManager.hpp"
+#include "VulkanCModelManager.hpp"
 #include "Profiler/SimpleProfiler.hpp"
 #include "Profiler/SimpleProfilerImGui.hpp"
-#include "TextureManager.hpp"
+#include "VulkanCTextureManager.hpp"
 #include "Time.hpp"
 #include "Timer.hpp"
-#include "VulkanDebug.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanGlTFTypes.hpp"
-#include "VulkanInitializers.hpp"
-#include "VulkanTools.hpp"
-#include "VulkanTypes.hpp"
+#include "VulkanCDebug.hpp"
+#include "VulkanCDevice.hpp"
+#include "VulkanCGlTFTypes.hpp"
+#include "VulkanCInitializers.hpp"
+#include "VulkanCTools.hpp"
+#include "VulkanCTypes.hpp"
 #include "Window.hpp"
 
 #include <algorithm>
@@ -1912,3 +1914,4 @@ void VulkanCRenderer::OnUpdateUIOverlay()
 		ImGui::End();
 	}
 }
+#endif

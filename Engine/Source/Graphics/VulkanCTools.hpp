@@ -1,5 +1,7 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Core/Types.hpp"
 
 #include <filesystem>
@@ -70,3 +72,4 @@ namespace VulkanCTools
 		VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 }
+#endif

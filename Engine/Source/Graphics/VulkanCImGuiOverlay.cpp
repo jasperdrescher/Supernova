@@ -1,11 +1,13 @@
-#include "ImGuiOverlay.hpp"
+#include "VulkanCImGuiOverlay.hpp"
+
+#if VULKAN_C
 
 #include "FileLoader.hpp"
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
-#include "VulkanInitializers.hpp"
-#include "VulkanTools.hpp"
-#include "VulkanTypes.hpp"
+#include "VulkanCInitializers.hpp"
+#include "VulkanCTools.hpp"
+#include "VulkanCTypes.hpp"
 
 #define GLFW_EXCLUDE_API
 #include <GLFW/glfw3.h>
@@ -640,3 +642,4 @@ void VulkanCImGuiOverlay::Mat4Text(const char* aLabel, const Math::Matrix4f& aMa
 		ImGui::Text("%s scale %.1f, %.1f, %.1f", aLabel, scale.x, scale.y, scale.z);
 	}
 }
+#endif

@@ -1,4 +1,6 @@
-#include "VulkanTypes.hpp"
+#include "VulkanCTypes.hpp"
+
+#if VULKAN_C
 
 #include "Math/Types.hpp"
 
@@ -190,3 +192,4 @@ namespace VulkanCTypes
 		return true;
 	}
 }
+#endif

@@ -1,10 +1,12 @@
-#include "VulkanGlTFTypes.hpp"
+#include "VulkanCGlTFTypes.hpp"
+
+#if VULKAN_C
 
 #include "Core/Types.hpp"
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanTools.hpp"
+#include "VulkanCDevice.hpp"
+#include "VulkanCTools.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -209,3 +211,4 @@ namespace vkglTF
 		return &mPipelineVertexInputStateCreateInfo;
 	}
 };
+#endif

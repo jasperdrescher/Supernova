@@ -1,14 +1,16 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Core/Types.hpp"
 #include "Math/Types.hpp"
 #include "ModelFlags.hpp"
 #include "Time.hpp"
 #include "UniqueIdentifier.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanGlTFTypes.hpp"
-#include "VulkanSwapChain.hpp"
-#include "VulkanTypes.hpp"
+#include "VulkanCDevice.hpp"
+#include "VulkanCGlTFTypes.hpp"
+#include "VulkanCSwapChain.hpp"
+#include "VulkanCTypes.hpp"
 
 #include <array>
 #include <filesystem>
@@ -184,3 +186,4 @@ private:
 	bool mShouldDrawWireframe;
 #endif
 };
+#endif

@@ -1,15 +1,17 @@
-#include "ModelManager.hpp"
+#include "VulkanCModelManager.hpp"
+
+#if VULKAN_C
 
 #include "Core/BitmaskOperators.hpp"
 #include "Core/Types.hpp"
 #include "Math/Functions.hpp"
 #include "Math/Types.hpp"
 #include "ModelFlags.hpp"
-#include "TextureManager.hpp"
+#include "VulkanCTextureManager.hpp"
 #include "Timer.hpp"
 #include "UniqueIdentifier.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanTools.hpp"
+#include "VulkanCDevice.hpp"
+#include "VulkanCTools.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
@@ -1161,3 +1163,4 @@ void VulkanCModelManager::CreateNodeDescriptorSets(vkglTF::Node* aNode, const Vk
 		CreateNodeDescriptorSets(child, aDescriptorSetLayout);
 	}
 }
+#endif

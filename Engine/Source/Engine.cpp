@@ -2,7 +2,9 @@
 
 #include "EngineProperties.hpp"
 #include "FileLoader.hpp"
-#include "Graphics/VulkanRenderer.hpp"
+#if VULKAN_C
+#include "Graphics/VulkanCRenderer.hpp"
+#endif
 #include "Graphics/Window.hpp"
 #include "Profiler/SimpleProfiler.hpp"
 #include "Timer.hpp"
@@ -14,7 +16,9 @@
 Engine::Engine()
 	: mEngineProperties{nullptr}
 	, mVulkanWindow{nullptr}
-	, mVulkanRenderer{nullptr}
+#if VULKAN_C
+	, mVulkanCRenderer{nullptr}
+#endif
 	, mTimer{nullptr}
 	, mFixedDeltaTime{0.0f}
 	, mTimeScale{0.25f}
@@ -22,7 +26,9 @@ Engine::Engine()
 {
 	mEngineProperties = std::make_shared<EngineProperties>();
 	mVulkanWindow = std::make_shared<Window>();
-	mVulkanRenderer = std::make_unique<VulkanCRenderer>(mEngineProperties, mVulkanWindow);
+#if VULKAN_C
+	mVulkanCRenderer = std::make_unique<VulkanCRenderer>(mEngineProperties, mVulkanWindow);
+#endif
 	mTimer = std::make_unique<Time::Timer>();
 
 	mEngineProperties->mApplicationName = "Supernova Editor";
@@ -41,12 +47,16 @@ void Engine::Start()
 	FileLoader::PrintWorkingDirectory();
 
 	mVulkanWindow->InitializeWindow(mEngineProperties->mApplicationName);
-	mVulkanRenderer->InitializeRenderer();
+#if VULKAN_C
+	mVulkanCRenderer->InitializeRenderer();
+#endif
 }
 
 void Engine::Run()
 {
-	mVulkanRenderer->PrepareUpdate();
+#if VULKAN_C
+	mVulkanCRenderer->PrepareUpdate();
+#endif
 
 	while (!mVulkanWindow->ShouldClose())
 	{
@@ -54,7 +64,9 @@ void Engine::Run()
 
 		mTimer->StartTimer();
 
-		mVulkanRenderer->UpdateRenderer(mDeltaTime);
+#if VULKAN_C
+		mVulkanCRenderer->UpdateRenderer(mDeltaTime);
+#endif
 
 		mTimer->EndTimer();
 
@@ -70,5 +82,7 @@ void Engine::Run()
 		}
 	}
 
-	mVulkanRenderer->EndUpdate();
+#if VULKAN_C
+	mVulkanCRenderer->EndUpdate();
+#endif
 }

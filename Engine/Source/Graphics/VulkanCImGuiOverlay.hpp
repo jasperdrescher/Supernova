@@ -1,8 +1,10 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Math/Types.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanTypes.hpp"
+#include "VulkanCDevice.hpp"
+#include "VulkanCTypes.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -80,3 +82,4 @@ private:
 	bool mIsVisible;
 	float mScale;
 };
+#endif

@@ -1,10 +1,12 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Core/Types.hpp"
 #include "Math/Types.hpp"
 #include "ModelFlags.hpp"
 #include "UniqueIdentifier.hpp"
-#include "VulkanGlTFTypes.hpp"
+#include "VulkanCGlTFTypes.hpp"
 
 #include <filesystem>
 #include <map>
@@ -59,3 +61,4 @@ private:
 	VulkanCDevice* mVulkanDevice;
 	std::map<UniqueIdentifier, vkglTF::Model*> mModels;
 };
+#endif

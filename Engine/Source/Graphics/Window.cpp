@@ -1,10 +1,14 @@
 #include "Window.hpp"
 
 #include "FileLoader.hpp"
-#include "ImGuiOverlay.hpp"
+
+#if VULKAN_C
+#include "VulkanCImGuiOverlay.hpp"
+#endif
+
 #include "Input/InputManager.hpp"
 #include "Profiler/SimpleProfiler.hpp"
-#include "Vulkantools.hpp"
+#include "VulkanCTools.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -89,10 +93,12 @@ void Window::InitializeWindow(const std::string& aApplicationName)
 	std::cout << std::format("GLFW v{}.{}.{}", major, minor, revision) << std::endl;
 }
 
+#if VULKAN_C
 void Window::CreateVulkanCWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurface)
 {
 	VK_CHECK_RESULT(glfwCreateWindowSurface(*aVkInstance, mGLFWWindow, nullptr, aVkSurface));
 }
+#endif
 
 void Window::UpdateWindow()
 {

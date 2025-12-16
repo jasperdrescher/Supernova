@@ -1,5 +1,7 @@
 #pragma once
 
+#if VULKAN_C
+
 #include "Core/Types.hpp"
 
 #include <vector>
@@ -32,3 +34,4 @@ private:
 	VkInstance mActiveVkInstance;
 	VulkanCDevice* mActiveVulkanDevice;
 };
+#endif

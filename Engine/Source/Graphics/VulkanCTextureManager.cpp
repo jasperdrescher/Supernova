@@ -1,11 +1,13 @@
-#include "TextureManager.hpp"
+#include "VulkanCTextureManager.hpp"
+
+#if VULKAN_C
 
 #include "Core/Types.hpp"
 #include "FileLoader.hpp"
 #include "Timer.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanGlTFTypes.hpp"
-#include "VulkanTools.hpp"
+#include "VulkanCDevice.hpp"
+#include "VulkanCGlTFTypes.hpp"
+#include "VulkanCTools.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -646,3 +648,4 @@ void VulkanCTextureManager::CreateResources(vkglTF::Texture& aTexture, const VkF
 	aTexture.mDescriptorImageInfo.imageView = aTexture.mImageView;
 	aTexture.mDescriptorImageInfo.imageLayout = aTexture.imageLayout;
 }
+#endif

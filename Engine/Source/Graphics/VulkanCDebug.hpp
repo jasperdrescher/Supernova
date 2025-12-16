@@ -1,5 +1,7 @@
 #pragma once
 
+#if VULKAN_C
+
 #include <vulkan/vulkan_core.h>
 
 namespace VulkanCDebug
@@ -20,3 +22,4 @@ namespace VulkanCDebug
 
 	void SetupDebugUtils(VkInstance aVkInstance);
 }
+#endif

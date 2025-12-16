@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Graphics/VulkanGlTFTypes.hpp"
+#if VULKAN_C
+
+#include "Graphics/VulkanCGlTFTypes.hpp"
 
 #include <filesystem>
 #include <vulkan/vulkan_core.h>
@@ -27,3 +29,4 @@ private:
 	VulkanCDevice* mVulkanDevice;
 	VkQueue mTransferQueue;
 };
+#endif
