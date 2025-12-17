@@ -2,7 +2,7 @@
 
 #include "EngineProperties.hpp"
 #include "FileLoader.hpp"
-#if VULKAN_C
+#ifdef VULKAN_C
 #include "Graphics/VulkanCRenderer.hpp"
 #endif
 #include "Graphics/Window.hpp"
@@ -16,7 +16,7 @@
 Engine::Engine()
 	: mEngineProperties{nullptr}
 	, mVulkanWindow{nullptr}
-#if VULKAN_C
+#ifdef VULKAN_C
 	, mVulkanCRenderer{nullptr}
 #endif
 	, mTimer{nullptr}
@@ -26,7 +26,8 @@ Engine::Engine()
 {
 	mEngineProperties = std::make_shared<EngineProperties>();
 	mVulkanWindow = std::make_shared<Window>();
-#if VULKAN_C
+
+#ifdef VULKAN_C
 	mVulkanCRenderer = std::make_unique<VulkanCRenderer>(mEngineProperties, mVulkanWindow);
 #endif
 	mTimer = std::make_unique<Time::Timer>();
@@ -47,14 +48,15 @@ void Engine::Start()
 	FileLoader::PrintWorkingDirectory();
 
 	mVulkanWindow->InitializeWindow(mEngineProperties->mApplicationName);
-#if VULKAN_C
+
+#ifdef VULKAN_C
 	mVulkanCRenderer->InitializeRenderer();
 #endif
 }
 
 void Engine::Run()
 {
-#if VULKAN_C
+#ifdef VULKAN_C
 	mVulkanCRenderer->PrepareUpdate();
 #endif
 
@@ -64,7 +66,7 @@ void Engine::Run()
 
 		mTimer->StartTimer();
 
-#if VULKAN_C
+#ifdef VULKAN_C
 		mVulkanCRenderer->UpdateRenderer(mDeltaTime);
 #endif
 
@@ -82,7 +84,7 @@ void Engine::Run()
 		}
 	}
 
-#if VULKAN_C
+#ifdef VULKAN_C
 	mVulkanCRenderer->EndUpdate();
 #endif
 }

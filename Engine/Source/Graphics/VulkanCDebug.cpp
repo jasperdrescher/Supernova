@@ -1,6 +1,6 @@
 #include "VulkanCDebug.hpp"
 
-#if VULKAN_C
+#ifdef VULKAN_C
 
 #include "VulkanCTools.hpp"
 

@@ -1,6 +1,6 @@
 #include "VulkanCTools.hpp"
 
-#if VULKAN_C
+#ifdef VULKAN_C
 
 #include "VulkanCInitializers.hpp"
 
@@ -339,4 +339,6 @@ namespace VulkanCTools
 		SetImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, imageSubresourceRange, srcStageMask, dstStageMask);
 	}
 }
+#else
+int i = 0;
 #endif

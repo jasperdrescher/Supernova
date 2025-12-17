@@ -2,7 +2,7 @@
 
 #include "FileLoader.hpp"
 
-#if VULKAN_C
+#ifdef VULKAN_C
 #include "VulkanCImGuiOverlay.hpp"
 #endif
 
@@ -93,7 +93,7 @@ void Window::InitializeWindow(const std::string& aApplicationName)
 	std::cout << std::format("GLFW v{}.{}.{}", major, minor, revision) << std::endl;
 }
 
-#if VULKAN_C
+#ifdef VULKAN_C
 void Window::CreateVulkanCWindowSurface(VkInstance* aVkInstance, VkSurfaceKHR* aVkSurface)
 {
 	VK_CHECK_RESULT(glfwCreateWindowSurface(*aVkInstance, mGLFWWindow, nullptr, aVkSurface));
@@ -147,7 +147,10 @@ void Window::KeyCallback(GLFWwindow* aWindow, int aKey, int aScancode, int aActi
 	}
 
 	Input::InputManager::GetInstance().OnKeyAction(aKey, aScancode, aAction != GLFW_RELEASE, aMode);
+
+#ifdef VULKAN_C
 	VulkanCImGuiOverlay::OnKeyCallback(aKey, aScancode, aAction, aMode);
+#endif
 }
 
 void Window::MouseButtonCallback(GLFWwindow* /*window*/, int aButton, int aAction, int aMode)
@@ -188,7 +191,9 @@ void Window::WindowMinimizedCallback(GLFWwindow* aWindow, int aValue)
 
 void Window::CharCallback(GLFWwindow* /*aWindow*/, unsigned int aChar)
 {
+#ifdef VULKAN_C
 	VulkanCImGuiOverlay::OnCharCallback(aChar);
+#endif
 }
 
 void Window::WindowFocusCallback(GLFWwindow* aWindow, int aFocused)
@@ -196,7 +201,9 @@ void Window::WindowFocusCallback(GLFWwindow* aWindow, int aFocused)
 	Window* window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(aWindow));
 	window->mWindowProperties.mIsFocused = aFocused;
 
+#ifdef VULKAN_C
 	VulkanCImGuiOverlay::OnWindowFocusCallback(aFocused);
+#endif
 }
 
 void Window::SetWindowIcon(unsigned char* aSource, int aWidth, int aHeight) const

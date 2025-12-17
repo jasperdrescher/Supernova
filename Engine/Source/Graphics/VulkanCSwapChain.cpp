@@ -1,6 +1,6 @@
 #include "VulkanCSwapChain.hpp"
 
-#if VULKAN_C
+#ifdef VULKAN_C
 
 #include "Core/Constants.hpp"
 #include "Core/Types.hpp"

@@ -1,6 +1,6 @@
 #include "VulkanCGlTFTypes.hpp"
 
-#if VULKAN_C
+#ifdef VULKAN_C
 
 #include "Core/Types.hpp"
 #include "Math/Functions.hpp"

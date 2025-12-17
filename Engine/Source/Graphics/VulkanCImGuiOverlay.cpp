@@ -1,6 +1,6 @@
 #include "VulkanCImGuiOverlay.hpp"
 
-#if VULKAN_C
+#ifdef VULKAN_C
 
 #include "FileLoader.hpp"
 #include "Math/Functions.hpp"

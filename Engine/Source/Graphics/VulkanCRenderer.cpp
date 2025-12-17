@@ -1,6 +1,6 @@
 #include "VulkanCRenderer.hpp"
 
-#if VULKAN_C
+#ifdef VULKAN_C
 
 #include "Camera.hpp"
 #include "Core/Constants.hpp"

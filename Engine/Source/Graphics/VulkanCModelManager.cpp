@@ -1,6 +1,6 @@
 #include "VulkanCModelManager.hpp"
 
-#if VULKAN_C
+#ifdef VULKAN_C
 
 #include "Core/BitmaskOperators.hpp"
 #include "Core/Types.hpp"

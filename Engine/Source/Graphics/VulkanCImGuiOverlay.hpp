@@ -1,6 +1,6 @@
 #pragma once
 
-#if VULKAN_C
+#ifdef VULKAN_C
 
 #include "Math/Types.hpp"
 #include "VulkanCDevice.hpp"
