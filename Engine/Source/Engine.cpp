@@ -4,6 +4,8 @@
 #include "FileLoader.hpp"
 #ifdef VULKAN_C
 #include "Graphics/VulkanCRenderer.hpp"
+#else
+#include "Graphics/VulkanHppRenderer.hpp"
 #endif
 #include "Graphics/Window.hpp"
 #include "Profiler/SimpleProfiler.hpp"
@@ -18,6 +20,8 @@ Engine::Engine()
 	, mVulkanWindow{nullptr}
 #ifdef VULKAN_C
 	, mVulkanCRenderer{nullptr}
+#else
+	, mVulkanHppRenderer{nullptr}
 #endif
 	, mTimer{nullptr}
 	, mFixedDeltaTime{0.0f}
@@ -29,7 +33,10 @@ Engine::Engine()
 
 #ifdef VULKAN_C
 	mVulkanCRenderer = std::make_unique<VulkanCRenderer>(mEngineProperties, mVulkanWindow);
+#else
+	mVulkanHppRenderer = std::make_unique<VulkanHppRenderer>(mEngineProperties, mVulkanWindow);
 #endif
+
 	mTimer = std::make_unique<Time::Timer>();
 
 	mEngineProperties->mApplicationName = "Supernova Editor";
@@ -51,6 +58,8 @@ void Engine::Start()
 
 #ifdef VULKAN_C
 	mVulkanCRenderer->InitializeRenderer();
+#else
+	mVulkanHppRenderer->InitializeRenderer();
 #endif
 }
 

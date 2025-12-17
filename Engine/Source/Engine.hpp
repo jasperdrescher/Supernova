@@ -12,6 +12,8 @@ class Window;
 
 #ifdef VULKAN_C
 class VulkanCRenderer;
+#else
+class VulkanHppRenderer;
 #endif
 
 class Engine
@@ -28,6 +30,8 @@ private:
 	std::shared_ptr<Window> mVulkanWindow;
 #ifdef VULKAN_C
 	std::unique_ptr<VulkanCRenderer> mVulkanCRenderer;
+#else
+	std::unique_ptr<VulkanHppRenderer> mVulkanHppRenderer;
 #endif
 	std::unique_ptr<Time::Timer> mTimer;
 	float mDeltaTime;
