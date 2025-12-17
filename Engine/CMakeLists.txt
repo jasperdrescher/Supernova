@@ -59,7 +59,7 @@ else()
 			TinyGLTF
 			GLM
 			ImGui
-			VulkanHppModule)
+			Vulkan::Headers)
 endif()
 
 target_include_directories(Engine
