@@ -1,7 +1,5 @@
 include(FetchContent)
 
-option(USE_VULKAN_C "Use Vulkan C instead of HPP" ON)
-
 list(PREPEND CMAKE_MODULE_PATH "${PROJETC_SOURCE_ROOT_DIR}/CMake")
 
 include(STB)
@@ -29,12 +27,14 @@ add_library(Engine STATIC ${PROJECT_SOURCES} ${PROJECT_INCLUDES})
 set_property(TARGET Engine PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJETC_SOURCE_ROOT_DIR}")
 
 if (MSVC)
-    target_compile_options(Engine PRIVATE /W4)
+    target_compile_options(Engine PRIVATE
+		/W4
+		"/MP")
 endif()
 
 if(USE_VULKAN_C)
 	target_compile_definitions(Engine PUBLIC
-		VULKAN_C=1)
+		"VULKAN_C")
 else()
 	target_compile_definitions(Engine PUBLIC
 		VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)

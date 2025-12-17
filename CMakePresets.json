@@ -2,7 +2,7 @@
   "version": 9,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 28,
+    "minor": 30,
     "patch": 0
   },
   "configurePresets": [
@@ -17,7 +17,6 @@
 			"strategy": "external"
 		},
 		"cacheVariables": {
-			"CMAKE_CXX_STANDARD": "20",
 			"CMAKE_INSTALL_PREFIX": "${sourceDir}/Out/Install/${presetName}"
 		},
 		"vendor": {
