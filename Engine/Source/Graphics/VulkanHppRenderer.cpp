@@ -1,10 +1,13 @@
 #include "VulkanHppRenderer.hpp"
 
 #include "EngineProperties.hpp"
+#include "VulkanHppUtils.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -24,21 +27,60 @@ void VulkanHppRenderer::InitializeRenderer()
 {
 	try
 	{
-		vk::detail::defaultDispatchLoaderDynamic.init();
+		VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
-		vk::Instance instance = vk::createInstance({}, nullptr);
+		vk::ApplicationInfo applicationInfo(mEngineProperties.lock()->mApplicationName.c_str(), 1, mEngineProperties.lock()->mEngineName.c_str(), 1, mEngineProperties.lock()->mAPIVersion);
 
-		// initialize function pointers for instance
-		vk::detail::defaultDispatchLoaderDynamic.init(instance);
+		std::vector<std::string> layers = {};
+		std::vector<char const*> enabledLayers = vk::su::gatherLayers(layers
+#ifndef NDEBUG
+			,
+			vk::enumerateInstanceLayerProperties()
+#endif
+		);
 
-		// create a dispatcher, based on additional vkDevice/vkGetDeviceProcAddr
-		std::vector<vk::PhysicalDevice> physicalDevices = instance.enumeratePhysicalDevices();
-		assert(!physicalDevices.empty());
+		std::vector<std::string> extensions = {};
+		std::vector<char const*> enabledExtensions = vk::su::gatherExtensions(extensions
+#ifndef NDEBUG
+			,
+			vk::enumerateInstanceExtensionProperties()
+#endif
+		);
 
-		vk::Device device = physicalDevices[0].createDevice({}, nullptr);
+		vk::InstanceCreateInfo instanceCreateInfo({}, &applicationInfo);
 
-		// optional function pointer specialization for device
-		vk::detail::defaultDispatchLoaderDynamic.init(device);
+		vk::Instance instance = vk::createInstance(vk::su::makeInstanceCreateInfoChain({}, applicationInfo, enabledLayers, enabledExtensions).get<vk::InstanceCreateInfo>());
+		
+		VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
+
+#ifndef NDEBUG
+		vk::DebugUtilsMessengerEXT debugUtilsMessenger = instance.createDebugUtilsMessengerEXT(vk::su::makeDebugUtilsMessengerCreateInfoEXT());
+#endif
+
+		vk::PhysicalDevice physicalDevice = instance.enumeratePhysicalDevices().front();
+
+		std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
+
+		auto propertyIterator = std::find_if(
+			queueFamilyProperties.begin(),
+			queueFamilyProperties.end(),
+			[](vk::QueueFamilyProperties const& qfp) { return qfp.queueFlags & vk::QueueFlagBits::eGraphics; });
+		
+		size_t graphicsQueueFamilyIndex = std::distance(queueFamilyProperties.begin(), propertyIterator);
+		assert(graphicsQueueFamilyIndex < queueFamilyProperties.size());
+
+		float queuePriority = 0.5f;
+		vk::DeviceQueueCreateInfo deviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), static_cast<uint32_t>(graphicsQueueFamilyIndex), 1, &queuePriority);
+		vk::Device device = physicalDevice.createDevice(vk::DeviceCreateInfo(vk::DeviceCreateFlags(), deviceQueueCreateInfo));
+
+		VULKAN_HPP_DEFAULT_DISPATCHER.init(device);
+
+#ifndef NDEBUG
+		instance.destroyDebugUtilsMessengerEXT(debugUtilsMessenger);
+#endif
+
+		device.destroy();
+		instance.destroy();
 	}
 	catch (vk::SystemError const& err)
 	{
