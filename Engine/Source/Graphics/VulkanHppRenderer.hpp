@@ -1,4 +1,5 @@
 #include <memory>
+#include <vulkan/vulkan.hpp>
 
 struct EngineProperties;
 class Window;
@@ -11,6 +12,10 @@ public:
 	void InitializeRenderer();
 
 private:
+	void InitializeInstance();
+
 	std::weak_ptr<EngineProperties> mEngineProperties;
 	std::weak_ptr<Window> mWindow;
+
+	vk::Instance mInstance;
 };

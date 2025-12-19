@@ -27,37 +27,13 @@ void VulkanHppRenderer::InitializeRenderer()
 {
 	try
 	{
-		VULKAN_HPP_DEFAULT_DISPATCHER.init();
-
-		vk::ApplicationInfo applicationInfo(mEngineProperties.lock()->mApplicationName.c_str(), 1, mEngineProperties.lock()->mEngineName.c_str(), 1, mEngineProperties.lock()->mAPIVersion);
-
-		std::vector<std::string> layers = {};
-		std::vector<char const*> enabledLayers = vk::su::gatherLayers(layers
-#ifndef NDEBUG
-			,
-			vk::enumerateInstanceLayerProperties()
-#endif
-		);
-
-		std::vector<std::string> extensions = {};
-		std::vector<char const*> enabledExtensions = vk::su::gatherExtensions(extensions
-#ifndef NDEBUG
-			,
-			vk::enumerateInstanceExtensionProperties()
-#endif
-		);
-
-		vk::InstanceCreateInfo instanceCreateInfo({}, &applicationInfo);
-
-		vk::Instance instance = vk::createInstance(vk::su::makeInstanceCreateInfoChain({}, applicationInfo, enabledLayers, enabledExtensions).get<vk::InstanceCreateInfo>());
-		
-		VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
+		InitializeInstance();
 
 #ifndef NDEBUG
-		vk::DebugUtilsMessengerEXT debugUtilsMessenger = instance.createDebugUtilsMessengerEXT(vk::su::makeDebugUtilsMessengerCreateInfoEXT());
+		vk::DebugUtilsMessengerEXT debugUtilsMessenger = mInstance.createDebugUtilsMessengerEXT(vk::su::makeDebugUtilsMessengerCreateInfoEXT());
 #endif
 
-		vk::PhysicalDevice physicalDevice = instance.enumeratePhysicalDevices().front();
+		vk::PhysicalDevice physicalDevice = mInstance.enumeratePhysicalDevices().front();
 
 		std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
 
@@ -76,11 +52,11 @@ void VulkanHppRenderer::InitializeRenderer()
 		VULKAN_HPP_DEFAULT_DISPATCHER.init(device);
 
 #ifndef NDEBUG
-		instance.destroyDebugUtilsMessengerEXT(debugUtilsMessenger);
+		mInstance.destroyDebugUtilsMessengerEXT(debugUtilsMessenger);
 #endif
 
 		device.destroy();
-		instance.destroy();
+		mInstance.destroy();
 	}
 	catch (vk::SystemError const& err)
 	{
@@ -92,4 +68,32 @@ void VulkanHppRenderer::InitializeRenderer()
 		std::cout << "unknown error\n";
 		exit(-1);
 	}
+}
+
+void VulkanHppRenderer::InitializeInstance()
+{
+	VULKAN_HPP_DEFAULT_DISPATCHER.init();
+
+	std::vector<std::string> layers = {};
+	std::vector<char const*> enabledLayers = vk::su::gatherLayers(layers
+#ifndef NDEBUG
+		,
+		vk::enumerateInstanceLayerProperties()
+#endif
+	);
+
+	std::vector<std::string> extensions = {};
+	std::vector<char const*> enabledExtensions = vk::su::gatherExtensions(extensions
+#ifndef NDEBUG
+		,
+		vk::enumerateInstanceExtensionProperties()
+#endif
+	);
+
+	vk::ApplicationInfo applicationInfo(mEngineProperties.lock()->mApplicationName.c_str(), 1, mEngineProperties.lock()->mEngineName.c_str(), 1, mEngineProperties.lock()->mAPIVersion);
+	vk::InstanceCreateInfo instanceCreateInfo({}, &applicationInfo);
+
+	mInstance = vk::createInstance(vk::su::makeInstanceCreateInfoChain({}, applicationInfo, enabledLayers, enabledExtensions).get<vk::InstanceCreateInfo>());
+
+	VULKAN_HPP_DEFAULT_DISPATCHER.init(mInstance);
 }
