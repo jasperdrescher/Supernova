@@ -141,17 +141,17 @@ namespace vk
 			return enabledExtensions;
 		}
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 		vk::StructureChain<vk::InstanceCreateInfo>
 #else
 		vk::StructureChain<vk::InstanceCreateInfo, vk::DebugUtilsMessengerCreateInfoEXT>
 #endif
-			makeInstanceCreateInfoChain(vk::InstanceCreateFlagBits        instanceCreateFlagBits,
+			makeInstanceCreateInfoChain(vk::InstanceCreateFlagBits instanceCreateFlagBits,
 				vk::ApplicationInfo const& applicationInfo,
 				std::vector<char const*> const& layers,
 				std::vector<char const*> const& extensions)
 		{
-#ifndef NDEBUG
+#ifdef NDEBUG
 			// in non-debug mode just use the InstanceCreateInfo for instance creation
 			vk::StructureChain<vk::InstanceCreateInfo> instanceCreateInfo({instanceCreateFlagBits, &applicationInfo, layers, extensions});
 #else

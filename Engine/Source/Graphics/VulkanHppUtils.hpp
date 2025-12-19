@@ -30,7 +30,7 @@ namespace vk
 #endif
 		);
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 		vk::StructureChain<vk::InstanceCreateInfo>
 #else
 		vk::StructureChain<vk::InstanceCreateInfo, vk::DebugUtilsMessengerCreateInfoEXT>
